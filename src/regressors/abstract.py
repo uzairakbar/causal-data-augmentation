@@ -21,3 +21,9 @@ class Regressor(ABC, BaseEstimator):
 class EmpiricalRiskMinimizer(Regressor):
     pass
 
+
+class IVRegressor(Regressor):
+    @abstractmethod
+    def fit(self, X, y, Z):
+        pass
+
