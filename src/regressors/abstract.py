@@ -45,3 +45,25 @@ class DAIVRegressor(IVRegressor, EmpiricalRiskMinimizer):
     def fit(self, X, y, G, GX):
         pass
 
+
+class ModelSelector(ABC, BaseSearchCV):
+    def __init__(self, **kwargs):
+        r2 = make_scorer(self.r2)
+        super(ModelSelector, self).__init__(**kwargs, scoring=r2)
+    
+    @property
+    def alpha(self):
+        return self.best_estimator_.alpha
+    
+    @property
+    def solution(self):
+        return self.best_estimator_.solution
+
+    @staticmethod
+    def r2(y, yhat, **kwargs):
+        ss = lambda x: sum(x**2)
+        ss_residual = ss(y - yhat)
+        ss_total = ss(y - y.mean())
+        r2 = 1 - ss_residual/ss_total
+        return r2
+
