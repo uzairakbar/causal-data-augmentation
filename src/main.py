@@ -1,2 +1,4 @@
-from src.experiments.simulation import linear
+from src.experiments.simulation import linear, nonlinear
+
 linear.main()
+nonlinear.main()
