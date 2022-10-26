@@ -78,6 +78,30 @@ def sweep_plot(x, y,
         fig.savefig(f"assets/{fname}.pdf", format="pdf", dpi=1200)
 
 
+def box_plot(data,
+             xlabel="RSE",
+             ylabel="method",
+             fname="optical_device",
+             save=True):
+    sns.set_style("darkgrid")
+    fig = plt.figure()
+    ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
+    labels = []
+    for method in data.keys():    
+        if "DAIV" in method:
+            alpha = "" if (method == "DAIV") else method.split("+")[-1]
+            label = fr"DAIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
+        else:
+            label = method
+        labels.append(label)
+    ax.set(yticklabels=labels)
+    ax.set(xlabel=xlabel, ylabel=ylabel)
+    plt.tight_layout()
+    plt.show()
+    if save:
+        fig.savefig(f"assets/{fname}.pdf", format="pdf", dpi=1200)
+
+
 def grid_plot(data, save=True, fname="nonlinear_simulation"):
     label = {
         "Data": "Data",
