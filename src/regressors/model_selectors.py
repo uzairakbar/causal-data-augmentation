@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sc
 from scipy.optimize import minimize
+from sklearn.model_selection import LeaveOneGroupOut
 from sklearn.model_selection import RandomizedSearchCV
 
 from src.regressors.abstract import ModelSelector
@@ -10,6 +11,20 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 class LeaveOneOut(ModelSelector, RandomizedSearchCV):
     def __init__(self, **kwargs):
         super(LeaveOneOut, self).__init__(**kwargs)
+
+
+class LeaveOneLevelOut(ModelSelector, RandomizedSearchCV):
+    def __init__(self, **kwargs):
+        super(LeaveOneLevelOut, self).__init__(**kwargs, cv=LeaveOneGroupOut())
+
+    def fit(self, X, y, G=None, GX=None, **kwargs):
+        _, groups = np.unique(G, return_inverse=True, axis=0)
+        return super(LeaveOneLevelOut, self).fit(X=GX,
+                                                 y=y,
+                                                 G=G,
+                                                 GX=GX,
+                                                 groups=groups,
+                                                 **kwargs)
 
 
 class ConfounderCorrection(ModelSelector):
