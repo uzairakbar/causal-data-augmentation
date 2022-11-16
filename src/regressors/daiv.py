@@ -11,7 +11,7 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
     def __init__(self, alpha = 1.0):
         super(DAIVLeastSquaresClosedForm, self).__init__(alpha)
         
-    def fit(self, X, y, G=None, GX=None):
+    def _fit(self, X, y, G=None, GX=None):
         N = len(GX)
         I = np.eye(N)
         Cgg = G.T @ G
@@ -23,10 +23,13 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         self._W = OLS().fit(X_, y_).solution
 
         return self
+    
+    def _predict(self, X):
+        return X @ self._W
 
 
 class DAIVProjectedLeastSquares(DAIVRegressor):
-    def fit(self, X, y, G=None, GX=None):
+    def _fit(self, X, y, G=None, GX=None):
         erm = OLS().fit(GX, y).solution
 
         s1 = OLS().fit(G, GX).solution
@@ -36,6 +39,9 @@ class DAIVProjectedLeastSquares(DAIVRegressor):
         self._W = s2
 
         return self
+    
+    def _predict(self, X):
+        return X @ self._W
 
 
 class DAIVGeneralizedMomentMethod(IV, ERM):
@@ -50,7 +56,7 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
                      self).__init__(model=model,
                                     gmm_steps=gmm_steps,
                                     epochs=epochs)
-
+    
     def fit(self, X, y, G, GX):
         return super(DAIVGeneralizedMomentMethod,
                      self).fit(X=GX, y=y, Z=G)

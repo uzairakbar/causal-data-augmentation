@@ -165,6 +165,7 @@ def grid_plot(data, save=True, fname="nonlinear_simulation"):
 def tex_table(data,
               fname,
               title,
+              highlight="min",
               decimals=3):
     label = {
         "ERM": "ERM",
@@ -178,16 +179,22 @@ def tex_table(data,
     if "ERM" in data:
         row_names = None
         results = [np.round((np.mean(v), np.std(v)), decimals) for v in data.values()]
-        minimum = min(results, key = lambda v : v[0])[0]
+        if highlight == "min":
+            best = min(results, key = lambda v : v[0])[0]
+        elif highlight == "max":
+            best = max(results, key = lambda v : v[0])[0]
         column_names = [label[k] for k in data]
     else:
         row_names = list(data.keys())
         results = {}
-        minimum = {}
+        best = {}
         for row in row_names:
             columns = {col: data[row][col] for col in label.keys() if col in data[row]}
             results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
-            minimum[row] = min(results[row], key = lambda v : v[0])[0]
+            if highlight == "min":
+                best[row] = min(results[row], key = lambda v : v[0])[0]
+            elif highlight == "max":
+                best[row] = max(results[row], key = lambda v : v[0])[0]
         column_names = [label[k] for k in data[row_names[0]]]
     
     with open(f"assets/{fname}.tex", "w+") as f:
@@ -200,21 +207,28 @@ def tex_table(data,
         if row_names is not None:
             columns = " & " + columns
         
-        def row_content(row_data, minimum):
-            row = " & ".join([
-                f"${mean:.3f}\\pm {std:.3f}$" if mean > minimum
-                else ("$\\mathbf{ "+f"{mean:.3f}\\pm {std:.3f}"+" }$")
-                for (mean, std) in row_data
-            ])
+        def row_content(row_data, best):
+            if highlight == "min":
+                row = " & ".join([
+                    f"${mean:.3f}\\pm {std:.3f}$" if mean > best
+                    else ("$\\mathbf{ "+f"{mean:.3f}\\pm {std:.3f}"+" }$")
+                    for (mean, std) in row_data
+                ])
+            elif highlight == "max":
+                row = " & ".join([
+                    f"${mean:.3f}\\pm {std:.3f}$" if mean < best
+                    else ("$\\mathbf{ "+f"{mean:.3f}\\pm {std:.3f}"+" }$")
+                    for (mean, std) in row_data
+                ])
             return row
         
         if row_names is not None:
             content = backreturn.join([
-                f"{row_name} & " + row_content(results[row_name], minimum[row_name])
+                f"{row_name} & " + row_content(results[row_name], best[row_name])
                 for row_name in row_names
             ])
         else:
-            content = row_content(results, minimum)
+            content = row_content(results, best)
         
         f.write(f"""
                 \\begin{{table}}[ht]

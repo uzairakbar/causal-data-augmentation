@@ -23,11 +23,13 @@ ALL_METHODS = {
     "ERM": lambda: ERM(model="2-layer"),
     "DA+ERM": lambda: ERM(model="2-layer"),
     "DAIV+LOO": lambda: LOO(
+        metric="mse",
         estimator=DAIV(model="2-layer"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
         cv=5                                # TODO: proper LOO CV
     ),
     "DAIV+LOLO": lambda: LOLO(
+        metric="mse",
         estimator=DAIV(model="2-layer"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)}
     ),
