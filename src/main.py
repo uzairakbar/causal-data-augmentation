@@ -10,6 +10,7 @@ from src.experiments.simulation import (
 from src.experiments.real import (
     linear as optical_device_experiment,
     cmnist as cmnist_experiment,
+    rmnist as rmnist_experiment,
 )
 
 
@@ -17,4 +18,5 @@ linear_simulation.main()
 nonlinear_simulation.main()
 optical_device_experiment.main()
 cmnist_experiment.main()
+rmnist_experiment.main()
 
