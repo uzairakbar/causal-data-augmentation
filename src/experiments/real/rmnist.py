@@ -9,7 +9,8 @@ from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
 
-from src.regressors.model_selectors import LeaveOneOut as LOO
+# from src.regressors.model_selectors import LeaveOneOut as LOO
+from src.regressors.model_selectors import VanillaCV as CV
 
 from src.experiments.utils import (
     set_seed,
@@ -21,11 +22,11 @@ from src.experiments.utils import (
 ALL_METHODS = {
     "ERM": lambda: ERM(model="rmnist"),
     "DA+ERM": lambda: ERM(model="rmnist"),
-    "DAIV+LOO": lambda: LOO(
+    "DAIV+LOO": lambda: CV(
         metric="accuracy",
         estimator=DAIV(model="rmnist"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-        cv=5                                # TODO: proper LOO CV
+        frac=0.2
     ),
     "DA+IV": lambda: IV(model="rmnist")
 }
