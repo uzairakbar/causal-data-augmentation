@@ -8,7 +8,7 @@ from src.experiments.simulation import (
     nonlinear as nonlinear_simulation,
 )
 from src.experiments.real import (
-    linear as optical_device_experiment,
+    optical_device as optical_device_experiment,
     cmnist as cmnist_experiment,
     rmnist as rmnist_experiment,
 )

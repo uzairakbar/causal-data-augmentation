@@ -1,13 +1,15 @@
 import argparse
 import numpy as np
 
-from src.data_augmentors.real.linear import OpticalDeviceDA as DA
+from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
-from src.sem.real.linear import OpticalDeviceSEM as SEM
+from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 # from src.regressors.iv import IVGeneralizedMomentMethod as IV
 # from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
+from src.regressors.daiv import MinMaxDAIV as mmDAIV
+from src.regressors.daiv import DAIVProjectedLeastSquares as pDAIV
 from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIV
 from src.regressors.iv import IVTwoStageLeastSquares as IV
 
@@ -36,6 +38,8 @@ ALL_METHODS = {
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)}
     ),
     "DAIV+CC": lambda: CC(estimator=DAIV()),
+    "mmDAIV": lambda: mmDAIV(),
+    "pDAIV": lambda: pDAIV(),
     "DA+IV": lambda: IV()
 }
 
@@ -90,7 +94,7 @@ def main():
     parser = argparse.ArgumentParser(description='Optical Device Dataset')
     parser.add_argument('--n_samples', type=int, default=1000)
     parser.add_argument('--seed', type=int, default=42)  # Negative is random
-    parser.add_argument('--methods', type=str, default="ERM,DA+ERM,DAIV+LOO,DAIV+LOLO,DAIV+CC,DA+IV")
+    parser.add_argument('--methods', type=str, default="ERM,DA+ERM,DAIV+LOO,DAIV+LOLO,DAIV+CC,mmDAIV,pDAIV,DA+IV")
     parser.add_argument('--alpha', type=float, default=2.0)
     args = dict(vars(parser.parse_args()))
 

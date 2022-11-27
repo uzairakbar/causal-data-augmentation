@@ -87,8 +87,10 @@ def box_plot(data,
     fig = plt.figure()
     ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
     labels = []
-    for method in data.keys():    
-        if "DAIV" in method:
+    for method in data.keys():
+        if method == "pDAIV" or method == "mmDAIV":
+            label = method
+        elif "DAIV" in method:
             alpha = "" if (method == "DAIV") else method.split("+")[-1]
             label = fr"DAIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
         else:
@@ -174,6 +176,8 @@ def tex_table(data,
         "DAIV+LOLO": "DAIV--$\\alpha^{\\text{LOLO}}$",
         "DAIV+CC": "DAIV--$\\alpha^{\\text{CC}}$",
         "DA+IV": "DA+IV",
+        "mmDAIV": "mmDAIV",
+        "pDAIV": "pDAIV",
     }
     
     if "ERM" in data:
