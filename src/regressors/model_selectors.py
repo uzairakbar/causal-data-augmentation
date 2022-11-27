@@ -1,11 +1,21 @@
 import numpy as np
 import scipy as sc
 from scipy.optimize import minimize
-from sklearn.model_selection import LeaveOneGroupOut
-from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import (
+    LeaveOneGroupOut,
+    RandomizedSearchCV,
+)
 
+from src.regressors.utils import VanillaSplitter
 from src.regressors.abstract import ModelSelector
 from src.regressors.erm import LeastSquaresClosedForm as ERM
+
+
+class VanillaCV(ModelSelector, RandomizedSearchCV):
+    def __init__(self, frac=0.2, **kwargs):
+        super(VanillaCV, self).__init__(
+            **kwargs, cv=VanillaSplitter(frac=frac)
+        )
 
 
 class LeaveOneOut(ModelSelector, RandomizedSearchCV):
