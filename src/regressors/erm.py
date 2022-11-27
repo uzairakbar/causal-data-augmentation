@@ -153,13 +153,13 @@ class LeastSquaresGradientDescent(ERM):
         return loss
 
     @staticmethod
-    def _loss(X, y, f):
+    def _loss(X, y, f, reduction="sum"):
         y_hat = f(X)
         if isinstance(f[-1], torch.nn.LogSoftmax):
-            loss = F.nll_loss(y_hat, y.flatten(), reduction='sum')
+            loss = F.nll_loss(y_hat, y.flatten(), reduction=reduction)
         elif isinstance(f[-1], torch.nn.Sigmoid):
-            loss = F.binary_cross_entropy(y_hat, y, reduction='sum')
+            loss = F.binary_cross_entropy(y_hat, y, reduction=reduction)
         else:
-            loss = F.mse_loss(y_hat, y, reduction='sum')
+            loss = F.mse_loss(y_hat, y, reduction=reduction)
         return loss
 
