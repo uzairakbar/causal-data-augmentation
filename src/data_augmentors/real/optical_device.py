@@ -6,8 +6,7 @@ from src.data_augmentors.abstract import DataAugmenter as DA
 
 class RandomPermutation(DA):
     def __call__(self, X):
-        PERMUTE = ([1,
-                   -1])
+        PERMUTE = ([1, -1])
         
         N = len(X)
         G = np.random.choice(PERMUTE, size=N)
@@ -31,6 +30,7 @@ class RandomPermutation(DA):
             gx = x
         return gx
 
+
 class RandomRotation(RandomPermutation):
     def augment(self, x, g):
         ROTATION90 = np.array([6, 3, 0,
@@ -52,16 +52,18 @@ class RandomVerticalFlip(RandomPermutation):
                                   0, 1, 2])
         return self.permute(x, g, VERTICAL_FLIP)
 
-class OpticalDeviceDA(object):
-    def __call__(self, X):
+
+class OpticalDeviceDA(DA):
+    def augment(self, X):
         augmentations = ([
             RandomRotation(),
             RandomHorizontalFlip(),
             RandomVerticalFlip()
         ])
-        GX = X
+        GX = X.copy()
         G = np.zeros(( len(X), len(augmentations) ))
         for i, augmentation in enumerate(augmentations):
             GX, G[:, i] = augmentation(GX)
         
         return GX, G
+
