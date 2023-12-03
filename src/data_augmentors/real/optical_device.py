@@ -6,10 +6,10 @@ from src.data_augmentors.abstract import DataAugmenter as DA
 
 class RandomPermutation(DA):
     def __call__(self, X):
-        PERMUTE = ([1, -1])
+        PERMUTE = ([1.0, -1.0])
         
         N = len(X)
-        G = np.random.choice(PERMUTE, size=N)
+        G = np.random.choice(PERMUTE, size=N, p=[0.5, 0.5])
         GX = np.zeros_like(X)
         for i in range(len(X)):
             x = X[i, :]
@@ -24,9 +24,9 @@ class RandomPermutation(DA):
 
     @staticmethod
     def permute(x, g, permutation):
-        if g == 1:
+        if g == 1.0:
             gx = x[permutation]
-        elif g == -1:
+        elif g == -1.0:
             gx = x
         return gx
 
@@ -53,17 +53,32 @@ class RandomVerticalFlip(RandomPermutation):
         return self.permute(x, g, VERTICAL_FLIP)
 
 
+class GaussianNoise(DA):
+    def __call__(self, X):
+        N, M = X.shape
+        G = np.random.randn(N, M)
+        GX = self.augment(X, G)
+        return GX, G
+    
+    def augment(self, X, G):
+        return X + 0.1 * G
+
+
 class OpticalDeviceDA(DA):
     def augment(self, X):
         augmentations = ([
             RandomRotation(),
             RandomHorizontalFlip(),
-            RandomVerticalFlip()
+            RandomVerticalFlip(),
         ])
         GX = X.copy()
         G = np.zeros(( len(X), len(augmentations) ))
         for i, augmentation in enumerate(augmentations):
             GX, G[:, i] = augmentation(GX)
         
+        # noise = GaussianNoise()
+        # GX, G_noise = noise(GX)
+        # G = np.hstack((G, G_noise))
+
         return GX, G
 

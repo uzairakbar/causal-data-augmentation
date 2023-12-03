@@ -88,7 +88,7 @@ class LeastSquaresGradientDescent(ERM):
         elif torch.backends.mps.is_available():
             self.f = self.f.to("mps")
 
-        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.01)
+        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
 
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             y = torch.tensor(y, dtype=torch.long)
@@ -107,7 +107,7 @@ class LeastSquaresGradientDescent(ERM):
         else:
             print("Using CPU")
 
-        batch_mode = "mini" if n >= 1000 else "full"
+        batch_mode = "mini" if n > 5000 else "full"
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
                                       batch_size=128, shuffle=True)
 

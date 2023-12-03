@@ -26,7 +26,8 @@ ALL_METHODS = {
         metric="accuracy",
         estimator=DAIV(model="rmnist"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-        frac=0.2
+        frac=0.2,
+        n_jobs=-1,
     ),
     "DA+IV": lambda: IV(model="rmnist")
 }

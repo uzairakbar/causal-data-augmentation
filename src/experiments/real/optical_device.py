@@ -6,12 +6,14 @@ from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
 from src.regressors.erm import LeastSquaresClosedForm as ERM
-# from src.regressors.iv import IVGeneralizedMomentMethod as IV
+from src.regressors.iv import IVGeneralizedMomentMethod as IV
 # from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
 from src.regressors.daiv import MinMaxDAIV as mmDAIV
 from src.regressors.daiv import DAIVProjectedLeastSquares as pDAIV
+from src.regressors.daiv import DAIVProjectedLeastSquares_ as pDAIV_
 from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIV
-from src.regressors.iv import IVTwoStageLeastSquares as IV
+from src.regressors.daiv import DAIVConstrainedLeastSquared as DAIV0
+# from src.regressors.iv import IVTwoStageLeastSquares as IV
 
 from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -20,27 +22,34 @@ from src.regressors.model_selectors import ConfounderCorrection as CC
 from src.experiments.utils import (
     set_seed,
     relative_sq_error,
+    bootstrap,
     box_plot,
     tex_table,
 )
 
 
 ALL_METHODS = {
-    "ERM": lambda: ERM(),
-    "DA+ERM": lambda: ERM(),
-    "DAIV+LOO": lambda: LOO(
-        estimator=DAIV(),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-        cv=5                                # TODO: proper LOO CV
-    ),
-    "DAIV+LOLO": lambda: LOLO(
-        estimator=DAIV(),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)}
-    ),
-    "DAIV+CC": lambda: CC(estimator=DAIV()),
+    # "ERM": lambda: ERM(),
+    # "DA+ERM": lambda: ERM(),
+    # "DAIV+LOO": lambda: LOO(
+    #     estimator=DAIV(),
+    #     param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+    #     cv=5,                                # TODO: proper LOO CV
+    #     n_jobs=-1,
+    # ),
+    # "DAIV+LOLO": lambda: LOLO(
+    #     estimator=DAIV(),
+    #     param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+    #     n_jobs=-1,
+    # ),
+    # "DAIV+CC": lambda: CC(estimator=DAIV()),
+    
     "mmDAIV": lambda: mmDAIV(),
-    "pDAIV": lambda: pDAIV(),
-    "DA+IV": lambda: IV()
+
+    # "DAIVP_": lambda: pDAIV(),
+    # "DAIVP__": lambda: pDAIV_(),
+    # "DAIV0": lambda: DAIV0(),
+    # # "DA+IV": lambda: IV()
 }
 
 def run(args):
@@ -94,14 +103,15 @@ def main():
     parser = argparse.ArgumentParser(description='Optical Device Dataset')
     parser.add_argument('--n_samples', type=int, default=1000)
     parser.add_argument('--seed', type=int, default=42)  # Negative is random
-    parser.add_argument('--methods', type=str, default="ERM,DA+ERM,DAIV+LOO,DAIV+LOLO,DAIV+CC,mmDAIV,pDAIV,DA+IV")
+    parser.add_argument('--methods', type=str, default="all")
     parser.add_argument('--alpha', type=float, default=2.0)
     args = dict(vars(parser.parse_args()))
 
     all_errors = run(args)
-    box_plot(all_errors, fname="optical_device")
+
+    box_plot(bootstrap(all_errors), fname="optical_device")
     tex_table(
-        all_errors, fname="optical_device",
+        bootstrap(all_errors), fname="optical_device",
         title="Results for the optical device experiment."
     )
 

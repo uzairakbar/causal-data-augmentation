@@ -8,39 +8,44 @@ from src.sem.simulation.linear import LinearSimulationSEM as SEM
 from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIV
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVTwoStageLeastSquares as IV
-from src.regressors.daiv import DAIVProjectedLeastSquares as DAIVP
+from src.regressors.daiv import DAIVProjectedLeastSquares_ as DAIVP
+from src.regressors.daiv import DAIVConstrainedLeastSquared as DAIVP_
 
 from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import ConfounderCorrection as CC
 
 from src.experiments.utils import (
     set_seed,
+    bootstrap,
     sweep_plot,
     relative_sq_error,
 )
 
 
 ALL_METHODS = {
-    "ERM": lambda: ERM(),
+    # "ERM": lambda: ERM(),
     "DA+ERM": lambda: ERM(),
-    "DAIV+LOO": lambda: LOO(
-        estimator=DAIV(),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-        cv=5                                # TODO: proper LOO CV
-    ),
+    "DAIVP": lambda: DAIVP(),
+    "DAIVP_": lambda: DAIVP_(),
+    # "DAIV+LOO": lambda: LOO(
+    #     estimator=DAIV(),
+    #     param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+    #     cv=5,                                # TODO: proper LOO CV
+    #     n_jobs=-1,
+    # ),
     "DAIV+CC": lambda: CC(estimator=DAIV()),
-    "DA+IV": lambda: IV(),
+    # "DA+IV": lambda: IV(),
 }
 
 
 class Experiment(ABC):
     def __init__(self,
                  x_dimension = 30,
-                 n_samples = 500,
-                 n_experiments = 10,
+                 n_samples = 5000,
+                 n_experiments = 25,
                  seed = 42,
                  methods = "all",
-                 sweep_samples = 10):
+                 sweep_samples = 25):
         self.x_dimension = x_dimension
         self.n_samples = n_samples
         self.n_experiments = n_experiments
@@ -180,24 +185,24 @@ class AlphaSweep(Experiment):
 
 
 def main():
-    lambda_values, results = LambdaSweep().run_experiment()
-    sweep_plot(
-        lambda_values, results, xlabel=r"$\lambda$", xscale="linear"
-    )
+    # lambda_values, results = LambdaSweep().run_experiment()
+    # sweep_plot(
+    #     lambda_values, bootstrap(results), xlabel=r"$\lambda$", xscale="linear"
+    # )
 
     gamma_values, results = GammaSweep().run_experiment()
     sweep_plot(
-        gamma_values, results, xlabel=r"$\gamma$", xscale="log"
+        gamma_values, bootstrap(results), xlabel=r"$\gamma$", xscale="log"
     )
 
-    alpha_values, results = AlphaSweep().run_experiment()
-    vertical_plots = ([
-        method for method in ALL_METHODS.keys() if "DAIV+" in method
-    ])
-    sweep_plot(
-        alpha_values, results, xlabel=r"$\alpha$", xscale="log",
-        vertical_plots=vertical_plots, trivial_solution=False
-    )
+    # alpha_values, results = AlphaSweep().run_experiment()
+    # vertical_plots = ([
+    #     method for method in ALL_METHODS.keys() if "DAIV+" in method
+    # ])
+    # sweep_plot(
+    #     alpha_values, bootstrap(results), xlabel=r"$\alpha$", xscale="log",
+    #     vertical_plots=vertical_plots, trivial_solution=False
+    # )
 
 
 if __name__ == "__main__":

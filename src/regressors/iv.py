@@ -10,8 +10,11 @@ from src.regressors.erm import (
 )
 
 
+# ERM = {"cf": LSCF(),
+#        "gd": LSGD()}
+
 ERM = {"cf": LSCF(),
-       "gd": LSGD()}
+       "gd": LSCF()}
 
 
 class IVTwoStageLeastSquares(IV):
@@ -116,6 +119,12 @@ class IVGeneralizedMomentMethod(IV):
         _ = self._optimizer.step(lambda: self.loss(X, y, Z, weights))
 
     def _fit(self, X, y, Z):
+        from sklearn.preprocessing import PolynomialFeatures
+        Z_poly_degree = 2
+        Z = PolynomialFeatures(
+            Z_poly_degree, include_bias=False
+        ).fit_transform(Z)
+
         n, m = X.shape
         _, k = Z.shape
 
@@ -127,7 +136,7 @@ class IVGeneralizedMomentMethod(IV):
         elif torch.backends.mps.is_available():
             self.f = self.f.to("mps")
         
-        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.01)
+        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
         
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             y = torch.tensor(y, dtype=torch.long)

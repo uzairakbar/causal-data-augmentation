@@ -8,7 +8,7 @@ class NonlinearSimulationDA(DA):
         AUGMENTATION = {
             "abs": lambda x, g: (g * x),
             "sin": lambda x, g: (x + 2*np.pi*g),
-            "step": lambda x, g: (x * 10**(g+1)),
+            "step": lambda x, g: (x * 10**(g)),
         }
         SAMPLER = {
             "abs": lambda N: np.random.choice([-1, 1], size=(N, 1)),

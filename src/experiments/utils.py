@@ -10,7 +10,7 @@ def relative_sq_error(W, What):
     sqnorm = lambda x: (x**2).sum()
     error = sqnorm(What - W)
     relative_error = error / (error + sqnorm(W))
-    return relative_error
+    return relative_error**0.5
 
 
 def set_seed(seed = 42):
@@ -43,10 +43,14 @@ def sweep_plot(x, y,
     for i, (method, errors) in enumerate(y.items()):
         mean = errors.mean(axis = 1)
 
-        if "DAIV" in method:
+        if "DAIVP" == method:
+            label = fr"DA+UIV-$\Pi$"
+        elif "DAIVP_" == method:
+            label = fr"DA+UIV"
+        elif "DAIV" in method:
             alpha = "" if (method == "DAIV") else method.split("+")[-1]
-            label_prefix = "average " if (method in vertical_plots) else "DAIV-"
-            label = label_prefix + fr"$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
+            label_prefix = "average " if (method in vertical_plots) else "DA+UIV"
+            label = label_prefix + fr"-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
         else:
             label = method
         labels.append(label)
@@ -83,12 +87,18 @@ def box_plot(data,
              ylabel="method",
              fname="optical_device",
              save=True):
+    if len(list(data.values())[0].shape) > 1:
+        data = {
+            key: value.copy().flatten()
+            for key, value in data.items()
+        }
+
     sns.set_style("darkgrid")
     fig = plt.figure()
     ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
     labels = []
     for method in data.keys():
-        if method == "pDAIV" or method == "mmDAIV":
+        if method in ["pDAIV", "mmDAIV", "DAIVP__", "DAIV0", "DAIVP_"]:
             label = method
         elif "DAIV" in method:
             alpha = "" if (method == "DAIV") else method.split("+")[-1]
@@ -110,6 +120,7 @@ def grid_plot(data, save=True, fname="nonlinear_simulation"):
         "ERM": "ERM",
         "DA+ERM": "DA+ERM",
         "DA+IV": "DA+IV",
+        "mmDAIV": "mmDAIV",
         "DAIV+LOO": r"DAIV-$\alpha^{\mathrm{\mathsf{LOO}}}$",
         "DAIV+LOLO": r"DAIV-$\alpha^{\mathrm{\mathsf{LOLO}}}$",
     }
@@ -122,7 +133,7 @@ def grid_plot(data, save=True, fname="nonlinear_simulation"):
     sns.set_style("darkgrid")
     colors = sns.color_palette()[:3]
     fig, axs = plt.subplots(
-        len(functions), len(methods), figsize=(18, 9), sharex=True, sharey=False
+        len(functions), len(methods), figsize=(3*len(methods), 3*len(functions)), sharex=True, sharey=False
     )
     for i, function in enumerate(functions):
         for j, method in enumerate(methods):
@@ -175,9 +186,9 @@ def tex_table(data,
         "DAIV+LOO": "DAIV--$\\alpha^{\\text{LOO}}$",
         "DAIV+LOLO": "DAIV--$\\alpha^{\\text{LOLO}}$",
         "DAIV+CC": "DAIV--$\\alpha^{\\text{CC}}$",
-        "DA+IV": "DA+IV",
         "mmDAIV": "mmDAIV",
         "pDAIV": "pDAIV",
+        "DA+IV": "DA+IV",
     }
     
     if "ERM" in data:
@@ -251,3 +262,35 @@ def tex_table(data,
                 \\end{{table}}
                     """.strip())
 
+
+def bootstrap(data, n_samples=1000):
+    if len(list(data.values())[0].shape) == 1:
+        data = {
+            key: value.copy().reshape(1, -1)
+            for key, value in data.items()
+        }
+
+    def bootstrap_sample(data, n_bootstrap=None):
+        
+            
+        if len(data.shape) == 1:
+            data = data.copy().reshape(1, -1)
+        if n_bootstrap is None:
+            n_bootstrap = data.shape[-1]
+        N, M = data.shape
+        idx = np.random.randint(0, M, (N, n_bootstrap))
+        sample = np.take_along_axis(data, idx, axis=1)
+        return sample
+    
+
+    bootstrapped_data = {
+        model: np.zeros((data[model].shape[0], n_samples)) for model in data
+    }
+    for model in data:
+        for i in range(n_samples):
+            bootstrapped_data[model][:, i] = np.mean(
+                bootstrap_sample(data[model]),
+                axis = 1
+            )
+        
+    return bootstrapped_data

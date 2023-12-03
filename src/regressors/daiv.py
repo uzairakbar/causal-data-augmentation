@@ -1,6 +1,11 @@
 import torch
+
 import numpy as np
+# import cvxpy as cp
+import pandas as cp
+from math import comb
 import torch.nn.functional as F
+from scipy.optimize import minimize
 
 from src.regressors.abstract import DAIVRegressor
 from src.regressors.erm import LeastSquaresClosedForm as OLS
@@ -31,15 +36,130 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
 
 
 class DAIVProjectedLeastSquares(DAIVRegressor):
+    def __init__(self, alpha = None):
+        super(DAIVProjectedLeastSquares, self).__init__(alpha)
+
     def _fit(self, X, y, G=None, GX=None):
-        erm = OLS().fit(GX, y).solution
+        h_erm = OLS().fit(GX, y).solution
 
         s1 = OLS().fit(G, GX).solution
         GXhat = G @ s1
+        
+        A = GXhat.T @ GXhat
+        b = GXhat.T @ y
+        
+        def f(h):
+            return 0.5 * np.sum( (h_erm - h[:, None])**2 )
 
-        s2 = erm - np.linalg.pinv(GXhat) @ (GXhat @ erm - y)
-        self._W = s2
+        def df(h):
+            return - 1.0 * (h_erm - h[:, None])
+        
+        def ddf(h):
+            return np.eye(len(h_erm))
 
+        constraints = (
+            {'type': 'eq',
+            'fun' : lambda h: A @ h[:, None],
+            'jac' : lambda h: A,},
+            {'type': 'ineq',
+            'fun' : lambda h: A @ h[:, None],
+            'jac' : lambda h: A,},
+            {'type': 'ineq',
+            'fun' : lambda h: - A @ h[:, None],
+            'jac' : lambda h: - A,},
+        )
+
+        h0 = h_erm - A.T @ np.linalg.pinv(A @ A.T) @ (A @ h_erm - b)
+        self._W = h0
+
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class DAIVProjectedLeastSquares_(DAIVRegressor):
+    def __init__(self, alpha = None):
+        super(DAIVProjectedLeastSquares_, self).__init__(alpha)
+
+    def _fit(self, X, y, G=None, GX=None):
+        h_erm = OLS().fit(GX, y).solution
+
+        s1 = OLS().fit(G, GX).solution
+        GXhat = G @ s1
+        
+        A = GXhat.T @ GXhat
+        b = GXhat.T @ y
+
+        def f(h):
+            return 0.5 * np.sum( (h_erm - h[:, None])**2 )
+
+        def df(h):
+            return - 1.0 * (h_erm - h[:, None])
+        
+        def ddf(h):
+            return np.eye(len(h_erm))
+
+        constraints = (
+            {'type': 'eq',
+            'fun' : lambda h: b - A @ h[:, None],
+            'jac' : lambda h: -A,},
+            {'type': 'ineq',
+            'fun' : lambda h: b - A @ h[:, None],
+            'jac' : lambda h: -A,},
+            {'type': 'ineq',
+            'fun' : lambda h: A @ h[:, None] - b,
+            'jac' : lambda h: A,},
+        )
+
+        h0 = h_erm - A.T @ np.linalg.pinv(A @ A.T) @ (A @ h_erm - b)
+        # result = minimize(
+        #     f, h0, method='SLSQP', jac=df, hess=ddf,
+        #     constraints=constraints,
+        #     options={"ftol": 1e-8, 'disp': False, }#"eps":0.001},
+        # )
+        # self._W = result.x[:, None]
+
+
+
+        h = cp.Variable(h_erm.shape)
+        cost = cp.norm(h - h_erm)
+        constraints = [A@h == b]
+        prob = cp.Problem(
+            cp.Minimize(cost),
+            constraints
+        )
+        result = prob.solve(solver=cp.ECOS)
+        self._W = h.value
+
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class DAIVConstrainedLeastSquared(DAIVRegressor):
+    def __init__(self, alpha = None):
+        super(DAIVConstrainedOptimization, self).__init__(alpha)
+
+    def _fit(self, X, y, G=None, GX=None):
+        h_erm = OLS().fit(GX, y).solution
+
+        s1 = OLS().fit(G, GX).solution
+        GXhat = G @ s1
+        
+        A = GXhat.T @ GXhat
+        b = GXhat.T @ y
+
+        h = cp.Variable(h_erm.shape)
+        cost = cp.norm(GX@h - y)
+        constraints = [A @ h == b]
+        prob = cp.Problem(
+            cp.Minimize(cost),
+            constraints
+        )
+        result = prob.solve(solver=cp.ECOS)
+        self._W = h.value
         return self
     
     def _predict(self, X):
@@ -50,8 +170,8 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
     def __init__(self,
                  model="linear",
                  alpha=1.0,
-                 gmm_steps=20,
-                 epochs=200):
+                 gmm_steps=10,
+                 epochs=100):
         self.alpha = alpha
         self.model = model  # TODO: refactor code
         super(DAIVGeneralizedMomentMethod,
@@ -102,11 +222,18 @@ class MinMaxDAIV(IV, ERM):
     
     def fit(self, X, y, G, GX):
         _, k = G.shape
-        l = 10 if (self.model == "rmnist") else 1
-        self.alpha = torch.nn.Linear(k*l, 1, bias=False)
+        G_poly_degree = 2
+        alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
+        self.alpha = torch.nn.Linear(alpha_in_dim, 1, bias=False)
+        if torch.cuda.is_available():
+            self.f = self.alpha.cuda()
+        elif torch.backends.mps.is_available():
+            self.f = self.alpha.to("mps")
+        
         self._alpha_optimizer = torch.optim.Adam(
-            self.alpha.parameters(), lr=0.01, maximize=True
+            self.alpha.parameters(), lr=0.001, maximize=True
         )
+        
         return super(MinMaxDAIV,
                      self).fit(X=GX, y=y, Z=G)
     
@@ -139,7 +266,96 @@ class MinMaxDAIV(IV, ERM):
             y_hat = self.f(X)
             mom = self._moment_conditions(G, y, y_hat)
         
-        loss = ( ERM._loss(X, y, self.f, reduction="none") - self.alpha(mom) ).sum()
+        # TODO: check which one of these is correct!
+        # loss = ( ERM._loss(X, y, self.f, reduction="none") - self.alpha(mom) ).sum()
+        mom = mom.mean(dim=0, keepdim=True)
+        loss = ERM._loss(X, y, self.f, reduction="mean") - self.alpha(mom)
+
+        self._alpha_optimizer.zero_grad()
+        self._optimizer.zero_grad()
+        loss.backward()
+        self._alpha_optimizer.step()
+        return loss
+    
+    def calculate_weights(self):
+        # TODO: more speed
+        pass
+
+
+class DAIVConstrainedOptimizationGMM(IV, ERM):
+    def __init__(self,
+                 model="linear",
+                 epochs=200):
+        self.alpha = None
+        self.model = model  # TODO: refactor code
+        self.erm = ERM(model=model, epochs=epochs)
+        super(DAIVConstrainedOptimizationGMM,
+                     self).__init__(model=model,
+                                    gmm_steps=1,
+                                    epochs=epochs)
+    
+    def fit(self, X, y, G, GX):
+        _, k = G.shape
+        G_poly_degree = 2
+        alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
+        self.alpha = torch.nn.Linear(alpha_in_dim, 1, bias=False)
+        if torch.cuda.is_available():
+            self.f = self.alpha.cuda()
+        elif torch.backends.mps.is_available():
+            self.f = self.alpha.to("mps")
+        
+        self._alpha_optimizer = torch.optim.Adam(
+            self.alpha.parameters(), lr=0.001, maximize=True
+        )
+        
+        self.erm.fit(GX, y)
+        return super(DAIVConstrainedOptimizationGMM,
+                     self).fit(X=GX, y=y, Z=G)
+    
+    @property
+    def epochs(self):
+        return self._epochs
+
+    @epochs.setter
+    def epochs(self, epochs):
+        self._epochs = epochs
+
+    @property
+    def gmm_steps(self):
+        return self._gmm_steps
+
+    @gmm_steps.setter
+    def gmm_steps(self, gmm_steps):
+        self._gmm_steps = gmm_steps
+    
+    def loss(self,
+             X, y, G,
+             weights):
+        if isinstance(self.f[-1], torch.nn.LogSoftmax):
+            y_erm = F.softmax(self.erm[:-1](X), dim=1)
+
+            y_hat = F.softmax(self.f[:-1](X), dim=1)
+            y_onehot = F.one_hot(y.flatten(), num_classes=10)
+            mom = self._moment_conditions(
+                G, y_onehot, y_hat
+            )
+        else:
+            y_erm - self.erm(X)
+
+            y_hat = self.f(X)
+            mom = self._moment_conditions(G, y, y_hat)
+        
+        # l2 = sum(
+        #     (x - y).abs().sum() 
+        #     for x, y in zip(
+        #         self.erm.state_dict().values(), self.f.state_dict().values()
+        #     )
+        # )
+
+        # mom = mom.mean(dim=0, keepdim=True)
+        # loss = 0.5*l2 - self.alpha(mom)
+        mom = mom.mean(dim=0, keepdim=True)
+        loss = ERM._loss(X, y_erm, self.f, reduction="mean") - self.alpha(mom)
 
         self._alpha_optimizer.zero_grad()
         self._optimizer.zero_grad()

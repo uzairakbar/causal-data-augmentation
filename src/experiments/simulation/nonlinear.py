@@ -8,6 +8,7 @@ from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
+from src.regressors.daiv import MinMaxDAIV as mmDAIV
 
 from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -26,13 +27,16 @@ ALL_METHODS = {
         metric="mse",
         estimator=DAIV(model="2-layer"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-        cv=5                                # TODO: proper LOO CV
+        cv=5,                                # TODO: proper LOO CV
+        n_jobs=-1,
     ),
     "DAIV+LOLO": lambda: LOLO(
         metric="mse",
         estimator=DAIV(model="2-layer"),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)}
+        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+        n_jobs=-1,
     ),
+    "mmDAIV": lambda: mmDAIV(model="2-layer"),
     "DA+IV": lambda: IV(model="2-layer")
 }
 
@@ -98,7 +102,7 @@ def run_experiment(args):
                     else:
                         model.fit(X=X, y=y)
                 elif "DAIV" in method_name:
-                    model.fit(X=X, y=y, G=G, GX=GX)
+                    model.fit(X=GX, y=y, G=G, GX=GX)
                 else:
                     model.fit(X=GX, y=y, Z=G)
 
@@ -125,6 +129,7 @@ def main():
     args = dict(vars(parser.parse_args()))
 
     all_functions, all_errors = run_experiment(args)
+
     grid_plot(all_functions, fname="nonlinear_simulation")
     tex_table(
         all_errors, fname="nonlinear_simulation",

@@ -32,6 +32,39 @@ class ColoredDigitsSEM(SEM):
     def __len__(self):
         return len(self.images)
     
+    # def sample(self, N = 1, **kwargs):
+    #     N_max = len(self.images)
+    #     indices = np.arange(N_max)
+    #     replace = N > N_max
+    #     sampled = np.random.choice(indices,
+    #                                N,
+    #                                replace)
+    #     images, targets = self.images[sampled], self.targets[sampled]
+
+    #     def torch_xor(a, b):
+    #         return (a - b).abs()  # Assumes both inputs are either 0 or 1
+
+    #     # 2x subsample for computational convenience
+    #     N_X = images.reshape((-1, 28, 28))[:, ::2, ::2]
+    #     # Assign a binary label based on the digit; flip label with probability 0.25
+    #     y_ = (targets < 5).float()
+    #     y = torch_xor(y_, torch_bernoulli(0.25, N))
+    #     # Assign a color based on the label; flip the color with probability e
+    #     if self.train:
+    #         e_space = torch.tensor([0.1, 0.2])
+    #     else:
+    #         e_space = torch.tensor([0.9])
+    #     idx = torch.multinomial(e_space, num_samples=N, replacement=True)
+    #     e = e_space[idx]
+    #     colors = torch_xor(y, torch_bernoulli(e, N))
+    #     # Apply the color to the image by zeroing out the other color channel
+    #     X_zeros = torch.zeros_like(N_X)
+    #     X = torch.stack([N_X, N_X, X_zeros], dim=1)
+    #     X[torch.tensor(range(N)), (1 - colors).long(), :, :] *= 0
+    #     return ((X.float() / 255.).numpy(),
+    #             y[:, None].numpy())
+    
+
     def sample(self, N = 1, **kwargs):
         N_max = len(self.images)
         indices = np.arange(N_max)
@@ -45,22 +78,21 @@ class ColoredDigitsSEM(SEM):
             return (a - b).abs()  # Assumes both inputs are either 0 or 1
 
         # 2x subsample for computational convenience
-        N_X = images.reshape((-1, 28, 28))[:, ::2, ::2]
+        X_ = images.reshape((-1, 28, 28))[:, ::2, ::2]
         # Assign a binary label based on the digit; flip label with probability 0.25
         y_ = (targets < 5).float()
         y = torch_xor(y_, torch_bernoulli(0.25, N))
         # Assign a color based on the label; flip the color with probability e
         if self.train:
-            e_space = torch.tensor([0.1, 0.2])
+            z = torch_bernoulli(0.15, N)
         else:
-            e_space = torch.tensor([0.9])
-        idx = torch.multinomial(e_space, num_samples=N, replacement=True)
-        e = e_space[idx]
-        colors = torch_xor(y, torch_bernoulli(e, N))
+            z = torch_bernoulli(0.9, N)
+        colors = torch_xor(y, z)
         # Apply the color to the image by zeroing out the other color channel
-        X_zeros = torch.zeros_like(N_X)
-        X = torch.stack([N_X, N_X, X_zeros], dim=1)
+        X_zeros = torch.zeros_like(X_)
+        X = torch.stack([X_, X_, X_zeros], dim=1)
         X[torch.tensor(range(N)), (1 - colors).long(), :, :] *= 0
         return ((X.float() / 255.).numpy(),
-                y[:, None].numpy())
+                y[:, None].numpy(),
+                z[:, None].numpy())
 
