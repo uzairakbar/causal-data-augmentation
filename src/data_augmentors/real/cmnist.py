@@ -22,7 +22,7 @@ class UniformStandardScaler(StandardScaler):
         self.std = (high - low)/(12.0**0.5)
 
 
-ALPHA, BETA = 2, 2
+ALPHA, BETA = 3, 3
 class BetaStandardScaler(StandardScaler):
     def __init__(self, min, max, a=ALPHA, b=BETA):
         self.mean = a/(a + b)
