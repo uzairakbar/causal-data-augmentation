@@ -67,7 +67,7 @@ class LeastSquaresGradientDescent(ERM):
 
     def __init__(self,
                  model="linear",
-                 epochs=200):
+                 epochs=1000):
         super().__init__()
 
         if model in self._models:

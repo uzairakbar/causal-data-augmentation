@@ -177,6 +177,7 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
                      self).__init__(model=model,
                                     gmm_steps=gmm_steps,
                                     epochs=epochs)
+        self.epochs = epochs
     
     def fit(self, X, y, G, GX):
         return super(DAIVGeneralizedMomentMethod,
@@ -211,13 +212,14 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 class MinMaxDAIV(IV, ERM):
     def __init__(self,
                  model="linear",
-                 epochs=200):
+                 epochs=1000):
         self.alpha = None
         self.model = model  # TODO: refactor code
         super(MinMaxDAIV,
                      self).__init__(model=model,
                                     gmm_steps=1,
                                     epochs=epochs)
+        self.epochs = epochs
     
     def fit(self, X, y, G, GX):
         _, k = G.shape
@@ -284,7 +286,7 @@ class MinMaxDAIV(IV, ERM):
 class DAIVConstrainedOptimizationGMM(IV, ERM):
     def __init__(self,
                  model="linear",
-                 epochs=200):
+                 epochs=1000):
         self.alpha = None
         self.model = model  # TODO: refactor code
         self.erm = ERM(model=model, epochs=epochs)
@@ -292,6 +294,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
                      self).__init__(model=model,
                                     gmm_steps=1,
                                     epochs=epochs)
+        self.epochs = epochs
     
     def fit(self, X, y, G, GX):
         _, k = G.shape
