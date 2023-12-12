@@ -124,7 +124,7 @@ class LeastSquaresGradientDescent(ERM):
         else:
             print("Using CPU")
 
-        batch_mode = "mini" if n > 5000 else "full"
+        batch_mode = "mini" if n > 1000 else "full"
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
                                       batch_size=128, shuffle=True)
 

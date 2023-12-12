@@ -142,7 +142,7 @@ def run_parallel(seed, n_samples=60000, methods="all"):
     accuracy = lambda y, yhat: (y == yhat).mean()
     # TODO: -1 for all samples
     sem_test = SEM(train=False)
-    X_test, y_test, _ = sem_test(N = n_samples)
+    X_test, y_test, _ = sem_test(N = -1)
     
     set_seed(seed)
 

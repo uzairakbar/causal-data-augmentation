@@ -68,6 +68,8 @@ class ColoredDigitsSEM(SEM):
     def sample(self, N = 1, **kwargs):
         N_max = len(self.images)
         indices = np.arange(N_max)
+        if N == -1:
+            N = N_max
         replace = N > N_max
         sampled = np.random.choice(indices,
                                    N,
