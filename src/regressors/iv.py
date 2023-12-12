@@ -200,7 +200,8 @@ class IVGeneralizedMomentMethod(IV):
                         np.linalg.pinv(
                             covariance_matrix.cpu().numpy() + 1e-7*np.eye(covariance_matrix.size(dim=-1)),
                             rcond=1e-9
-                        )
+                        ),
+                        dtype=torch.float
                     )
                     if torch.cuda.is_available():
                         weights = weights.cuda()
