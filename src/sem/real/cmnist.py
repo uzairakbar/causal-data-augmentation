@@ -82,17 +82,21 @@ class ColoredDigitsSEM(SEM):
         # Assign a binary label based on the digit; flip label with probability 0.25
         y_ = (targets < 5).float()
         y = torch_xor(y_, torch_bernoulli(0.25, N))
-        # Assign a color based on the label; flip the color with probability e
+        # Assign a color based on the label; flip the color with probability z
         if self.train:
-            z = torch_bernoulli(0.15, N)
+            p_z = 0.15
+            z = torch_bernoulli(p_z, N)
         else:
-            z = torch_bernoulli(0.9, N)
+            p_z = 0.9
+            z = torch_bernoulli(p_z, N)
         colors = torch_xor(y, z)
         # Apply the color to the image by zeroing out the other color channel
         X_zeros = torch.zeros_like(X_)
         X = torch.stack([X_, X_, X_zeros], dim=1)
         X[torch.tensor(range(N)), (1 - colors).long(), :, :] *= 0
-        return ((X.float() / 255.).numpy(),
-                y[:, None].numpy(),
-                z[:, None].numpy())
+        return (
+            (X.float() / 255.).numpy(),
+            y[:, None].numpy(),
+            (z[:, None].numpy() - p_z)/np.sqrt(p_z*(1.0-p_z))
+        )
 

@@ -8,12 +8,12 @@ from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 # from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
-from src.regressors.daiv import MinMaxDAIV as mmDAIV
-from src.regressors.daiv import DAIVProjectedLeastSquares as pDAIV
-from src.regressors.daiv import DAIVProjectedLeastSquares_ as pDAIV_
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIV
-from src.regressors.daiv import DAIVConstrainedLeastSquared as DAIV0
-# from src.regressors.iv import IVTwoStageLeastSquares as IV
+# from src.regressors.daiv import MinMaxDAIV as mmDAIV
+# from src.regressors.daiv import DAIVProjectedLeastSquaresClosedForm as pDAIV
+from src.regressors.daiv import DAIVProjectedLeastSquares as DAIVpi
+from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIValpha
+from src.regressors.daiv import DAIVConstrainedLeastSquares as DAIV
+from src.regressors.iv import IVTwoStageLeastSquares as IV
 
 from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -29,27 +29,25 @@ from src.experiments.utils import (
 
 
 ALL_METHODS = {
-    # "ERM": lambda: ERM(),
-    # "DA+ERM": lambda: ERM(),
-    # "DAIV+LOO": lambda: LOO(
-    #     estimator=DAIV(),
-    #     param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
-    #     cv=5,                                # TODO: proper LOO CV
-    #     n_jobs=-1,
-    # ),
+    "ERM": lambda: ERM(),
+    "DA+ERM": lambda: ERM(),
+    "DAIV+LOO": lambda: LOO(
+        estimator=DAIValpha(),
+        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+        cv=5,                                # TODO: proper LOO CV
+        n_jobs=-1,
+    ),
     # "DAIV+LOLO": lambda: LOLO(
-    #     estimator=DAIV(),
+    #     estimator=DAIValpha(),
     #     param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
     #     n_jobs=-1,
     # ),
-    # "DAIV+CC": lambda: CC(estimator=DAIV()),
-    
-    "mmDAIV": lambda: mmDAIV(),
-
+    "DAIV+CC": lambda: CC(estimator=DAIValpha()),
+    # "mmDAIV": lambda: mmDAIV(),
     # "DAIVP_": lambda: pDAIV(),
-    # "DAIVP__": lambda: pDAIV_(),
-    # "DAIV0": lambda: DAIV0(),
-    # # "DA+IV": lambda: IV()
+    "DAIVpi": lambda: DAIVpi(),
+    "DAIV": lambda: DAIV(),
+    "DA+IV": lambda: IV()
 }
 
 def run(args):
@@ -79,6 +77,7 @@ def run(args):
         X, y = sem(N = args["n_samples"])
         GX, G = da(X)
         for method_name, method in methods.items():
+            print(f"######### {j} {method_name} #########")
             model = method()
             if "ERM" in method_name:
                 if "DA" in method_name:

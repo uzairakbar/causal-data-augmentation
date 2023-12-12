@@ -41,10 +41,13 @@ ALL_METHODS = {
         frac=0.2,
         n_jobs=-1,
     ),
-    "DAIV100": DAIV(
+    "DAIV1000": lambda: DAIV(
+        model="cmnist", alpha=1000, gmm_steps=10, epochs=100
+    ),
+    "DAIV100": lambda: DAIV(
         model="cmnist", alpha=100, gmm_steps=10, epochs=100
     ),
-    "DAIV10": DAIV(
+    "DAIV10": lambda: DAIV(
         model="cmnist", alpha=10, gmm_steps=10, epochs=100
     ),
     "DAIV": lambda: mmDAIV(
@@ -166,15 +169,46 @@ def run_parallel(seed, n_samples=60000, methods="all"):
         
         y_test_hat = model.predict(X_test)
         all_errors[method_name] = accuracy(y_test, y_test_hat)
-        all_errors[method_name] = np.random.randn()
+        with open(f'assets/cmnist{seed}.json', 'w') as fp:
+            json.dump((seed, all_errors), fp)
 
     return (seed, all_errors)
 
 
+# if __name__ == '__main__':
+#     args = {
+#         "n_samples": 60000,
+#         "num_seeds": 5,
+#         "methods": "all"
+#     }
+#     # processes = []
+#     # for i in range(args["num_seeds"]):
+#     #     processes.append(
+#     #         Process(
+#     #             target=run_parallel,
+#     #             args=(i, args["n_samples"], args["methods"])
+#     #         )
+#     #     )
+#     # for i in range(args["num_seeds"]):
+#     #     processes[i].start()
+
+#     with Pool(args["num_seeds"]) as p:
+#         results = p.map(
+#             run_parallel,
+#             list(range(args["num_seeds"]))
+#         )
+    
+#     print(results)
+
+#     with open('assets/cmnist.json', 'w') as fp:
+#         json.dump(results, fp)
+import sys
+
 if __name__ == '__main__':
+    seed = int(sys.argv[-1])
     args = {
         "n_samples": 60000,
-        "num_seeds": 2,
+        "seeds": seed,
         "methods": "all"
     }
     # processes = []
@@ -187,15 +221,11 @@ if __name__ == '__main__':
     #     )
     # for i in range(args["num_seeds"]):
     #     processes[i].start()
-
-    with Pool(args["num_seeds"]) as p:
-        results = p.map(
-            run_parallel,
-            list(range(args["num_seeds"]))
-        )
+    result = run_parallel(seed)
     
-    print(results)
+    
+    print(result)
 
-    with open('assets/cmnist.json', 'w') as fp:
-        json.dump(results, fp)
+    with open(f'assets/cmnist{seed}.json', 'w') as fp:
+        json.dump(result, fp)
 

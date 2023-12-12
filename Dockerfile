@@ -9,7 +9,6 @@ COPY requirements.txt .
 RUN apt-get update \
     && apt install curl -y
 RUN conda install -c conda-forge --yes --file requirements.txt
-# RUN conda install pytorch-nightly::pytorch torchvision
 
 # set environment variables
 ENV PYTHONPATH /app
@@ -24,5 +23,4 @@ RUN mkdir --parents data/linear; mv data_from_optical_device/* data/linear
 COPY . .
 
 # run script
-# CMD ["python3", "-u", "src/main.py"]
-CMD ["python3", "-u", "src/experiments/real/cmnist.py"]
+CMD ["python3", "-u", "src/main.py"]

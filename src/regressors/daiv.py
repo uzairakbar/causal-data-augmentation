@@ -1,8 +1,7 @@
 import torch
 
 import numpy as np
-# import cvxpy as cp
-import pandas as cp
+import cvxpy as cp
 from math import comb
 import torch.nn.functional as F
 from scipy.optimize import minimize
@@ -35,9 +34,9 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVProjectedLeastSquares(DAIVRegressor):
+class DAIVProjectedLeastSquaresClosedForm(DAIVRegressor):
     def __init__(self, alpha = None):
-        super(DAIVProjectedLeastSquares, self).__init__(alpha)
+        super(DAIVProjectedLeastSquaresClosedForm, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None):
         h_erm = OLS().fit(GX, y).solution
@@ -78,9 +77,9 @@ class DAIVProjectedLeastSquares(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVProjectedLeastSquares_(DAIVRegressor):
+class DAIVProjectedLeastSquares(DAIVRegressor):
     def __init__(self, alpha = None):
-        super(DAIVProjectedLeastSquares_, self).__init__(alpha)
+        super(DAIVProjectedLeastSquares, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None):
         h_erm = OLS().fit(GX, y).solution
@@ -138,9 +137,9 @@ class DAIVProjectedLeastSquares_(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVConstrainedLeastSquared(DAIVRegressor):
+class DAIVConstrainedLeastSquares(DAIVRegressor):
     def __init__(self, alpha = None):
-        super(DAIVConstrainedOptimization, self).__init__(alpha)
+        super(DAIVConstrainedLeastSquares, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None):
         h_erm = OLS().fit(GX, y).solution
@@ -332,7 +331,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
              X, y, G,
              weights):
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
-            y_erm = F.softmax(self.erm[:-1](X), dim=1)
+            y_erm = F.softmax(self.erm.f[:-1](X), dim=1)
 
             y_hat = F.softmax(self.f[:-1](X), dim=1)
             y_onehot = F.one_hot(y.flatten(), num_classes=10)
@@ -340,7 +339,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
                 G, y_onehot, y_hat
             )
         else:
-            y_erm - self.erm(X)
+            y_erm = self.erm.f(X)
 
             y_hat = self.f(X)
             mom = self._moment_conditions(G, y, y_hat)

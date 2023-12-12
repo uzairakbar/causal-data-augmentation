@@ -13,6 +13,7 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 class VanillaCV(ModelSelector, RandomizedSearchCV):
     def __init__(self, frac=0.2, **kwargs):
+        self.frac = frac
         super(VanillaCV, self).__init__(
             **kwargs, cv=VanillaSplitter(frac=frac)
         )

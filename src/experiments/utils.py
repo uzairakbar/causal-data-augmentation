@@ -10,7 +10,7 @@ def relative_sq_error(W, What):
     sqnorm = lambda x: (x**2).sum()
     error = sqnorm(What - W)
     relative_error = error / (error + sqnorm(W))
-    return relative_error**0.5
+    return relative_error
 
 
 def set_seed(seed = 42):
@@ -43,9 +43,9 @@ def sweep_plot(x, y,
     for i, (method, errors) in enumerate(y.items()):
         mean = errors.mean(axis = 1)
 
-        if "DAIVP" == method:
+        if "DAIVPi" == method:
             label = fr"DA+UIV-$\Pi$"
-        elif "DAIVP_" == method:
+        elif "DAIV" == method:
             label = fr"DA+UIV"
         elif "DAIV" in method:
             alpha = "" if (method == "DAIV") else method.split("+")[-1]
@@ -98,11 +98,18 @@ def box_plot(data,
     ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
     labels = []
     for method in data.keys():
-        if method in ["pDAIV", "mmDAIV", "DAIVP__", "DAIV0", "DAIVP_"]:
-            label = method
+        if method in ["DAIVpi", "mmDAIV", "DAIVP__", "DAIV", "DAIVP_"]:
+            mapper = {
+                "mmDAIV": "mmDAIV",
+                "pDAIV": "pDAIV",
+                "DAIVpi": "DA+UIV-$\Pi$",
+                "DAIV": "DA+UIV",
+                "DA+IV": "DA+IV",
+            }
+            label = mapper[method]
         elif "DAIV" in method:
             alpha = "" if (method == "DAIV") else method.split("+")[-1]
-            label = fr"DAIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
+            label = fr"DA+UIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
         else:
             label = method
         labels.append(label)
@@ -183,11 +190,13 @@ def tex_table(data,
     label = {
         "ERM": "ERM",
         "DA+ERM": "DA+ERM",
-        "DAIV+LOO": "DAIV--$\\alpha^{\\text{LOO}}$",
-        "DAIV+LOLO": "DAIV--$\\alpha^{\\text{LOLO}}$",
-        "DAIV+CC": "DAIV--$\\alpha^{\\text{CC}}$",
+        "DAIV+LOO": "DA+UIV--$\\alpha^{\\text{LOO}}$",
+        "DAIV+LOLO": "DA+UIV--$\\alpha^{\\text{LOLO}}$",
+        "DAIV+CC": "DA+UIV--$\\alpha^{\\text{CC}}$",
         "mmDAIV": "mmDAIV",
         "pDAIV": "pDAIV",
+        "DAIVpi": "DA+UIV--$\Pi$",
+        "DAIV": "DA+UIV",
         "DA+IV": "DA+IV",
     }
     

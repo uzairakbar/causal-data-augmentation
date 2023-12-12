@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import cvxpy as cp
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 
@@ -9,6 +10,22 @@ from src.regressors.abstract import EmpiricalRiskMinimizer as ERM
 class LeastSquaresClosedForm(ERM):
     def _fit(self, X, y):
         self._W = np.linalg.pinv(X) @ y
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+    
+
+class LeastSquaresCvxpy(ERM):
+    def _fit(self, X, y):
+        h0 = np.linalg.pinv(X) @ y
+        h = cp.Variable(h0.shape)
+        cost = cp.norm(y - X @ h)
+        prob = cp.Problem(
+            cp.Minimize(cost)
+        )
+        result = prob.solve(solver=cp.ECOS)
+        self._W = h.value
         return self
     
     def _predict(self, X):

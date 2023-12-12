@@ -7,14 +7,12 @@ from src.regressors.abstract import IVRegressor as IV
 from src.regressors.erm import (
     LeastSquaresClosedForm as LSCF,
     LeastSquaresGradientDescent as LSGD,
+    # LeastSquaresCvxpy as LSGD,
 )
 
 
-# ERM = {"cf": LSCF(),
-#        "gd": LSGD()}
-
 ERM = {"cf": LSCF(),
-       "gd": LSCF()}
+       "gd": LSGD()}
 
 
 class IVTwoStageLeastSquares(IV):
@@ -85,8 +83,8 @@ class IVGeneralizedMomentMethod(IV):
 
     def __init__(self,
                  model="linear",
-                 gmm_steps=20,
-                 epochs=200):
+                 gmm_steps=10,
+                 epochs=100):
         if model in self._models:
             self.__model = self._models[model]
         else:
@@ -189,11 +187,21 @@ class IVGeneralizedMomentMethod(IV):
                         moment_conditions = self._moment_conditions(
                             Z, y, y_hat
                         )
-                    covariance_matrix = torch.mm(moment_conditions.t(),
-                                                 moment_conditions) / n
+                    covariance_matrix = torch.mm(
+                        moment_conditions.t(), moment_conditions
+                    ) / n
+                    # weights = torch.cholesky_inverse(
+                    #     torch.linalg.cholesky(
+                    #         covariance_matrix
+                    #         + 1e-7*torch.eye(covariance_matrix.size(dim=-1), device="mps")
+                    #     )
+                    # )
                     weights = torch.as_tensor(
-                        np.linalg.pinv(covariance_matrix.cpu().numpy(),
-                                       rcond=1e-9))
+                        np.linalg.pinv(
+                            covariance_matrix.cpu().numpy() + 1e-7*np.eye(covariance_matrix.size(dim=-1)),
+                            rcond=1e-9
+                        )
+                    )
                     if torch.cuda.is_available():
                         weights = weights.cuda()
                     elif torch.backends.mps.is_available():
