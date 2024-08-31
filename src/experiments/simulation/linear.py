@@ -29,18 +29,18 @@ from src.experiments.utils import (
 
 
 ALL_METHODS = {
-    "ERM": lambda: ERM(),
-    "DA+ERM": lambda: ERM(),
-    "DAIV+LOO": lambda: LOO(
+    'ERM': lambda: ERM(),
+    'DA+ERM': lambda: ERM(),
+    'DAIV+LOO': lambda: LOO(
         estimator=DAIValpha(),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
         cv=5,                                # TODO: proper LOO CV
         n_jobs=-1,
     ),
-    "DAIV+CC": lambda: CC(estimator=DAIValpha()),
-    "DAIVPi": lambda: DAIVPi(),
-    "DAIV": lambda: DAIV(),
-    "DA+IV": lambda: IV(),
+    'DAIV+CC': lambda: CC(estimator=DAIValpha()),
+    'DAIVPi': lambda: DAIVPi(),
+    'DAIV': lambda: DAIV(),
+    'DA+IV': lambda: IV(),
 }
 
 
@@ -66,17 +66,17 @@ class Experiment(ABC):
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
             param: float) -> Regressor | ModelSelector:
-        if method_name == "DAIValpha":
+        if method_name == 'DAIValpha':
             model = method(alpha = param)
         else:
             model = method()
         
-        if "ERM" in method_name:
-            if "DA" in method_name:
+        if 'ERM' in method_name:
+            if 'DA' in method_name:
                 model.fit(X=GX, y=y)
             else:
                 model.fit(X=X, y=y)
-        elif "DAIV" in method_name:
+        elif 'DAIV' in method_name:
             model.fit(X=X, y=y, G=G, GX=GX)
         else:
             model.fit(X=GX, y=y, Z=G)
@@ -167,7 +167,7 @@ class AlphaSweep(Experiment):
     def __init__(self,
                  **kwargs):
         super(AlphaSweep, self).__init__(**kwargs)
-        self.methods["DAIValpha"] = (
+        self.methods['DAIValpha'] = (
             lambda alpha: DAIValpha(alpha = alpha)
         )
 
@@ -192,7 +192,7 @@ class AlphaSweep(Experiment):
             method_name, method, X, y, G, GX, param
         )
         error = relative_sq_error(sem_solution, model.solution)**0.5
-        if "DAIV+" in method_name:
+        if 'DAIV+' in method_name:
             return model.alpha
         else:
             return error
@@ -206,7 +206,7 @@ def run(
         sweep_samples: int,
         methods: str
     ):
-    if methods == "all":
+    if methods == 'all':
         methods = ALL_METHODS
     else:
         methods = {m: ALL_METHODS[m] for m in methods.split(',')}
@@ -222,10 +222,10 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     sweep_plot(
-        lambda_values, bootstrap(results), xlabel=r"$\lambda$", xscale="linear"
+        lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
     )
-    save(lambda_values, "lambda_values.pkl")
-    save(results, "lambda_results.pkl")
+    save(lambda_values, 'lambda_values.pkl')
+    save(results, 'lambda_results.pkl')
 
     # sweep over gamma parameter
     logger.info('Sweeping over gamma parameters.')
@@ -238,10 +238,10 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     sweep_plot(
-        gamma_values, bootstrap(results), xlabel=r"$\gamma$", xscale="log"
+        gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
     )
-    save(gamma_values, "gamma_values.pkl")
-    save(results, "gamma_results.pkl")
+    save(gamma_values, 'gamma_values.pkl')
+    save(results, 'gamma_results.pkl')
 
     # sweep over alpha parameter
     logger.info('Sweeping over alpha parameters.')
@@ -254,17 +254,17 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     vertical_plots = ([
-        method for method in ALL_METHODS.keys() if "DAIV+" in method
+        method for method in ALL_METHODS.keys() if 'DAIV+' in method
     ])
     sweep_plot(
-        alpha_values, bootstrap(results), xlabel=r"$\alpha$", xscale="log",
+        alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
         vertical_plots=vertical_plots, trivial_solution=False
     )
-    save(alpha_values, "alpha_values.pkl")
-    save(results, "alpha_results.pkl")
+    save(alpha_values, 'alpha_values.pkl')
+    save(results, 'alpha_results.pkl')
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Linear simulation experiment.')
     parser.add_argument('--seed', default=42, help='Random seed for the experiment.')
     parser.add_argument('--n_samples', default=2000, help='Number of samples per experiment.')
