@@ -58,14 +58,6 @@ class IVGeneralizedMomentMethod(IV):
             torch.nn.Linear(256, 1),
             torch.nn.Sigmoid()
         ),
-        "cmnist": lambda input_dim: torch.nn.Sequential(
-            torch.nn.Linear(input_dim, 256),
-            torch.nn.ReLU(True),
-            torch.nn.Linear(256, 256),
-            torch.nn.ReLU(True),
-            torch.nn.Linear(256, 1),
-            torch.nn.Sigmoid()
-        ),
         "rmnist": lambda input_dim: torch.nn.Sequential(
             torch.nn.Unflatten(1, torch.Size([1, 28, 28])),
             torch.nn.Conv2d(1, 32, kernel_size=5, stride=1, bias=False),
