@@ -1,6 +1,8 @@
 import numpy as np
+from typing import Tuple
+from numpy.typing import NDArray
 
-from src.sem.abstract import StructuredEquationModel as SEM
+from src.sem.abstract import StructuralEquationModel as SEM
 
 
 # specify default parameters
@@ -10,10 +12,12 @@ LABEL_DIMENSION = 1
 
 
 class LinearSimulationSEM(SEM):
-    def __init__(self,
-                 covariate_dimension = COVARIATE_DIMENSION,
-                 confounder_dimension = CONFOUNDER_DIMENSION,
-                 label_dimension = LABEL_DIMENSION):
+    def __init__(
+            self,
+            covariate_dimension: int=COVARIATE_DIMENSION,
+            confounder_dimension: int=CONFOUNDER_DIMENSION,
+            label_dimension: int=LABEL_DIMENSION
+        ):
         self.covariate_dimension = covariate_dimension
         self.confounder_dimension = confounder_dimension
         self.label_dimension = label_dimension
@@ -24,7 +28,9 @@ class LinearSimulationSEM(SEM):
         
         super(LinearSimulationSEM, self).__init__()
     
-    def sample(self, N = 1, lamda = 1.0, intervention = False, **kwargs):
+    def sample(
+            self, N: int= 1, lamda: float=1.0, intervention: bool=False, **kwargs
+        ) -> Tuple[NDArray, NDArray]:
         C = np.random.randn(N, self.confounder_dimension)
 
         if intervention:
@@ -36,4 +42,3 @@ class LinearSimulationSEM(SEM):
         N_Y = np.random.randn(N, self.label_dimension)*0.1
         Y = X @ self.W_XY + lamda * C @ self.W_CY + N_Y
         return X, Y
-
