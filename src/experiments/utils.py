@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import random
 import pickle
@@ -337,6 +338,26 @@ def bootstrap(data: Dict, n_samples: int=1000) -> Dict:
     return bootstrapped_data
 
 
-def save(obj: Any, name: str):
-    with open(f'{ARTIFACTS_DIRECTORY}/{name}.pkl', 'wb+') as file:
-        pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
+def json_default(obj: Any):
+    if type(obj).__module__ == np.__name__:
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return obj.item()
+    raise TypeError(f'Unknown type: {type(obj)}.')
+
+
+def save(obj: Dict[str, Any], fname: str, format: Literal['pkl', 'json']='pkl'):
+    if format == 'pkl':
+        with open(f'{ARTIFACTS_DIRECTORY}/{fname}.pkl', 'wb+') as file:
+            pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
+    elif format == 'json':
+        with open(f'{ARTIFACTS_DIRECTORY}/{fname}.json', 'w+') as file:
+            json.dump(
+                obj,
+                file,
+                separators=(',', ':'),
+                sort_keys=True,
+                indent=4,
+                default=json_default
+            )
