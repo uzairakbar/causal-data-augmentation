@@ -1,33 +1,31 @@
 import torch
 import numpy as np
+from numpy.typing import NDArray
 from torchvision import datasets
+from torch.utils.data import Dataset
+from typing import Dict, Literal, List, Tuple
 
-from src.sem.abstract import StructuredEquationModel as SEM
+from src.sem.abstract import StructuralEquationModel as SEM
 
 from src.data_augmentors.real.rmnist import Rotation
 
 
-# Build environments
-def torch_bernoulli(p, size):
-    return (torch.rand(size) < p).float()
+ROTATIONS: List[int] = [0, 30, 60, 90]
 
 
 class RotatedDigitsSEM(SEM):
     @staticmethod
-    def load_dataset(directory="data/mnist", train=True):
+    def load_dataset(directory: str='data/mnist', train: bool=True) -> Dataset:
         mnist = datasets.MNIST(directory, train=train, download=True)
         return mnist
     
-    _TRAIN = load_dataset.__func__()
-    _TEST = load_dataset.__func__(train=False)
-    _ROTATIONS = {
-        0: Rotation(0.0),
-        30: Rotation(30.0),
-        60: Rotation(60.0),
-        90: Rotation(90.0),
+    _TRAIN: Dataset = load_dataset.__func__()
+    _TEST: Dataset = load_dataset.__func__(train=False)
+    _ROTATIONS: Dict[int, Rotation] = {
+        rotation: Rotation[rotation] for rotation in ROTATIONS
     }
 
-    def __init__(self, target_rotation=0):
+    def __init__(self, target_rotation: float=0.0):
         self.target_rotation = target_rotation
         
         self.train_images = self._TRAIN.data
@@ -36,28 +34,28 @@ class RotatedDigitsSEM(SEM):
         self.test_targets = self._TEST.targets
         return super(RotatedDigitsSEM, self).__init__()
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.train_images)
     
     @classmethod
-    def num_rotations(cls):
+    def num_rotations(cls) -> int:
         return len(cls._ROTATIONS)
     
     @classmethod
-    def get_rotator(cls, angle):
+    def get_rotator(cls, angle: Literal[0, 30, 60, 90]) -> Rotation:
         return cls._ROTATIONS[angle]
     
     @classmethod
-    def get_rotations(cls):
+    def get_rotations(cls) -> List[int]:
         return list(cls._ROTATIONS.keys())
     
-    def sample(self, N = 1, train = True, **kwargs):
+    def sample(self, N: int= 1, train: bool=True, **kwargs) -> Tuple[NDArray, NDArray]:
         if train:
             return self._sample_train(N = N)
         else:
             return self._sample_test(N = N)
     
-    def _sample_train(self, N = 1):
+    def _sample_train(self, N: int=1) -> Tuple[NDArray, NDArray]:
         N_max = len(self.train_images)
         indices = np.arange(N_max)
         replace = N > N_max
@@ -70,7 +68,9 @@ class RotatedDigitsSEM(SEM):
         y = targets
         
         # Assign a color based on the label; flip the color with probability e
-        train_rotations = [rotation for rotation in self._ROTATIONS if rotation != self.target_rotation]
+        train_rotations = ([
+            rotation for rotation in self._ROTATIONS if rotation != self.target_rotation
+        ])
         r_map = {
             i: r for (i, r) in zip(
                 range(10),
@@ -88,7 +88,7 @@ class RotatedDigitsSEM(SEM):
             y[:, None].numpy()
         )
 
-    def _sample_test(self, N = 1):
+    def _sample_test(self, N: int=1) -> Tuple[NDArray, NDArray]:
         N_max = len(self.test_images)
         indices = np.arange(N_max)
         replace = N > N_max
