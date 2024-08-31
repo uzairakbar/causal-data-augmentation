@@ -119,18 +119,22 @@ class Experiment(ABC):
         error_dim = (self.sweep_samples, self.n_experiments)
         results = {name: np.zeros(error_dim) for name in self.methods}
 
-        for i, param in enumerate(tqdm(
-            param_values, total=self.sweep_samples, desc='Parameters'
+        for i, param in enumerate(pbar_param := tqdm(
+                param_values, total=self.sweep_samples, desc='Parameters'
             )):
+            pbar_param.set_description(f'Parameter {param}')
+            
             for j, (sem, da) in enumerate(tqdm(
-                zip(all_sems, all_augmenters), total=self.n_experiments, desc='Experiments'
+                    zip(all_sems, all_augmenters), total=self.n_experiments, desc='Experiments'
                 )):
                 sem_solution = sem.solution
 
                 X, y, G, GX = self.generate_dataset(sem, da, param)
-                for method_name, method in tqdm(
-                    self.methods.items(), total=len(self.methods), desc='Methods'
-                    ):
+                for method_name, method in (pbar_methods := tqdm(
+                        self.methods.items(), total=len(self.methods), desc='Methods'
+                    )):
+                    pbar_methods.set_description(f'{method_name}')
+
                     results[method_name][i][j] = self.compute_result(
                         sem_solution, method_name, method, X, y, G, GX, param
                     )
@@ -266,13 +270,22 @@ def run(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Linear simulation experiment.')
-    parser.add_argument('--seed', default=42, help='Random seed for the experiment.')
-    parser.add_argument('--n_samples', default=2000, help='Number of samples per experiment.')
-    parser.add_argument('--x_dimension', default=30, help='Dimension of treatment.')
-    parser.add_argument('--n_experiments', default=10, help='Number of experiments.')
-    parser.add_argument('--sweep_samples', default=10, help='Sweep resolution across lambda, alpha and gamma.')
+    parser.add_argument(
+        '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
+    )
+    parser.add_argument(
+        '--n_samples', type=int, default=2000, help='Number of samples per experiment.'
+    )
+    parser.add_argument(
+        '--x_dimension', type=int, default=30, help='Dimension of treatment.'
+    )
+    parser.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
+    parser.add_argument(
+        '--sweep_samples', type=int, default=10, help='Sweep resolution across lambda, alpha and gamma.'
+    )
     parser.add_argument(
         '--methods',
+        type=str,
         default='all',
         help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
     )
