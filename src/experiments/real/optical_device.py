@@ -114,7 +114,7 @@ def run(
     box_plot(errors_bootstrapped, fname='optical_device')
     tex_table(
         errors_bootstrapped, fname='optical_device',
-        title='Results for the optical device experiment.'
+        title='RSE $\pm$ one standard deviation across the optical device datasets.'
     )
     save(all_errors, 'optical_device')
 
