@@ -1,25 +1,41 @@
 import torch
 import numpy as np
+from typing import Tuple
+from torch import FloatTensor
+from numpy.typing import NDArray
 from torchvision import datasets
+from torch.utils.data import Dataset
 
-from src.sem.abstract import StructuredEquationModel as SEM
+from src.sem.abstract import StructuralEquationModel as SEM
 
 
-# Build environments
-def torch_bernoulli(p, size):
+def torch_xor(a: FloatTensor, b: FloatTensor) -> FloatTensor:
+    # Assumes both inputs are either 0 or 1
+    return (a - b).abs()
+
+
+def torch_bernoulli(p: float, size: int):
+    # flip coin `size` times
     return (torch.rand(size) < p).float()
+
+
+def colour_image(image_grey: FloatTensor, color: FloatTensor) -> FloatTensor:
+    zeros = torch.zeros_like(image_grey)
+    image_rgb = torch.stack([image_grey, image_grey, zeros], dim=1)
+    image_rgb[torch.tensor(range(N)), (1 - color).long(), :, :] *= 0
+    return image_rgb
 
 
 class ColoredDigitsSEM(SEM):
     @staticmethod
-    def load_dataset(directory="data/mnist", train=True):
+    def load_dataset(directory: str="data/mnist", train: bool=True) -> Dataset:
         mnist = datasets.MNIST(directory, train=train, download=True)
         return mnist
     
-    _TRAIN = load_dataset.__func__()
-    _TEST = load_dataset.__func__(train=False)
+    _TRAIN: Dataset = load_dataset.__func__()
+    _TEST: Dataset = load_dataset.__func__(train=False)
 
-    def __init__(self, train=True):
+    def __init__(self, train: bool=True):
         self.train = train
         if train:
             self.images = self._TRAIN.data
@@ -27,78 +43,41 @@ class ColoredDigitsSEM(SEM):
         else:
             self.images = self._TEST.data
             self.targets = self._TEST.targets
-        return super(ColoredDigitsSEM, self).__init__()
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.images)
     
-    # def sample(self, N = 1, **kwargs):
-    #     N_max = len(self.images)
-    #     indices = np.arange(N_max)
-    #     replace = N > N_max
-    #     sampled = np.random.choice(indices,
-    #                                N,
-    #                                replace)
-    #     images, targets = self.images[sampled], self.targets[sampled]
-
-    #     def torch_xor(a, b):
-    #         return (a - b).abs()  # Assumes both inputs are either 0 or 1
-
-    #     # 2x subsample for computational convenience
-    #     N_X = images.reshape((-1, 28, 28))[:, ::2, ::2]
-    #     # Assign a binary label based on the digit; flip label with probability 0.25
-    #     y_ = (targets < 5).float()
-    #     y = torch_xor(y_, torch_bernoulli(0.25, N))
-    #     # Assign a color based on the label; flip the color with probability e
-    #     if self.train:
-    #         e_space = torch.tensor([0.1, 0.2])
-    #     else:
-    #         e_space = torch.tensor([0.9])
-    #     idx = torch.multinomial(e_space, num_samples=N, replacement=True)
-    #     e = e_space[idx]
-    #     colors = torch_xor(y, torch_bernoulli(e, N))
-    #     # Apply the color to the image by zeroing out the other color channel
-    #     X_zeros = torch.zeros_like(N_X)
-    #     X = torch.stack([N_X, N_X, X_zeros], dim=1)
-    #     X[torch.tensor(range(N)), (1 - colors).long(), :, :] *= 0
-    #     return ((X.float() / 255.).numpy(),
-    #             y[:, None].numpy())
-    
-
-    def sample(self, N = 1, **kwargs):
+    def sample(self, N: int=1, **kwargs) -> Tuple[NDArray, NDArray]:
         N_max = len(self.images)
         indices = np.arange(N_max)
         if N == -1:
             N = N_max
         replace = N > N_max
-        sampled = np.random.choice(indices,
-                                   N,
-                                   replace)
+        sampled = np.random.choice(
+            indices, N, replace
+        )
         images, targets = self.images[sampled], self.targets[sampled]
-
-        def torch_xor(a, b):
-            return (a - b).abs()  # Assumes both inputs are either 0 or 1
-
-        # 2x subsample for computational convenience
-        X_ = images.reshape((-1, 28, 28))[:, ::2, ::2]
-        # Assign a binary label based on the digit; flip label with probability 0.25
-        y_ = (targets < 5).float()
-        y = torch_xor(y_, torch_bernoulli(0.25, N))
-        # Assign a color based on the label; flip the color with probability z
+        
+        # get MNIST image and ground truth label
+        N_X = images.reshape((-1, 28, 28))[:, ::2, ::2] # MNIST image with 2x subsample for computational convenience
+        fX = (targets < 5).float()                      # Assign ground truth lables based on image
+        
+        # add noise to labelling function -- flip label with probability 0.25
+        n_y = torch_bernoulli(0.25, N)
+        y = torch_xor(fX, n_y)
+        
+        # Assign a color based on the label; flip the color with probability e
         if self.train:
-            p_z = 0.15
-            z = torch_bernoulli(p_z, N)
+            e_space = torch.tensor([0.1, 0.2])
         else:
-            p_z = 0.9
-            z = torch_bernoulli(p_z, N)
-        colors = torch_xor(y, z)
+            e_space = torch.tensor([0.9])
+        idx = torch.multinomial(e_space, num_samples=N, replacement=True)
+        e = e_space[idx]
+        C = torch_xor(y, torch_bernoulli(e, N))         # color C confounds X and y
+        
         # Apply the color to the image by zeroing out the other color channel
-        X_zeros = torch.zeros_like(X_)
-        X = torch.stack([X_, X_, X_zeros], dim=1)
-        X[torch.tensor(range(N)), (1 - colors).long(), :, :] *= 0
+        X = colour_image(image_grey=N_X, color=C)
         return (
             (X.float() / 255.).numpy(),
-            y[:, None].numpy(),
-            (z[:, None].numpy() - p_z)/np.sqrt(p_z*(1.0-p_z))
+            y[:, None].numpy()
         )
-
