@@ -50,22 +50,6 @@ class Compose(transforms.Compose):
         return img, params
 
 
-class Hue_(transforms.ColorJitter):
-    def __init__(self, hue = 0):
-        self.param_scaler = UniformStandardScaler(-1*hue, hue)
-        return super(Hue, self).__init__(0, 0, 0, hue = hue)
-
-    def forward(self, img):
-        _, _, _, _, param = \
-            self.get_params(None, None, None, self.hue)
-
-        if param is not None:
-            img = F.adjust_hue(img, param)
-        
-        scaled_param = self.param_scaler(param)
-        return img, (scaled_param,)
-
-
 class Hue(transforms.ColorJitter):
     def __init__(self, hue = 0):
         self.param_scaler = BetaStandardScaler(-1*hue, hue)
@@ -83,36 +67,6 @@ class Hue(transforms.ColorJitter):
         img = F.adjust_hue(img, param)
         scaled_param = self.param_scaler(param)
         return img, (scaled_param,)
-
-
-class Translate_(transforms.RandomAffine):
-    def __init__(self, translate = (0.0, 0.0)):
-        dx, dy = translate
-        self.param_scaler = (UniformStandardScaler(-1*dx, dx),
-                             UniformStandardScaler(-1*dy, dy))
-        return super(Translate, self).__init__(0,
-                                               translate=translate,
-                                               scale=None,
-                                               shear=None,
-                                               interpolation=transforms.InterpolationMode.BILINEAR,
-                                               fill=0)
-    
-    def forward(self, img):    
-        fill = self.fill
-        if isinstance(img, torch.Tensor):
-            if isinstance(fill, (int, float)):
-                fill = [float(fill)] * F.get_image_num_channels(img)
-            else:
-                fill = [float(f) for f in fill]
-
-        img_size = F.get_image_size(img)
-
-        ret = self.get_params(self.degrees, self.translate, self.scale, self.shear, img_size)
-        params = ret[1]
-        
-        img = F.affine(img, *ret, interpolation=self.interpolation, fill=fill, center=self.center)
-        scaled_params = tuple(param_scaler(param) for (param_scaler, param) in zip(self.param_scaler, params))
-        return img, scaled_params
 
 
 class Translate(transforms.RandomAffine):
@@ -180,4 +134,3 @@ class ColoredDigitsDA(DA):
         GX = np.stack(GX)
         G = np.stack(G)
         return GX, G
-
