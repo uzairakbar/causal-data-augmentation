@@ -8,7 +8,15 @@ WORKDIR /app
 COPY requirements.txt .
 RUN apt-get update \
     && apt install curl -y
-RUN conda install -c conda-forge --yes --file requirements.txt
+# add channels, last added is with the highest priorety
+RUN conda config --add channels pytorch
+RUN conda config --add channels conda-forge
+RUN conda config --add channels anaconda
+# install pip for fallback
+RUN conda install --yes pip
+# install with conda, install with pip on failure
+RUN while read requirement; do conda install --yes $requirement \
+    || pip install $requirement; done < requirements.txt
 
 # set environment variables
 ENV PYTHONPATH /app
