@@ -1,19 +1,27 @@
 import os
 import torch
 import random
+import pickle
 import numpy as np
 import seaborn as sns
+from loguru import logger
 import matplotlib.pyplot as plt
+from typing import Any, Literal, List, Dict, Optional
 
 
-def relative_sq_error(W, What):
+PLOT_DPI=1200
+PLOT_FORMAT='pdf'
+ARTIFACTS_DIRECTORY='artifacts'
+
+
+def relative_sq_error(W, What) -> float:
     sqnorm = lambda x: (x**2).sum()
     error = sqnorm(What - W)
     relative_error = error / (error + sqnorm(W))
     return relative_error
 
 
-def set_seed(seed = 42):
+def set_seed(seed: int=42):
     np.random.seed(seed)
     
     random.seed(seed)
@@ -24,33 +32,40 @@ def set_seed(seed = 42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     
-    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     
-    print(f"Random seed set as {seed}")
+    logger.info(f'Random seed set as {seed}.')
 
 
-def sweep_plot(x, y,
-               xlabel,
-               ylabel="RSE",
-               xscale="linear",
-               vertical_plots=[],
-               save=True,
-               trivial_solution=True):
-    sns.set_style("darkgrid")
+def sweep_plot(
+        x, y,
+        xlabel: str,
+        ylabel: str='$\sqrt{{\mathrm{{\mathsf{{RSE}}}}}}$',
+        xscale: Literal['linear', 'log']='linear',
+        vertical_plots: List=[],
+        save: bool=True,
+        trivial_solution: bool=True
+    ):
+    sns.set_style('darkgrid')
     colors = sns.color_palette()[:len(y)+1]
     fig = plt.figure()
     labels = []
     for i, (method, errors) in enumerate(y.items()):
         mean = errors.mean(axis = 1)
 
-        if "DAIVPi" == method:
-            label = fr"DA+UIV-$\Pi$"
-        elif "DAIV" == method:
-            label = fr"DA+UIV"
-        elif "DAIV" in method:
-            alpha = "" if (method == "DAIV") else method.split("+")[-1]
-            label_prefix = "average " if (method in vertical_plots) else "DA+UIV"
-            label = label_prefix + fr"-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
+        if 'DAIVPi' == method:
+            label = fr'DA+UIV-$\Pi$'
+        elif 'DAIV' == method:
+            label = fr'DA+UIV'
+        elif 'DAIV+LOO' == method:
+            if method in vertical_plots:
+                label = 'average '+fr'-$\alpha^{{\mathrm{{\mathsf{{5-fold}}}}}}$'
+            else:
+                label = 'DA+UIV'+fr'-$\alpha^{{\mathrm{{\mathsf{{5-fold}}}}}}$'
+        elif 'DAIV' in method:
+            alpha = '' if (method == 'DAIValpha') else method.split('+')[-1]
+            label_prefix = 'average ' if (method in vertical_plots) else 'DA+UIV'
+            label = label_prefix + fr'-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$'
         else:
             label = method
         labels.append(label)
@@ -61,9 +76,9 @@ def sweep_plot(x, y,
             plt.plot(x, mean, color=colors[i], label=label)
     
     if trivial_solution:
-        label = r"$\mathbf{0}_{30}$"
+        label = r'$\mathbf{0}_{30}$'
         labels.append(label)
-        plt.axhline(y = 0.5, color = colors[-1], label=label)
+        plt.axhline(y = 0.5**0.5, color = colors[-1], label=label)
         
     for i, (method, errors) in enumerate(y.items()):
         if method not in vertical_plots:
@@ -78,38 +93,44 @@ def sweep_plot(x, y,
     plt.tight_layout()
     plt.show()
     if save:
-        fname = "".join(c for c in xlabel if c.isalnum()) + "_sweep"
-        fig.savefig(f"assets/{fname}.pdf", format="pdf", dpi=1200)
+        fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
+        fig.savefig(
+            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
+            format=PLOT_FORMAT,
+            dpi=PLOT_DPI
+        )
 
 
-def box_plot(data,
-             xlabel="RSE",
-             ylabel="method",
-             fname="optical_device",
-             save=True):
+def box_plot(
+        data: Dict,
+        xlabel: str='$\sqrt{{\mathrm{{\mathsf{{RSE}}}}}}$',
+        ylabel: str='method',
+        fname: str='optical_device',
+        save: bool=True
+    ):
     if len(list(data.values())[0].shape) > 1:
         data = {
             key: value.copy().flatten()
             for key, value in data.items()
         }
 
-    sns.set_style("darkgrid")
+    sns.set_style('darkgrid')
     fig = plt.figure()
     ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
     labels = []
     for method in data.keys():
-        if method in ["DAIVpi", "mmDAIV", "DAIVP__", "DAIV", "DAIVP_"]:
+        if method in ['DAIVpi', 'mmDAIV', 'DAIVP__', 'DAIV', 'DAIVP_']:
             mapper = {
-                "mmDAIV": "mmDAIV",
-                "pDAIV": "pDAIV",
-                "DAIVpi": "DA+UIV-$\Pi$",
-                "DAIV": "DA+UIV",
-                "DA+IV": "DA+IV",
+                'mmDAIV': 'mmDAIV',
+                'pDAIV': 'pDAIV',
+                'DAIVpi': 'DA+UIV-$\Pi$',
+                'DAIV': 'DA+UIV',
+                'DA+IV': 'DA+IV',
             }
             label = mapper[method]
-        elif "DAIV" in method:
-            alpha = "" if (method == "DAIV") else method.split("+")[-1]
-            label = fr"DA+UIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$"
+        elif 'DAIV' in method:
+            alpha = '' if (method == 'DAIV') else method.split('+')[-1]
+            label = fr'DA+UIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$'
         else:
             label = method
         labels.append(label)
@@ -118,39 +139,47 @@ def box_plot(data,
     plt.tight_layout()
     plt.show()
     if save:
-        fig.savefig(f"assets/{fname}.pdf", format="pdf", dpi=1200)
+        fig.savefig(
+            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
+            format=PLOT_FORMAT,
+            dpi=PLOT_DPI
+        )
 
 
-def grid_plot(data, save=True, fname="nonlinear_simulation"):
+def grid_plot(
+        data: Dict,
+        save: bool=True,
+        fname: str='nonlinear_simulation'
+    ):
     label = {
-        "Data": "Data",
-        "ERM": "ERM",
-        "DA+ERM": "DA+ERM",
-        "DA+IV": "DA+IV",
-        "mmDAIV": "mmDAIV",
-        "DAIV+LOO": r"DAIV-$\alpha^{\mathrm{\mathsf{LOO}}}$",
-        "DAIV+LOLO": r"DAIV-$\alpha^{\mathrm{\mathsf{LOLO}}}$",
+        'Data': 'Data',
+        'ERM': 'ERM',
+        'DA+ERM': 'DA+ERM',
+        'DA+IV': 'DA+IV',
+        'mmDAIV': 'mmDAIV',
+        'DAIV+LOO': r'DAIV-$\alpha^{\mathrm{\mathsf{LOO}}}$',
+        'DAIV+LOLO': r'DAIV-$\alpha^{\mathrm{\mathsf{LOLO}}}$',
     }
 
     functions = data.keys()
-    methods = ["Data"] + ([
-        method for method in data["abs"].keys() if "ERM" in method or "DA" in method or "IV" in method
+    methods = ['Data'] + ([
+        method for method in data['abs'].keys() if 'ERM' in method or 'DA' in method or 'IV' in method
     ])
     
-    sns.set_style("darkgrid")
+    sns.set_style('darkgrid')
     colors = sns.color_palette()[:3]
     fig, axs = plt.subplots(
         len(functions), len(methods), figsize=(3*len(methods), 3*len(functions)), sharex=True, sharey=False
     )
     for i, function in enumerate(functions):
         for j, method in enumerate(methods):
-            x = data[function]["x"]
-            y = data[function]["y"]
+            x = data[function]['x']
+            y = data[function]['y']
             
-            if method == "Data":
+            if method == 'Data':
                 axs[i, j].scatter(
-                    data[function]["x_data"],
-                    data[function]["y_data"],
+                    data[function]['x_data'],
+                    data[function]['y_data'],
                     color=colors[-1],
                     alpha=0.4
                 )
@@ -178,34 +207,39 @@ def grid_plot(data, save=True, fname="nonlinear_simulation"):
     plt.show()
     if save:
         fig.savefig(
-            f"assets/{fname}.pdf", format="pdf", dpi=1200, bbox_inches="tight"
+            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
+            format=PLOT_FORMAT,
+            dpi=PLOT_DPI,
+            bbox_inches='tight'
         )
 
 
-def tex_table(data,
-              fname,
-              title,
-              highlight="min",
-              decimals=3):
+def tex_table(
+        data: Dict,
+        fname: str,
+        title: str,
+        highlight: Literal['min', 'max']='min',
+        decimals: int=3
+    ):
     label = {
-        "ERM": "ERM",
-        "DA+ERM": "DA+ERM",
-        "DAIV+LOO": "DA+UIV--$\\alpha^{\\text{LOO}}$",
-        "DAIV+LOLO": "DA+UIV--$\\alpha^{\\text{LOLO}}$",
-        "DAIV+CC": "DA+UIV--$\\alpha^{\\text{CC}}$",
-        "mmDAIV": "mmDAIV",
-        "pDAIV": "pDAIV",
-        "DAIVpi": "DA+UIV--$\Pi$",
-        "DAIV": "DA+UIV",
-        "DA+IV": "DA+IV",
+        'ERM': 'ERM',
+        'DA+ERM': 'DA+ERM',
+        'DAIV+LOO': 'DA+UIV--$\\alpha^{\\text{LOO}}$',
+        'DAIV+LOLO': 'DA+UIV--$\\alpha^{\\text{LOLO}}$',
+        'DAIV+CC': 'DA+UIV--$\\alpha^{\\text{CC}}$',
+        'mmDAIV': 'mmDAIV',
+        'pDAIV': 'pDAIV',
+        'DAIVpi': 'DA+UIV--$\Pi$',
+        'DAIV': 'DA+UIV',
+        'DA+IV': 'DA+IV',
     }
     
-    if "ERM" in data:
+    if 'ERM' in data:
         row_names = None
         results = [np.round((np.mean(v), np.std(v)), decimals) for v in data.values()]
-        if highlight == "min":
+        if highlight == 'min':
             best = min(results, key = lambda v : v[0])[0]
-        elif highlight == "max":
+        elif highlight == 'max':
             best = max(results, key = lambda v : v[0])[0]
         column_names = [label[k] for k in data]
     else:
@@ -215,46 +249,46 @@ def tex_table(data,
         for row in row_names:
             columns = {col: data[row][col] for col in label.keys() if col in data[row]}
             results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
-            if highlight == "min":
+            if highlight == 'min':
                 best[row] = min(results[row], key = lambda v : v[0])[0]
-            elif highlight == "max":
+            elif highlight == 'max':
                 best[row] = max(results[row], key = lambda v : v[0])[0]
         column_names = [label[k] for k in data[row_names[0]]]
     
-    with open(f"assets/{fname}.tex", "w+") as f:
-        backreturn = "\\\\\n" + " "*8
+    with open(f'{ARTIFACTS_DIRECTORY}/{fname}.tex', 'w+') as f:
+        backreturn = '\\\\\n' + ' '*8
 
         num_columns = len(column_names) + int(row_names is not None)
-        columns_preamble = " ".join(["c"]*num_columns)
+        columns_preamble = ' '.join(['c']*num_columns)
 
-        columns = " & ".join(column_names)
+        columns = ' & '.join(column_names)
         if row_names is not None:
-            columns = " & " + columns
+            columns = ' & ' + columns
         
         def row_content(row_data, best):
-            if highlight == "min":
-                row = " & ".join([
-                    f"${mean:.3f}\\pm {std:.3f}$" if mean > best
-                    else ("$\\mathbf{ "+f"{mean:.3f}\\pm {std:.3f}"+" }$")
+            if highlight == 'min':
+                row = ' & '.join([
+                    f'${mean:.3f}\\pm {std:.3f}$' if mean > best
+                    else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
                     for (mean, std) in row_data
                 ])
-            elif highlight == "max":
-                row = " & ".join([
-                    f"${mean:.3f}\\pm {std:.3f}$" if mean < best
-                    else ("$\\mathbf{ "+f"{mean:.3f}\\pm {std:.3f}"+" }$")
+            elif highlight == 'max':
+                row = ' & '.join([
+                    f'${mean:.3f}\\pm {std:.3f}$' if mean < best
+                    else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
                     for (mean, std) in row_data
                 ])
             return row
         
         if row_names is not None:
             content = backreturn.join([
-                f"{row_name} & " + row_content(results[row_name], best[row_name])
+                f'{row_name} & ' + row_content(results[row_name], best[row_name])
                 for row_name in row_names
             ])
         else:
             content = row_content(results, best)
         
-        f.write(f"""
+        f.write(f'''
                 \\begin{{table}}[ht]
                     \\caption{{
                         {title}
@@ -269,19 +303,17 @@ def tex_table(data,
                     \\end{{tabular}}
                     \\label{{table:nonlin}}
                 \\end{{table}}
-                    """.strip())
+                    '''.strip())
 
 
-def bootstrap(data, n_samples=1000):
+def bootstrap(data: Dict, n_samples: int=1000) -> Dict:
     if len(list(data.values())[0].shape) == 1:
         data = {
             key: value.copy().reshape(1, -1)
             for key, value in data.items()
         }
 
-    def bootstrap_sample(data, n_bootstrap=None):
-        
-            
+    def bootstrap_sample(data, n_bootstrap: Optional[int]=None):
         if len(data.shape) == 1:
             data = data.copy().reshape(1, -1)
         if n_bootstrap is None:
@@ -303,3 +335,8 @@ def bootstrap(data, n_samples=1000):
             )
         
     return bootstrapped_data
+
+
+def save(obj: Any, name: str):
+    with open(f'{ARTIFACTS_DIRECTORY}/{name}.pkl', 'wb+') as file:
+        pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
