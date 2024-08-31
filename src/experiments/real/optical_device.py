@@ -1,11 +1,13 @@
 import argparse
 import numpy as np
 from tqdm import tqdm
+from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
 from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
+from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 # from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
@@ -30,7 +32,7 @@ from src.experiments.utils import (
 )
 
 
-ALL_METHODS = {
+ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
     'ERM': lambda: ERM(),
     'DA+ERM': lambda: ERM(),
     'DAIV+LOO': lambda: LOO(

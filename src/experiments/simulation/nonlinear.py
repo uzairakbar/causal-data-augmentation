@@ -1,11 +1,13 @@
 import argparse
 import numpy as np
 from tqdm import tqdm
+from typing import Dict, Callable, Optional
 
 from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
 
 from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 
+from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
@@ -22,7 +24,7 @@ from src.experiments.utils import (
 )
 
 
-ALL_METHODS = {
+ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
     'ERM': lambda: ERM(model='2-layer'),
     'DA+ERM': lambda: ERM(model='2-layer'),
     'DAIV+LOO': lambda: LOO(

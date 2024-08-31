@@ -4,11 +4,13 @@ sys.path.append("/Users/uzair/Documents/github/uzairakbar/daiv")
 
 
 import numpy as np
+from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 
 from src.sem.real.cmnist import ColoredDigitsSEM as SEM
 
+from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
@@ -25,7 +27,7 @@ from src.experiments.utils import (
 )
 
 
-ALL_METHODS = {
+ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
     "ERM": lambda: ERM(
         model="cmnist", epochs=1000
     ),

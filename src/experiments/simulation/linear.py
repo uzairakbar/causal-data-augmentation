@@ -28,7 +28,7 @@ from src.experiments.utils import (
 )
 
 
-ALL_METHODS = {
+ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
     'ERM': lambda: ERM(),
     'DA+ERM': lambda: ERM(),
     'DAIV+LOO': lambda: LOO(
@@ -52,7 +52,7 @@ class Experiment(ABC):
             x_dimension: int,
             n_experiments: int,
             sweep_samples: int,
-            methods: Dict[str, Callable[[Optional[str]], Regressor | ModelSelector]]
+            methods: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]]
         ):
         self.x_dimension = x_dimension
         self.n_samples = n_samples
@@ -123,7 +123,7 @@ class Experiment(ABC):
                 param_values, total=self.sweep_samples, desc='Parameters'
             )):
             pbar_param.set_description(f'Parameter {param}')
-            
+
             for j, (sem, da) in enumerate(tqdm(
                     zip(all_sems, all_augmenters), total=self.n_experiments, desc='Experiments'
                 )):
