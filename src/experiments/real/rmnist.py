@@ -94,7 +94,7 @@ def main():
     box_plot(all_errors, xlabel="accuracy", fname="rmnist")
     tex_table(
         all_errors, fname="rmnist", highlight="max",
-        title="Results for the Rotated MNIST experiment with {num_seeds} random seeds.".format(num_seeds=args["num_seeds"])
+        caption="Results for the Rotated MNIST experiment with {num_seeds} random seeds.".format(num_seeds=args["num_seeds"])
     )
 
 

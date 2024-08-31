@@ -137,7 +137,7 @@ def run(
     grid_plot(all_functions, fname='nonlinear_simulation')
     tex_table(
         all_errors, fname='nonlinear_simulation',
-        title='Test MSE $\\pm$ one standard deviation across $10$ runs.'
+        caption='Test MSE $\\pm$ one standard deviation across $10$ runs.'
     )
     save(all_errors, 'nonlinear_sim_errors')
     save(all_functions, 'nonlinear_sim_functions')

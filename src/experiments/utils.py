@@ -218,7 +218,7 @@ def grid_plot(
 def tex_table(
         data: Dict,
         fname: str,
-        title: str,
+        caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3
     ):
@@ -292,7 +292,7 @@ def tex_table(
         f.write(f'''
                 \\begin{{table}}[ht]
                     \\caption{{
-                        {title}
+                        {caption}
                     }}
                     \\centering
                     \\begin{{tabular}}{{@{{}}{columns_preamble}@{{}}}}

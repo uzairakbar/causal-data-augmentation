@@ -111,7 +111,7 @@ def run(
     box_plot(all_errors, xlabel='accuracy', fname='cmnist')
     tex_table(
         all_errors, fname='cmnist', highlight='max',
-        title=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
+        caption=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
     )
 
 
