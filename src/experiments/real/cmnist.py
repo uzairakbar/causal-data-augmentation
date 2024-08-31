@@ -1,9 +1,6 @@
-import os
-import sys
-sys.path.append("/Users/uzair/Documents/github/uzairakbar/daiv")
-
-
+import argparse
 import numpy as np
+from tqdm import tqdm
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
@@ -21,213 +18,125 @@ from src.regressors.daiv import DAIVConstrainedOptimizationGMM as DAIVp
 from src.regressors.model_selectors import VanillaCV as CV
 
 from src.experiments.utils import (
+    save,
     set_seed,
+    bootstrap,
     box_plot,
     tex_table,
 )
 
 
 ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
-    "ERM": lambda: ERM(
-        model="cmnist", epochs=1000
+    'ERM': lambda: ERM(
+        model='cmnist', epochs=40
     ),
-    "DA+ERM": lambda: ERM(
-        model="cmnist", epochs=1000
+    'DA+ERM': lambda: ERM(
+        model='cmnist', epochs=40
     ),
-    "DAIV+LOO": lambda: CV(
-        metric="accuracy",
+    'DAIV+LOO': lambda: CV(
+        metric='accuracy',
         estimator=DAIV(
-            model="cmnist", gmm_steps=10, epochs=100
+            model='cmnist', gmm_steps=4, epochs=10
         ),
-        param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
+        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
         frac=0.2,
         n_jobs=-1,
     ),
-    "DAIV1000": lambda: DAIV(
-        model="cmnist", alpha=1000, gmm_steps=10, epochs=100
+    'DAIV': lambda: mmDAIV(
+        model='cmnist', epochs=40
     ),
-    "DAIV100": lambda: DAIV(
-        model="cmnist", alpha=100, gmm_steps=10, epochs=100
+    'DAIVp': lambda: DAIVp(
+        model='cmnist', epochs=40
     ),
-    "DAIV10": lambda: DAIV(
-        model="cmnist", alpha=10, gmm_steps=10, epochs=100
-    ),
-    "DAIV": lambda: mmDAIV(
-        model="cmnist", epochs=1000
-    ),
-    "DAIVp": lambda: DAIVp(
-        model="cmnist", epochs=1000
-    ),
-    "DA+IV": lambda: IV(
-        model="cmnist", gmm_steps=10, epochs=100
-    ),
-    "IV": lambda: IV(
-        model="cmnist", gmm_steps=10, epochs=100
-    ),
+    'DA+IV': lambda: IV(
+        model='cmnist', gmm_steps=4, epochs=10
+    )
 }
 
-def run(args):
-    if args["methods"] == "all":
+
+def run(
+        seed: int,
+        num_seeds: int,
+        n_samples: int,
+        methods: str
+    ):
+    if methods == 'all':
         methods = ALL_METHODS
     else:
-        methods = {m: ALL_METHODS[m] for m in args["methods"].split(',')}
+        methods = {m: ALL_METHODS[m] for m in methods.split(',')}
     
-    error_dim = (args["num_seeds"],)
+    error_dim = (num_seeds,)
     all_errors = {name: np.zeros(error_dim) for name in methods}
     
     accuracy = lambda y, yhat: (y == yhat).mean()
-    # TODO: -1 for all samples
     sem_test = SEM(train=False)
-    X_test, y_test, _ = sem_test(N = args["n_samples"])
-    for i in range(args["num_seeds"]):
-        set_seed(i)
+    X_test, y_test, _ = sem_test(N = n_samples)
+    for i in (pbar_seed := tqdm(
+            range(num_seeds), total=num_seeds, desc='Seeds'
+        )):
+        set_seed(seed+i)
 
         sem = SEM(train=True)
         da = DA()
 
-        X, y, z = sem(N = args["n_samples"])
+        X, y = sem(N = n_samples)
         GX, G = da(X)
 
-        for method_name, method in methods.items():
-            print(f"######### {i} {method_name} #########")
+        for method_name, method in (pbar_methods := tqdm(
+                methods.items(), total=len(methods), desc='Methods'
+            )):
+            pbar_methods.set_description(f'{method_name}')
+
             model = method()
-            if "ERM" in method_name:
-                if "DA" in method_name:
+            if 'ERM' in method_name:
+                if 'DA' in method_name:
                     model.fit(X=GX, y=y)
                 else:
                     model.fit(X=X, y=y)
-            elif "DAIV" in method_name:
+            elif 'DAIV' in method_name:
                 model.fit(X=X, y=y, G=G, GX=GX)
-            elif method_name == "IV":
-                model.fit(X=X, y=y, Z=z)
             else:
                 model.fit(X=GX, y=y, Z=G)
             
             y_test_hat = model.predict(X_test)
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
 
-    return all_errors
+            save(obj=all_errors, name='cmnist', format='json')
+    
+    save(obj=all_errors, fname='cmnist', format='json')
+    save(
+        obj=np.arange(seed, seed+num_seeds), fname='cmnist_seeds', format='json'
+    )
 
-
-def main():
-    args = {
-        "n_samples": 60000,
-        "num_seeds": 1,
-        "methods": "all"
-    }
-
-    all_errors = run(args)
-    box_plot(all_errors, xlabel="accuracy", fname="cmnist")
+    box_plot(all_errors, xlabel='accuracy', fname='cmnist')
     tex_table(
-        all_errors, fname="cmnist", highlight="max",
-        title="Results for the CMNIST experiment with {num_seeds} random seeds.".format(num_seeds=args["num_seeds"])
+        all_errors, fname='cmnist', highlight='max',
+        title=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
     )
 
 
-import json
-from torch.multiprocessing import Pool, Process, set_start_method
-try:
-     set_start_method('spawn')
-except RuntimeError:
-    pass
-
-results = []
-
-def run_parallel(seed, n_samples=60000, methods="all"):
-    if methods == "all":
-        methods = ALL_METHODS
-    else:
-        methods = {m: ALL_METHODS[m] for m in args["methods"].split(',')}
-    
-    all_errors = {name: 0.0 for name in methods}
-    
-    accuracy = lambda y, yhat: (y == yhat).mean()
-    # TODO: -1 for all samples
-    sem_test = SEM(train=False)
-    X_test, y_test, _ = sem_test(N = -1)
-    
-    set_seed(seed)
-
-    sem = SEM(train=True)
-    da = DA()
-
-    X, y, z = sem(N = n_samples)
-    GX, G = da(X)
-
-    for method_name, method in methods.items():
-        print(f"######### {seed} {method_name} #########")
-        model = method()
-        if "ERM" in method_name:
-            if "DA" in method_name:
-                model.fit(X=GX, y=y)
-            else:
-                model.fit(X=X, y=y)
-        elif "DAIV" in method_name:
-            model.fit(X=X, y=y, G=G, GX=GX)
-        elif method_name == "IV":
-                model.fit(X=X, y=y, Z=z)
-        else:
-            model.fit(X=GX, y=y, Z=G)
-        
-        y_test_hat = model.predict(X_test)
-        all_errors[method_name] = accuracy(y_test, y_test_hat)
-        with open(f'assets/cmnist{seed}.json', 'w') as fp:
-            json.dump((seed, all_errors), fp)
-
-    return (seed, all_errors)
-
-
-# if __name__ == '__main__':
-#     args = {
-#         "n_samples": 60000,
-#         "num_seeds": 5,
-#         "methods": "all"
-#     }
-#     # processes = []
-#     # for i in range(args["num_seeds"]):
-#     #     processes.append(
-#     #         Process(
-#     #             target=run_parallel,
-#     #             args=(i, args["n_samples"], args["methods"])
-#     #         )
-#     #     )
-#     # for i in range(args["num_seeds"]):
-#     #     processes[i].start()
-
-#     with Pool(args["num_seeds"]) as p:
-#         results = p.map(
-#             run_parallel,
-#             list(range(args["num_seeds"]))
-#         )
-    
-#     print(results)
-
-#     with open('assets/cmnist.json', 'w') as fp:
-#         json.dump(results, fp)
-import sys
-
 if __name__ == '__main__':
-    seed = int(sys.argv[-1])
-    args = {
-        "n_samples": 60000,
-        "seeds": seed,
-        "methods": "all"
-    }
-    # processes = []
-    # for i in range(args["num_seeds"]):
-    #     processes.append(
-    #         Process(
-    #             target=run_parallel,
-    #             args=(i, args["n_samples"], args["methods"])
-    #         )
-    #     )
-    # for i in range(args["num_seeds"]):
-    #     processes[i].start()
-    result = run_parallel(seed)
-    
-    
-    print(result)
-
-    with open(f'assets/cmnist{seed}.json', 'w') as fp:
-        json.dump(result, fp)
-
+    parser = argparse.ArgumentParser(description='Colored MNIST experiment.')
+    parser.add_argument(
+        '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
+    )
+    parser.add_argument(
+        '--num_seeds',
+        type=int,
+        default=10,
+        help='Number of seeds to try -- average results over [`seed`, `seed+num_seeds`] seeds.'
+    )
+    parser.add_argument(
+        '--n_samples',
+        type=int,
+        default=60000,
+        help='Number of samples per experiment. Negative is all available samples.'
+    )
+    parser.add_argument(
+        '--methods',
+        type=str,
+        default='all',
+        help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
+    )
+    args = parser.parse_args()
+    run(**args)
