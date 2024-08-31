@@ -7,7 +7,7 @@ from src.regressors.abstract import IVRegressor as IV
 from src.regressors.erm import (
     LeastSquaresClosedForm as LSCF,
     LeastSquaresGradientDescent as LSGD,
-    # LeastSquaresCvxpy as LSGD,
+    LeastSquaresCvxpy as LSGD,
 )
 
 
