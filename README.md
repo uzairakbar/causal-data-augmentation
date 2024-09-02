@@ -1,16 +1,10 @@
 # Causal data augmentation
 
 ## Setup
-### Clone repo w/ submodules
-Clone this repository with all the relevant submodules.
+### Clone
+Clone this repository.
 ```bash
-git clone --recurse-submodules \
-    https://github.com/uzairakbar/causal-data-augmentation.git
-```
-
-Or if already cloned without submodules, use
-```bash
-git submodule update --init --recursive
+git clone https://github.com/uzairakbar/causal-data-augmentation.git
 ```
 
 ### Python `venv`
