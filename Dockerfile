@@ -7,7 +7,7 @@ WORKDIR /app
 # set environment variables
 ENV PYTHONPATH /app
 ENV CONDAENV causal-data-augmentation
-ENV PYTHONVERSION 3.10.9
+ENV PYTHONVERSION 3.10.14
 
 # install packages
 COPY requirements.txt .

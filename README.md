@@ -8,7 +8,7 @@ git clone https://github.com/uzairakbar/causal-data-augmentation.git
 ```
 
 ### Python `venv`
-Setup the python virtual environemnt (requires python `3.10.9`).
+Setup the python virtual environemnt (requires python `3.10.14`).
 ```bash
 python -m venv .env
 source .env/bin/activate
@@ -21,7 +21,7 @@ Then run the main script `.env/bin/python src/main.py`.
 Install dependencies with `conda` and fallback to `pip` if needed.
 ```bash
 environment=causal-data-augmentation
-conda create --name "$environment" python=3.10.9 --yes
+conda create --name "$environment" python=3.10.14 --yes
 conda activate "$environment"
 conda install pip --yes
 pip install -r requirements.txt
