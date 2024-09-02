@@ -20,6 +20,7 @@ def torch_bernoulli(p: float, size: int):
 
 
 def colour_image(image_grey: FloatTensor, color: FloatTensor) -> FloatTensor:
+    N = len(image_grey)
     zeros = torch.zeros_like(image_grey)
     image_rgb = torch.stack([image_grey, image_grey, zeros], dim=1)
     image_rgb[torch.tensor(range(N)), (1 - color).long(), :, :] *= 0
