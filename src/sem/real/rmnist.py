@@ -22,7 +22,7 @@ class RotatedDigitsSEM(SEM):
     _TRAIN: Dataset = load_dataset.__func__()
     _TEST: Dataset = load_dataset.__func__(train=False)
     _ROTATIONS: Dict[int, Rotation] = {
-        rotation: Rotation[rotation] for rotation in ROTATIONS
+        rotation: Rotation(rotation) for rotation in ROTATIONS
     }
 
     def __init__(self, target_rotation: float=0.0):
