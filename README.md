@@ -34,8 +34,8 @@ Build provided `Dockerfile` and run.
 image=causal-data-augmentation-image
 container=causal-data-augmentation-container
 docker build --tag "$image" .
-docker run "$image" \
-    --name "$container" \
+docker run \
+    --name "$container" "$image" \
     --volume "$PWD"/data:/app/data/ \
     --volume "$PWD"/artifacts:/app/artifacts/
 ```
