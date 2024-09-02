@@ -1,8 +1,13 @@
 # set base image
-FROM continuumio/miniconda3
+FROM continuumio/miniconda3:24.7.1-0
 
 # set working directory
 WORKDIR /app
+
+# set environment variables
+ENV PYTHONPATH /app
+ENV CONDAENV causal-data-augmentation
+ENV PYTHONVERSION 3.10.9
 
 # install packages
 COPY requirements.txt .
@@ -12,17 +17,18 @@ RUN apt-get update \
 RUN conda config --add channels pytorch
 RUN conda config --add channels conda-forge
 RUN conda config --add channels anaconda
-# install pip for fallback
-RUN conda install --yes pip
 # install with conda, install with pip on failure
-RUN while read requirement; do conda install --yes $requirement \
+RUN conda create --name "$CONDAENV" python="$PYTHONVERSION" --yes
+RUN set -x && \
+    conda init bash && \
+    . ~/.bashrc && \
+    conda activate ${CONDAENV} && \
+    conda install pip --yes && \
+    while read requirement; do conda install $requirement --yes \
     || pip install $requirement; done < requirements.txt
-
-# set environment variables
-ENV PYTHONPATH /app
 
 # copy source code
 COPY . .
 
 # run script
-CMD ["python3", "-u", "src/main.py"]
+CMD exec conda run -n $CONDAENV python src/main.py
