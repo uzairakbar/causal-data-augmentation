@@ -15,7 +15,7 @@ source .env/bin/activate
 pip install -r requirements.txt
 ```
 
-Then run the main script `.env/bin/python3 ./src/main.py`.
+Then run the main script `.env/bin/python src/main.py`.
 
 ### Conda environment
 Install dependencies with `conda` and fallback to `pip` if needed.
