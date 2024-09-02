@@ -21,12 +21,6 @@ RUN while read requirement; do conda install --yes $requirement \
 # set environment variables
 ENV PYTHONPATH /app
 
-# download data
-RUN curl -L https://api.github.com/repos/janzing/janzing.github.io/tarball \
-                    | tar xz --wildcards "*/code/data_from_optical_device" \
-                             --strip-components=2
-RUN mkdir --parents data/linear; mv data_from_optical_device/* data/linear
-
 # copy source code
 COPY . .
 
