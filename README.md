@@ -33,9 +33,11 @@ Build provided `Dockerfile` and run.
 ```bash
 image=causal-data-augmentation-image
 container=causal-data-augmentation-container
-docker build -t "$image" .
-docker run -v "$PWD"/artifacts:/app/artifacts/ \
-    --name "$container" "$image"
+docker build --tag "$image" .
+docker run "$image" \
+    --name "$container" \
+    --volume "$PWD"/data:/app/data/ \
+    --volume "$PWD"/artifacts:/app/artifacts/
 ```
 
 To delete docker artifacts after finishing experiments, run the following commands.
