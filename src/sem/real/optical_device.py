@@ -1,4 +1,5 @@
 import os
+import fsspec
 import numpy as np
 from typing import Dict, Tuple
 from numpy.typing import NDArray
@@ -9,7 +10,21 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 class OpticalDeviceSEM(SEM):
     @staticmethod
-    def load_dataset(directory: str='data/linear') -> Dict[int, NDArray]:
+    def download_dataset(directory: str):
+        fs = fsspec.filesystem(
+            'github',
+            org='janzing',
+            repo='janzing.github.io'
+        )
+        fs.get(
+            fs.ls("code/data_from_optical_device"),
+            directory
+        )
+
+    @staticmethod
+    def load_dataset(directory: str='data/optical_device') -> Dict[int, NDArray]:
+        OpticalDeviceSEM.download_dataset(directory)
+
         file_list = os.listdir(directory)
         file_list = [f for f in file_list if 'confounder' in f and 'random' not in f]
         
