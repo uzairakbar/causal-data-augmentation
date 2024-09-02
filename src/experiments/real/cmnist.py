@@ -77,7 +77,7 @@ def run(
     
     accuracy = lambda y, yhat: (y == yhat).mean()
     sem_test = SEM(train=False)
-    X_test, y_test, _ = sem_test(N = n_samples)
+    X_test, y_test = sem_test(N = n_samples)
 
     pbar_experiment = manager.counter(
         total=num_seeds, desc='Experiments', unit='experiments'
