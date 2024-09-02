@@ -20,19 +20,13 @@ Then run the main script `.env/bin/python src/main.py`.
 ### Conda environment
 Install dependencies with `conda` and fallback to `pip` if needed.
 ```bash
-conda create --name causal-data-augmentation --yes
-conda activate causal-data-augmentation
-conda install --yes pip
-while read requirement;
-do
-    conda install -c anaconda \
-        -c conda-forge \
-        -c pytorch \
-        --yes "$requirement" \
-    || pip install "$requirement";
-done < requirements.txt
+environment=causal-data-augmentation
+conda create --name "$environment" python=3.10.9 --yes
+conda activate "$environment"
+conda install pip --yes
+pip install requirements.txt
 ```
-Then run experiments with `conda run -n causal-data-augmentation python3 ./src/main.py`.
+Then run experiments with `conda run -n causal-data-augmentation python src/main.py`.
 
 ### Docker
 Build provided `Dockerfile` and run.
