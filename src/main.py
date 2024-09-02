@@ -42,9 +42,6 @@ if __name__ == '__main__':
     optical_device_experiment.run(
         seed = config.getint('optical device', 'seed'),
         n_samples = config.getint('optical device', 'n_samples'),
-        x_dimension = config.getint('optical device', 'x_dimension'),
-        n_experiments = config.getint('optical device', 'n_experiments'),
-        sweep_samples = config.getint('optical device', 'sweep_samples'),
         methods = config.get('optical device', 'methods')
     )
 
