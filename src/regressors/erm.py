@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import cvxpy as cp
+from loguru import logger
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 
@@ -37,14 +38,14 @@ class LeastSquaresGradientDescent(ERM):
     _models = MODELS
 
     def __init__(self,
-                 model="linear",
+                 model='linear',
                  epochs=1000):
         super().__init__()
 
         if model in self._models:
             self.__model = self._models[model]
         else:
-            raise ValueError("model has invalid value " + str(model))
+            raise ValueError(f'model has invalid value {model}')
         self._optimizer = None
         self._epochs = epochs
 
@@ -55,12 +56,12 @@ class LeastSquaresGradientDescent(ERM):
                 X_b = X_b.cuda()
                 y_b = y_b.cuda()
             elif torch.backends.mps.is_available():
-                X_b = X_b.to("mps")
-                y_b = y_b.to("mps")
+                X_b = X_b.to('mps')
+                y_b = y_b.to('mps')
             
             loss_val = self._optimizer.step(lambda: self.loss(X_b, y_b))
             losses += [loss_val.data.cpu().numpy()]
-        print("  train loss ", np.mean(losses))
+        logger.info(f'  train loss {np.mean(losses)}')
 
     def fit_f_batch(self, X, y):
         _ = self._optimizer.step(lambda: self.loss(X, y))
@@ -74,7 +75,7 @@ class LeastSquaresGradientDescent(ERM):
         if torch.cuda.is_available():
             self.f = self.f.cuda()
         elif torch.backends.mps.is_available():
-            self.f = self.f.to("mps")
+            self.f = self.f.to('mps')
 
         self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
 
@@ -87,23 +88,23 @@ class LeastSquaresGradientDescent(ERM):
         if torch.cuda.is_available():
             X = X.cuda()
             y = y.cuda()
-            print("Using CUDA")
+            logger.info('Using CUDA')
         elif torch.backends.mps.is_available():
-            X = X.to("mps")
-            y = y.to("mps")
-            print("Using MPS")
+            X = X.to('mps')
+            y = y.to('mps')
+            logger.info('Using MPS')
         else:
-            print("Using CPU")
+            logger.info('Using CPU')
 
-        batch_mode = "mini" if n > 1000 else "full"
+        batch_mode = 'mini' if n > 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
                                       batch_size=128, shuffle=True)
 
         for epoch in range(self._epochs):
-            if batch_mode == "full":
+            if batch_mode == 'full':
                 self.fit_f_batch(X, y)
             else:
-                print("g epoch %d / %d" % (epoch + 1, self._epochs))
+                logger.info(f'g epoch {epoch + 1}/{self._epochs}')
                 self.fit_f_minibatch(train)
         self.f.eval()
         return self
@@ -114,7 +115,7 @@ class LeastSquaresGradientDescent(ERM):
         if torch.cuda.is_available():
             X = X.cuda()
         elif torch.backends.mps.is_available():
-            X = X.to("mps")
+            X = X.to('mps')
         
         output = self.f(X).data.cpu().numpy()
 
@@ -141,7 +142,7 @@ class LeastSquaresGradientDescent(ERM):
         return loss
 
     @staticmethod
-    def _loss(X, y, f, reduction="sum"):
+    def _loss(X, y, f, reduction='sum'):
         y_hat = f(X)
         if isinstance(f[-1], torch.nn.LogSoftmax):
             loss = F.nll_loss(y_hat, y.flatten(), reduction=reduction)

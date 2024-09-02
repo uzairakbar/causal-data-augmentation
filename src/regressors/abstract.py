@@ -66,15 +66,15 @@ class DAIVRegressor(Regressor):
 
 
 class ModelSelector(ABC, BaseSearchCV):
-    def __init__(self, metric="r2", **kwargs):
-        if metric == "r2":
+    def __init__(self, metric='r2', **kwargs):
+        if metric == 'r2':
             scoring = make_scorer(self.r2)
-        elif metric == "accuracy":
+        elif metric == 'accuracy':
             scoring = make_scorer(self.accuracy)
-        elif metric == "mse":
+        elif metric == 'mse':
             scoring = make_scorer(self.negative_mse)
         else:
-            raise ValueError("Wrong value for validation metric.")
+            raise ValueError('Wrong value for validation metric.')
         super(ModelSelector, self).__init__(**kwargs, scoring=scoring)
     
     @property

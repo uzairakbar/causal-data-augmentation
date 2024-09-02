@@ -44,7 +44,7 @@ class ConfounderCorrection(ModelSelector):
     
     def fit(self, X, y, **kwargs):
         _, d = X.shape
-        X_ = kwargs["GX"]
+        X_ = kwargs['GX']
         Cxx = np.cov(X_, rowvar=False)
         W_erm = ERM().fit(X_, y).solution
         sqnorm =  (1 - self.estimate_beta(Cxx, W_erm)) * (W_erm**2).sum()

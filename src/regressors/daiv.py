@@ -115,7 +115,7 @@ class DAIVProjectedLeastSquares(DAIVRegressor):
         # result = minimize(
         #     f, h0, method='SLSQP', jac=df, hess=ddf,
         #     constraints=constraints,
-        #     options={"ftol": 1e-8, 'disp': False, }#"eps":0.001},
+        #     options={'ftol': 1e-8, 'disp': False, }#'eps':0.001},
         # )
         # self._W = result.x[:, None]
 
@@ -167,7 +167,7 @@ class DAIVConstrainedLeastSquares(DAIVRegressor):
 
 class DAIVGeneralizedMomentMethod(IV, ERM):
     def __init__(self,
-                 model="linear",
+                 model='linear',
                  alpha=1.0,
                  gmm_steps=10,
                  epochs=100):
@@ -211,7 +211,7 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 
 class MinMaxDAIV(IV, ERM):
     def __init__(self,
-                 model="linear",
+                 model='linear',
                  epochs=1000):
         self.alpha = None
         self.model = model  # TODO: refactor code
@@ -229,7 +229,7 @@ class MinMaxDAIV(IV, ERM):
         if torch.cuda.is_available():
             self.f = self.alpha.cuda()
         elif torch.backends.mps.is_available():
-            self.f = self.alpha.to("mps")
+            self.f = self.alpha.to('mps')
         
         self._alpha_optimizer = torch.optim.Adam(
             self.alpha.parameters(), lr=0.001, maximize=True
@@ -268,9 +268,9 @@ class MinMaxDAIV(IV, ERM):
             mom = self._moment_conditions(G, y, y_hat)
         
         # TODO: check which one of these is correct!
-        # loss = ( ERM._loss(X, y, self.f, reduction="none") - self.alpha(mom) ).sum()
+        # loss = ( ERM._loss(X, y, self.f, reduction='none') - self.alpha(mom) ).sum()
         mom = mom.mean(dim=0, keepdim=True)
-        loss = ERM._loss(X, y, self.f, reduction="mean") - self.alpha(mom)
+        loss = ERM._loss(X, y, self.f, reduction='mean') - self.alpha(mom)
 
         self._alpha_optimizer.zero_grad()
         self._optimizer.zero_grad()
@@ -285,7 +285,7 @@ class MinMaxDAIV(IV, ERM):
 
 class DAIVConstrainedOptimizationGMM(IV, ERM):
     def __init__(self,
-                 model="linear",
+                 model='linear',
                  epochs=1000):
         self.alpha = None
         self.model = model  # TODO: refactor code
@@ -304,7 +304,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
         if torch.cuda.is_available():
             self.f = self.alpha.cuda()
         elif torch.backends.mps.is_available():
-            self.f = self.alpha.to("mps")
+            self.f = self.alpha.to('mps')
         
         self._alpha_optimizer = torch.optim.Adam(
             self.alpha.parameters(), lr=0.001, maximize=True
@@ -357,7 +357,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
         # mom = mom.mean(dim=0, keepdim=True)
         # loss = 0.5*l2 - self.alpha(mom)
         mom = mom.mean(dim=0, keepdim=True)
-        loss = ERM._loss(X, y_erm, self.f, reduction="mean") - self.alpha(mom)
+        loss = ERM._loss(X, y_erm, self.f, reduction='mean') - self.alpha(mom)
 
         self._alpha_optimizer.zero_grad()
         self._optimizer.zero_grad()

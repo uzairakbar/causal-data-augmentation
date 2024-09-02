@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+from loguru import logger
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 
@@ -12,12 +13,12 @@ from src.regressors.erm import (
 )
 
 
-ERM = {"cf": LSCF(),
-       "gd": LSGD()}
+ERM = {'cf': LSCF(),
+       'gd': LSGD()}
 
 
 class IVTwoStageLeastSquares(IV):
-    def __init__(self, s1 = "cf", s2 = "gd"):
+    def __init__(self, s1 = 'cf', s2 = 'gd'):
         self.s1 = s1
         self.s2 = s2
         super(IVTwoStageLeastSquares, self).__init__()
@@ -40,13 +41,13 @@ class IVGeneralizedMomentMethod(IV):
     _models = MODELS
 
     def __init__(self,
-                 model="linear",
+                 model='linear',
                  gmm_steps=10,
                  epochs=100):
         if model in self._models:
             self.__model = self._models[model]
         else:
-            raise ValueError("model has invalid value " + str(model))
+            raise ValueError(f'model has invalid value {str(model)}')
         self._optimizer = None
         self._gmm_steps = gmm_steps
         self._epochs = epochs
@@ -61,15 +62,15 @@ class IVGeneralizedMomentMethod(IV):
                 Z_b = Z_b.cuda()
                 weights = weights.cuda()
             elif torch.backends.mps.is_available():
-                X_b = X_b.to("mps")
-                y_b = y_b.to("mps")
-                Z_b = Z_b.to("mps")
-                weights = weights.to("mps")
+                X_b = X_b.to('mps')
+                y_b = y_b.to('mps')
+                Z_b = Z_b.to('mps')
+                weights = weights.to('mps')
             loss_val = self._optimizer.step(
                 lambda: self.loss(X_b, y_b, Z_b, weights)
             )
             losses += [loss_val.data.cpu().numpy()]
-        print("  train loss ", np.mean(losses))
+        logger.info(f'  train loss {np.mean(losses)}')
 
     def fit_f_batch(self, X, y, Z, weights):
         _ = self._optimizer.step(lambda: self.loss(X, y, Z, weights))
@@ -90,7 +91,7 @@ class IVGeneralizedMomentMethod(IV):
         if torch.cuda.is_available():
             self.f = self.f.cuda()
         elif torch.backends.mps.is_available():
-            self.f = self.f.to("mps")
+            self.f = self.f.to('mps')
         
         self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
         
@@ -105,14 +106,14 @@ class IVGeneralizedMomentMethod(IV):
             X = X.cuda()
             y = y.cuda()
             Z = Z.cuda()
-            print("Using CUDA")
+            logger.info('Using CUDA')
         elif torch.backends.mps.is_available():
-            X = X.to("mps")
-            y = y.to("mps")
-            Z = Z.to("mps")
-            print("Using MPS")
+            X = X.to('mps')
+            y = y.to('mps')
+            Z = Z.to('mps')
+            logger.info('Using MPS')
         else:
-            print("Using CPU")
+            logger.info('Using CPU')
         
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             weights = torch.eye(10*k)
@@ -121,14 +122,14 @@ class IVGeneralizedMomentMethod(IV):
         if torch.cuda.is_available():
             weights = weights.cuda()
         elif torch.backends.mps.is_available():
-            weights = weights.to("mps")
+            weights = weights.to('mps')
 
-        batch_mode = "mini" if n >= 1000 else "full"
+        batch_mode = 'mini' if n >= 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=128, shuffle=True)
 
         for step in range(self._gmm_steps):
-            print("GMM step %d/%d" % (step + 1, self._gmm_steps))
+            logger.info(f'GMM step {step + 1}/{self._gmm_steps}')
             if step > 0:
                 # optimize weights
                 with torch.no_grad():
@@ -151,7 +152,7 @@ class IVGeneralizedMomentMethod(IV):
                     # weights = torch.cholesky_inverse(
                     #     torch.linalg.cholesky(
                     #         covariance_matrix
-                    #         + 1e-7*torch.eye(covariance_matrix.size(dim=-1), device="mps")
+                    #         + 1e-7*torch.eye(covariance_matrix.size(dim=-1), device='mps')
                     #     )
                     # )
                     weights = torch.as_tensor(
@@ -164,13 +165,13 @@ class IVGeneralizedMomentMethod(IV):
                     if torch.cuda.is_available():
                         weights = weights.cuda()
                     elif torch.backends.mps.is_available():
-                        weights = weights.to("mps")
+                        weights = weights.to('mps')
 
             for epoch in range(self._epochs):
-                if batch_mode == "full":
+                if batch_mode == 'full':
                     self.fit_f_batch(X, y, Z, weights)
                 else:
-                    print("g epoch %d / %d" % (epoch + 1, self._epochs))
+                    logger.info(f'g epoch {epoch + 1}/{self._epochs}')
                     self.fit_f_minibatch(train, weights)
 
         self.f.eval()
@@ -182,7 +183,7 @@ class IVGeneralizedMomentMethod(IV):
         if torch.cuda.is_available():
             X = X.cuda()
         elif torch.backends.mps.is_available():
-            X = X.to("mps")
+            X = X.to('mps')
         
         output = self.f(X).data.cpu().numpy()
 
