@@ -58,7 +58,6 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
 def run(
         seed: int,
         n_samples: int,
-        alpha: float,
         methods: str
     ):
     if seed >= 0:
@@ -129,7 +128,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
     )
-    parser.add_argument('--alpha', type=float, default=2.0, help='UIValpha regressoin parameter.')
     parser.add_argument(
         '--methods',
         type=str,
