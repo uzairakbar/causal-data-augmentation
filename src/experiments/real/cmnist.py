@@ -110,7 +110,7 @@ def run(
             y_test_hat = model.predict(X_test)
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
 
-            save(obj=all_errors, name='cmnist', format='json')
+            save(obj=all_errors, fname='cmnist', format='json')
 
             pbar_methods.update()
         pbar_methods.close()
