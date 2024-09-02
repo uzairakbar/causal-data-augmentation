@@ -24,7 +24,7 @@ environment=causal-data-augmentation
 conda create --name "$environment" python=3.10.9 --yes
 conda activate "$environment"
 conda install pip --yes
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 Then run experiments with `conda run -n causal-data-augmentation python src/main.py`.
 
@@ -34,10 +34,10 @@ Build provided `Dockerfile` and run.
 image=causal-data-augmentation-image
 container=causal-data-augmentation-container
 docker build --tag "$image" .
-docker run \
-    --name "$container" "$image" \
+docker run --name "$container" \
     --volume "$PWD"/data:/app/data/ \
-    --volume "$PWD"/artifacts:/app/artifacts/
+    --volume "$PWD"/artifacts:/app/artifacts/ \
+    "$image"
 ```
 
 To delete docker artifacts after finishing experiments, run the following commands.
