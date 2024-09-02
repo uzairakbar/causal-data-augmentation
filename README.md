@@ -8,11 +8,11 @@ git clone https://github.com/uzairakbar/causal-data-augmentation.git
 ```
 
 ### Python `venv`
-Setup the python virtual environemnt.
+Setup the python virtual environemnt (requires python `3.10.9`).
 ```bash
-python3 -m venv .env
+python -m venv .env
 source .env/bin/activate
-python3 -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 Then run the main script `.env/bin/python3 ./src/main.py`.
