@@ -1,6 +1,6 @@
 import argparse
+import enlighten
 import numpy as np
-from tqdm import tqdm
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
@@ -52,6 +52,13 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
         model='cmnist', gmm_steps=4, epochs=10
     )
 }
+manager = enlighten.get_manager()
+status = manager.status_bar(
+    status_format=u'Colored MNIST experiment{fill}{elapsed}',
+    color='bold_underline_bright_white_on_lightslategray',
+    justify=enlighten.Justify.CENTER,
+    autorefresh=True, min_delta=0.5
+)
 
 
 def run(
@@ -71,9 +78,11 @@ def run(
     accuracy = lambda y, yhat: (y == yhat).mean()
     sem_test = SEM(train=False)
     X_test, y_test, _ = sem_test(N = n_samples)
-    for i in (pbar_seed := tqdm(
-            range(num_seeds), total=num_seeds, desc='Seeds'
-        )):
+
+    pbar_experiment = manager.counter(
+        total=num_seeds, desc='Experiments', unit='experiments'
+    )
+    for i in range(num_seeds):
         set_seed(seed+i)
 
         sem = SEM(train=True)
@@ -82,10 +91,10 @@ def run(
         X, y = sem(N = n_samples)
         GX, G = da(X)
 
-        for method_name, method in (pbar_methods := tqdm(
-                methods.items(), total=len(methods), desc='Methods'
-            )):
-            pbar_methods.set_description(f'{method_name}')
+        pbar_methods = manager.counter(
+            total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
+        )
+        for method_name, method in methods.items():
 
             model = method()
             if 'ERM' in method_name:
@@ -102,6 +111,11 @@ def run(
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
 
             save(obj=all_errors, name='cmnist', format='json')
+
+            pbar_methods.update()
+        pbar_methods.close()
+        pbar_experiment.update()
+    pbar_experiment.close()
     
     save(obj=all_errors, fname='cmnist', format='json')
     save(

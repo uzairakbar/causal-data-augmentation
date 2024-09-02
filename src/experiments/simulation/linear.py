@@ -1,6 +1,6 @@
 import argparse
+import enlighten
 import numpy as np
-from tqdm import tqdm
 from loguru import logger
 from abc import ABC, abstractmethod
 from typing import Dict, Callable, Optional
@@ -42,6 +42,13 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'DAIV': lambda: DAIV(),
     'DA+IV': lambda: IV(),
 }
+manager = enlighten.get_manager()
+status = manager.status_bar(
+    status_format=u'Linear simulation{fill}Sweeping {sweep}{fill}{elapsed}',
+    color='bold_underline_bright_white_on_lightslategray',
+    justify=enlighten.Justify.CENTER, sweep='<parameter>',
+    autorefresh=True, min_delta=0.5
+)
 
 
 class Experiment(ABC):
@@ -118,26 +125,35 @@ class Experiment(ABC):
         
         error_dim = (self.sweep_samples, self.n_experiments)
         results = {name: np.zeros(error_dim) for name in self.methods}
+        
+        experiment_name = self.__class__.__name__
+        pbar_experiment = manager.counter(
+            total=self.sweep_samples, desc=f'{experiment_name}', unit='params'
+        )
+        for i, param in enumerate(param_values):
 
-        for i, param in enumerate(pbar_param := tqdm(
-                param_values, total=self.sweep_samples, desc='Parameters'
-            )):
-            pbar_param.set_description(f'Parameter {param}')
-
-            for j, (sem, da) in enumerate(tqdm(
-                    zip(all_sems, all_augmenters), total=self.n_experiments, desc='Experiments'
-                )):
+            pbar_sem = manager.counter(
+                total=self.n_experiments, desc=f'Param. {param:.2f}', unit='experiments', leave=False
+            )
+            for j, (sem, da) in enumerate(zip(all_sems, all_augmenters)):
                 sem_solution = sem.solution
 
                 X, y, G, GX = self.generate_dataset(sem, da, param)
-                for method_name, method in (pbar_methods := tqdm(
-                        self.methods.items(), total=len(self.methods), desc='Methods'
-                    )):
-                    pbar_methods.set_description(f'{method_name}')
-
+                
+                pbar_methods = manager.counter(
+                    total=len(self.methods), desc=f'SEM {j}', unit='methods', leave=False
+                )
+                for method_name, method in self.methods.items():
                     results[method_name][i][j] = self.compute_result(
                         sem_solution, method_name, method, X, y, G, GX, param
                     )
+
+                    pbar_methods.update()
+                pbar_methods.close()
+                pbar_sem.update()
+            pbar_sem.close()
+            pbar_experiment.update()
+        pbar_experiment.close()
         return param_values, results
 
 
@@ -216,6 +232,7 @@ def run(
         methods = {m: ALL_METHODS[m] for m in methods.split(',')}
     
     # sweep over lambda parameter
+    status.update(sweep='lambda')
     logger.info('Sweeping over lambda parameters.')
     lambda_values, results = LambdaSweep(
         seed=seed,
@@ -232,6 +249,7 @@ def run(
     save(results, 'lambda_results.pkl')
 
     # sweep over gamma parameter
+    status.update(sweep='gamma')
     logger.info('Sweeping over gamma parameters.')
     gamma_values, results = GammaSweep(
         seed=seed,
@@ -248,6 +266,7 @@ def run(
     save(results, 'gamma_results.pkl')
 
     # sweep over alpha parameter
+    status.update(sweep='alpha')
     logger.info('Sweeping over alpha parameters.')
     alpha_values, results = AlphaSweep(
         seed=seed,

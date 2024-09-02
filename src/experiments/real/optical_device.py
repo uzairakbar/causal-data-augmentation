@@ -1,6 +1,6 @@
 import argparse
+import enlighten
 import numpy as np
-from tqdm import tqdm
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
@@ -53,6 +53,13 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'DAIV': lambda: DAIV(),
     'DA+IV': lambda: IV()
 }
+manager = enlighten.get_manager()
+status = manager.status_bar(
+    status_format=u'Optical device experiment{fill}{elapsed}',
+    color='bold_underline_bright_white_on_lightslategray',
+    justify=enlighten.Justify.CENTER,
+    autorefresh=True, min_delta=0.5
+)
 
 
 def run(
@@ -80,17 +87,19 @@ def run(
     error_dim = (SEM.num_experiments(),)
     all_errors = {name: np.zeros(error_dim) for name in methods}
     
-    for j, (sem, da) in enumerate(tqdm(
-            zip(all_sems, all_augmenters), total=SEM.num_experiments(), desc='Experiments'
-        )):
+    pbar_experiment = manager.counter(
+        total=SEM.num_experiments(), desc='Experiments', unit='experiments'
+    )
+    for j, (sem, da) in enumerate(zip(all_sems, all_augmenters)):
         sem_solution = sem.solution
 
         X, y = sem(N = n_samples)
         GX, G = da(X)
-        for method_name, method in (pbar_methods := tqdm(
-                methods.items(), total=len(methods), desc='Methods'
-            )):
-            pbar_methods.set_description(f'{method_name}')
+        
+        pbar_methods = manager.counter(
+            total=len(methods), desc=f'SEM {j}', unit='methods', leave=False
+        )
+        for method_name, method in methods.items():
 
             model = method()
             if 'ERM' in method_name:
@@ -108,6 +117,11 @@ def run(
             error = relative_sq_error(sem_solution, method_solution)
 
             all_errors[method_name][j] = error
+            
+            pbar_methods.update()
+        pbar_methods.close()
+        pbar_experiment.update()
+    pbar_experiment.close()
     
     errors_bootstrapped = bootstrap(all_errors)
     box_plot(errors_bootstrapped, fname='optical_device')

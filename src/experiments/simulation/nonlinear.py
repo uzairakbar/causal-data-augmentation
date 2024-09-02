@@ -1,6 +1,6 @@
 import argparse
+import enlighten
 import numpy as np
-from tqdm import tqdm
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
@@ -43,6 +43,13 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'mmDAIV': lambda: mmDAIV(model='2-layer'),
     'DA+IV': lambda: IV(model='2-layer')
 }
+manager = enlighten.get_manager()
+status = manager.status_bar(
+    status_format=u'Non-linear simulation{fill}Function {function}{fill}{elapsed}',
+    color='bold_underline_bright_white_on_lightslategray',
+    justify=enlighten.Justify.CENTER, function='<function>',
+    autorefresh=True, min_delta=0.5
+)
 
 
 def run(
@@ -79,16 +86,16 @@ def run(
         } for func in SEM.get_functions()
     }
     x_gt = np.linspace(-5, 5, 100).reshape(-1, 1)
-    for j, (sem, da) in enumerate(pbar_sem := tqdm(
-            zip(all_sems, all_augmenters), total=SEM.num_functions(), desc='SEMs'
-        )):
-        pbar_sem.set_description(f'SEM {sem.function_name}')
+    for j, (sem, da) in enumerate(zip(all_sems, all_augmenters)):
+        status.update(function=sem.function_name)
 
         all_functions[sem.function_name]['x'] = x_gt.flatten()
         all_functions[sem.function_name]['y'] = sem.f(x_gt).flatten()
-        for i in tqdm(
-            range(n_experiments), total=n_experiments, desc='Experiments'
-            ):
+
+        pbar_sem = manager.counter(
+            total=n_experiments, desc=f'Function {sem.function_name}', unit='experiments'
+        )
+        for i in range(n_experiments):
         
             X, y = sem(N = n_samples)
             GX, G = da(X)
@@ -107,10 +114,10 @@ def run(
                 all_functions[sem.function_name]['x_data'] = X.flatten()
                 all_functions[sem.function_name]['y_data'] = y.flatten()
             
-            for method_name, method in (pbar_methods := tqdm(
-                    methods.items(), total=len(methods), desc='Methods'
-                )):
-                pbar_methods.set_description(f'{method_name}')
+            pbar_methods = manager.counter(
+                total=len(methods), desc=f'Experiment {i}', unit='methods', leave=False
+            )
+            for method_name, method in methods.items():
 
                 model = method()
                 if 'ERM' in method_name:
@@ -133,6 +140,11 @@ def run(
                 all_errors[sem.function_name][method_name][i] = (
                     mse(y_test, y_test_hat)
                 )
+                
+                pbar_methods.update()
+            pbar_methods.close()
+            pbar_sem.update()
+        pbar_sem.close()
     
     grid_plot(all_functions, fname='nonlinear_simulation')
     tex_table(
