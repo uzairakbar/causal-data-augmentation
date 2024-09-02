@@ -95,6 +95,8 @@ def sweep_plot(
     plt.show()
     if save:
         fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
+        if not os.path.exists(ARTIFACTS_DIRECTORY):
+            os.mkdir(ARTIFACTS_DIRECTORY)
         fig.savefig(
             f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
             format=PLOT_FORMAT,
@@ -140,6 +142,8 @@ def box_plot(
     plt.tight_layout()
     plt.show()
     if save:
+        if not os.path.exists(ARTIFACTS_DIRECTORY):
+            os.mkdir(ARTIFACTS_DIRECTORY)
         fig.savefig(
             f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
             format=PLOT_FORMAT,
@@ -207,6 +211,8 @@ def grid_plot(
     plt.tight_layout(pad = 0.333)
     plt.show()
     if save:
+        if not os.path.exists(ARTIFACTS_DIRECTORY):
+            os.mkdir(ARTIFACTS_DIRECTORY)
         fig.savefig(
             f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
             format=PLOT_FORMAT,
