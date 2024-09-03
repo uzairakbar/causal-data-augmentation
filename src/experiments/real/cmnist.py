@@ -1,6 +1,7 @@
 import argparse
 import enlighten
 import numpy as np
+from enlighten import Manager
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
@@ -52,21 +53,24 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
         model='cmnist', gmm_steps=4, epochs=10
     )
 }
-manager = enlighten.get_manager()
-status = manager.status_bar(
-    status_format=u'Colored MNIST experiment{fill}{elapsed}',
-    color='bold_underline_bright_white_on_lightslategray',
-    justify=enlighten.Justify.CENTER,
-    autorefresh=True, min_delta=0.5
-)
+MANAGER = enlighten.get_manager()
 
 
 def run(
         seed: int,
         num_seeds: int,
         n_samples: int,
-        methods: str
+        methods: str,
+        manager: Manager=MANAGER
     ):
+    
+    status = manager.status_bar(
+        status_format=u'Colored MNIST experiment{fill}{elapsed}',
+        color='bold_underline_bright_white_on_lightslategray',
+        justify=enlighten.Justify.CENTER,
+        autorefresh=True, min_delta=0.5
+    )
+
     if methods == 'all':
         methods = ALL_METHODS
     else:
@@ -95,6 +99,7 @@ def run(
             total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
         )
         for method_name, method in methods.items():
+            set_seed(seed+i)
 
             model = method()
             if 'ERM' in method_name:
@@ -103,7 +108,7 @@ def run(
                 else:
                     model.fit(X=X, y=y, pbar_manager=manager)
             elif 'DAIV' in method_name:
-                model.fit(X=X, y=y, G=G, GX=GX, pbar_manager=manager)
+                model.fit(X=X, y=y, G=G, GX=GX, pbar_manager=None)
             else:
                 model.fit(X=GX, y=y, Z=G, pbar_manager=manager)
             
@@ -115,6 +120,7 @@ def run(
             pbar_methods.update()
         pbar_methods.close()
         pbar_experiment.update()
+        status.update()
     pbar_experiment.close()
     
     save(obj=all_errors, fname='cmnist', format='json')
@@ -143,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--n_samples',
         type=int,
-        default=60000,
+        default=-1,
         help='Number of samples per experiment. Negative is all available samples.'
     )
     parser.add_argument(

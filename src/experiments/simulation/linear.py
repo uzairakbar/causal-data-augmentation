@@ -2,6 +2,7 @@ import argparse
 import enlighten
 import numpy as np
 from loguru import logger
+from enlighten import Manager
 from abc import ABC, abstractmethod
 from typing import Dict, Callable, Optional
 
@@ -42,13 +43,7 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'DAIV': lambda: DAIV(),
     'DA+IV': lambda: IV(),
 }
-manager = enlighten.get_manager()
-status = manager.status_bar(
-    status_format=u'Linear simulation{fill}Sweeping {sweep}{fill}{elapsed}',
-    color='bold_underline_bright_white_on_lightslategray',
-    justify=enlighten.Justify.CENTER, sweep='<parameter>',
-    autorefresh=True, min_delta=0.5
-)
+MANAGER = enlighten.get_manager()
 
 
 class Experiment(ABC):
@@ -224,8 +219,16 @@ def run(
         x_dimension: int,
         n_experiments: int,
         sweep_samples: int,
-        methods: str
+        methods: str,
+        manager: Manager=MANAGER
     ):
+    status = manager.status_bar(
+        status_format=u'Linear simulation{fill}Sweeping {sweep}{fill}{elapsed}',
+        color='bold_underline_bright_white_on_lightslategray',
+        justify=enlighten.Justify.CENTER, sweep='<parameter>',
+        autorefresh=True, min_delta=0.5
+    )
+    
     if methods == 'all':
         methods = ALL_METHODS
     else:

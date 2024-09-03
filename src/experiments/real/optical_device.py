@@ -1,6 +1,7 @@
 import argparse
 import enlighten
 import numpy as np
+from enlighten import Manager
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
@@ -53,20 +54,22 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'DAIV': lambda: DAIV(),
     'DA+IV': lambda: IV()
 }
-manager = enlighten.get_manager()
-status = manager.status_bar(
-    status_format=u'Optical device experiment{fill}{elapsed}',
-    color='bold_underline_bright_white_on_lightslategray',
-    justify=enlighten.Justify.CENTER,
-    autorefresh=True, min_delta=0.5
-)
+MANAGER = enlighten.get_manager()
 
 
 def run(
         seed: int,
         n_samples: int,
-        methods: str
+        methods: str,
+        manager: Manager=MANAGER
     ):
+    status = manager.status_bar(
+        status_format=u'Optical device experiment{fill}{elapsed}',
+        color='bold_underline_bright_white_on_lightslategray',
+        justify=enlighten.Justify.CENTER,
+        autorefresh=True, min_delta=0.5
+    )
+
     if seed >= 0:
         set_seed(seed)
     
@@ -121,6 +124,7 @@ def run(
             pbar_methods.update()
         pbar_methods.close()
         pbar_experiment.update()
+        status.update()
     pbar_experiment.close()
     
     errors_bootstrapped = bootstrap(all_errors)

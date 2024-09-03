@@ -1,6 +1,7 @@
 import argparse
 import enlighten
 import numpy as np
+from enlighten import Manager
 from typing import Dict, Callable, Optional
 
 from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
@@ -43,21 +44,23 @@ ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] =
     'mmDAIV': lambda: mmDAIV(model='2-layer'),
     'DA+IV': lambda: IV(model='2-layer')
 }
-manager = enlighten.get_manager()
-status = manager.status_bar(
-    status_format=u'Non-linear simulation{fill}Function {function}{fill}{elapsed}',
-    color='bold_underline_bright_white_on_lightslategray',
-    justify=enlighten.Justify.CENTER, function='<function>',
-    autorefresh=True, min_delta=0.5
-)
+MANAGER = enlighten.get_manager()
 
 
 def run(
         seed: int,
         n_samples: int,
         n_experiments: int,
-        methods: str
+        methods: str,
+        manager: Manager=MANAGER
     ):
+    status = manager.status_bar(
+        status_format=u'Non-linear simulation{fill}Function {function}{fill}{elapsed}',
+        color='bold_underline_bright_white_on_lightslategray',
+        justify=enlighten.Justify.CENTER, function='<function>',
+        autorefresh=True, min_delta=0.5
+    )
+
     if seed >= 0:
         set_seed(seed)
     
@@ -122,13 +125,13 @@ def run(
                 model = method()
                 if 'ERM' in method_name:
                     if 'DA' in method_name:
-                        model.fit(X=GX, y=y)
+                        model.fit(X=GX, y=y, pbar_manager=manager)
                     else:
-                        model.fit(X=X, y=y)
+                        model.fit(X=X, y=y, pbar_manager=manager)
                 elif 'DAIV' in method_name:
-                    model.fit(X=GX, y=y, G=G, GX=GX)
+                    model.fit(X=GX, y=y, G=G, GX=GX, pbar_manager=None)
                 else:
-                    model.fit(X=GX, y=y, Z=G)
+                    model.fit(X=GX, y=y, Z=G, pbar_manager=manager)
 
                 y_hat = model.predict(x_gt)
                 
