@@ -69,9 +69,9 @@ class ColoredDigitsSEM(SEM):
         
         # Assign a color based on the label; flip the color with probability e
         if self.train:
-            e_space = torch.tensor([0.1, 0.2])
+            e_space = torch.tensor([0.15])
         else:
-            e_space = torch.tensor([0.9])
+            e_space = torch.tensor([0.5])
         idx = torch.multinomial(e_space, num_samples=N, replacement=True)
         e = e_space[idx]
         C = torch_xor(y, torch_bernoulli(e, N))         # color C confounds X and y
