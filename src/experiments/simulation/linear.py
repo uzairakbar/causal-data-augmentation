@@ -245,8 +245,8 @@ def run(
     sweep_plot(
         lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
     )
-    save(lambda_values, 'lambda_values.pkl')
-    save(results, 'lambda_results.pkl')
+    save(lambda_values, 'lambda_values')
+    save(results, 'lambda_results')
 
     # sweep over gamma parameter
     status.update(sweep='gamma')
@@ -262,8 +262,8 @@ def run(
     sweep_plot(
         gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
     )
-    save(gamma_values, 'gamma_values.pkl')
-    save(results, 'gamma_results.pkl')
+    save(gamma_values, 'gamma_values')
+    save(results, 'gamma_results')
 
     # sweep over alpha parameter
     status.update(sweep='alpha')
@@ -283,8 +283,8 @@ def run(
         alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
         vertical_plots=vertical_plots, trivial_solution=False
     )
-    save(alpha_values, 'alpha_values.pkl')
-    save(results, 'alpha_results.pkl')
+    save(alpha_values, 'alpha_values')
+    save(results, 'alpha_results')
 
 
 if __name__ == '__main__':
