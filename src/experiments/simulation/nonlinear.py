@@ -140,7 +140,7 @@ def run(
                 all_errors[sem.function_name][method_name][i] = (
                     mse(y_test, y_test_hat)
                 )
-                
+
                 pbar_methods.update()
             pbar_methods.close()
             pbar_sem.update()
@@ -173,4 +173,4 @@ if __name__ == '__main__':
         help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
     )
     args = parser.parse_args()
-    run(**args)
+    run(**vars(args))

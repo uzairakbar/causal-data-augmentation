@@ -153,4 +153,4 @@ if __name__ == '__main__':
         help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
     )
     args = parser.parse_args()
-    run(**args)
+    run(**vars(args))
