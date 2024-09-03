@@ -1,5 +1,4 @@
 import torch
-
 import numpy as np
 import cvxpy as cp
 from math import comb
@@ -179,9 +178,9 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
                                     epochs=epochs)
         self.epochs = epochs
     
-    def fit(self, X, y, G, GX):
+    def fit(self, X, y, G, GX, **kwargs):
         return super(DAIVGeneralizedMomentMethod,
-                     self).fit(X=GX, y=y, Z=G)
+                     self).fit(X=GX, y=y, Z=G, **kwargs)
     
     @property
     def epochs(self):
@@ -221,7 +220,7 @@ class MinMaxDAIV(IV, ERM):
                                     epochs=epochs)
         self.epochs = epochs
     
-    def fit(self, X, y, G, GX):
+    def fit(self, X, y, G, GX, **kwargs):
         _, k = G.shape
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
@@ -236,7 +235,7 @@ class MinMaxDAIV(IV, ERM):
         )
         
         return super(MinMaxDAIV,
-                     self).fit(X=GX, y=y, Z=G)
+                     self).fit(X=GX, y=y, Z=G, **kwargs)
     
     @property
     def epochs(self):
@@ -296,7 +295,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
                                     epochs=epochs)
         self.epochs = epochs
     
-    def fit(self, X, y, G, GX):
+    def fit(self, X, y, G, GX, **kwargs):
         _, k = G.shape
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
@@ -312,7 +311,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
         
         self.erm.fit(GX, y)
         return super(DAIVConstrainedOptimizationGMM,
-                     self).fit(X=GX, y=y, Z=G)
+                     self).fit(X=GX, y=y, Z=G, **kwargs)
     
     @property
     def epochs(self):

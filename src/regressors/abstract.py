@@ -32,11 +32,11 @@ class EmpiricalRiskMinimizer(Regressor):
 
 
 class IVRegressor(Regressor):
-    def fit(self, X, y, Z):
-        return super(IVRegressor, self).fit(X=X, y=y, Z=Z)
+    def fit(self, X, y, Z, **kwargs):
+        return super(IVRegressor, self).fit(X=X, y=y, Z=Z, **kwargs)
 
     @abstractmethod
-    def _fit(self, X, y, Z):
+    def _fit(self, X, y, Z, **kwargs):
         pass
 
 
@@ -53,15 +53,15 @@ class DAIVRegressor(Regressor):
     def alpha(self, alpha):
         self._alpha = alpha
     
-    def fit(self, X, y, G, GX):
+    def fit(self, X, y, G, GX, **kwargs):
         # TODO: change this to simpler version for debugging!
         GX = GX.reshape(*GX.shape[:1], -1)
         X = X.reshape(*X.shape[:1], -1)
         # return self._fit(X, y, G, GX)
-        return super(DAIVRegressor, self).fit(X=X, y=y, G=G, GX=GX)
+        return super(DAIVRegressor, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
     
     @abstractmethod
-    def _fit(self, X, y, G, GX):
+    def _fit(self, X, y, G, GX, **kwargs):
         pass
 
 

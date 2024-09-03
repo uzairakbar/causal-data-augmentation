@@ -1,5 +1,4 @@
 import torch
-import enlighten
 import numpy as np
 from loguru import logger
 import torch.nn.functional as F
@@ -16,7 +15,7 @@ from src.regressors.erm import (
 
 ERM = {'cf': LSCF(),
        'gd': LSGD()}
-pbar_manager = enlighten.get_manager()
+
 
 class IVTwoStageLeastSquares(IV):
     def __init__(self, s1 = 'cf', s2 = 'gd'):
@@ -71,12 +70,12 @@ class IVGeneralizedMomentMethod(IV):
                 lambda: self.loss(X_b, y_b, Z_b, weights)
             )
             losses += [loss_val.data.cpu().numpy()]
-        logger.info(f'  train loss {np.mean(losses)}')
+        logger.info(f'  train loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y, Z, weights):
         _ = self._optimizer.step(lambda: self.loss(X, y, Z, weights))
 
-    def _fit(self, X, y, Z):
+    def _fit(self, X, y, Z, pbar_manager=None):
         from sklearn.preprocessing import PolynomialFeatures
         Z_poly_degree = 2
         Z = PolynomialFeatures(

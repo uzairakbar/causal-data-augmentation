@@ -99,13 +99,13 @@ def run(
             model = method()
             if 'ERM' in method_name:
                 if 'DA' in method_name:
-                    model.fit(X=GX, y=y)
+                    model.fit(X=GX, y=y, pbar_manager=manager)
                 else:
-                    model.fit(X=X, y=y)
+                    model.fit(X=X, y=y, pbar_manager=manager)
             elif 'DAIV' in method_name:
-                model.fit(X=X, y=y, G=G, GX=GX)
+                model.fit(X=X, y=y, G=G, GX=GX, pbar_manager=manager)
             else:
-                model.fit(X=GX, y=y, Z=G)
+                model.fit(X=GX, y=y, Z=G, pbar_manager=manager)
             
             y_test_hat = model.predict(X_test)
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
