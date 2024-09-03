@@ -354,6 +354,8 @@ def json_default(obj: Any):
 
 
 def save(obj: Dict[str, Any], fname: str, format: Literal['pkl', 'json']='pkl'):
+    if not os.path.exists(ARTIFACTS_DIRECTORY):
+        os.mkdir(ARTIFACTS_DIRECTORY)
     if format == 'pkl':
         with open(f'{ARTIFACTS_DIRECTORY}/{fname}.pkl', 'wb+') as file:
             pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
