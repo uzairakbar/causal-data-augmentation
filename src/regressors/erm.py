@@ -1,4 +1,5 @@
 import torch
+import enlighten
 import numpy as np
 import cvxpy as cp
 from loguru import logger
@@ -7,6 +8,9 @@ import torch.utils.data as data_utils
 
 from src.regressors.abstract import EmpiricalRiskMinimizer as ERM
 from src.regressors.models import MODELS
+
+
+pbar_manager = enlighten.get_manager()
 
 
 class LeastSquaresClosedForm(ERM):
@@ -99,13 +103,20 @@ class LeastSquaresGradientDescent(ERM):
         batch_mode = 'mini' if n > 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
                                       batch_size=128, shuffle=True)
-
+        
+        method_name = self.__class__.__name__
+        pbar_epochs = pbar_manager.counter(
+            total=self._epochs, desc=f'{method_name}', unit='epochs', leave=False
+        )
         for epoch in range(self._epochs):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y)
             else:
                 logger.info(f'g epoch {epoch + 1}/{self._epochs}')
                 self.fit_f_minibatch(train)
+            
+            pbar_epochs.update()
+        pbar_epochs.close()
         self.f.eval()
         return self
 

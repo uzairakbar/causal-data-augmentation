@@ -1,4 +1,5 @@
 import torch
+import enlighten
 import numpy as np
 from loguru import logger
 import torch.nn.functional as F
@@ -15,7 +16,7 @@ from src.regressors.erm import (
 
 ERM = {'cf': LSCF(),
        'gd': LSGD()}
-
+pbar_manager = enlighten.get_manager()
 
 class IVTwoStageLeastSquares(IV):
     def __init__(self, s1 = 'cf', s2 = 'gd'):
@@ -127,9 +128,13 @@ class IVGeneralizedMomentMethod(IV):
         batch_mode = 'mini' if n >= 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=128, shuffle=True)
-
+        
+        method_name = self.__class__.__name__
+        pbar_gmm = pbar_manager.counter(
+            total=self._gmm_steps, desc=f'{method_name}', unit='GMM steps', leave=False
+        )
         for step in range(self._gmm_steps):
-            logger.info(f'GMM step {step + 1}/{self._gmm_steps}')
+            # logger.info(f'GMM step {step + 1}/{self._gmm_steps}')
             if step > 0:
                 # optimize weights
                 with torch.no_grad():
@@ -166,13 +171,21 @@ class IVGeneralizedMomentMethod(IV):
                         weights = weights.cuda()
                     elif torch.backends.mps.is_available():
                         weights = weights.to('mps')
-
+            
+            pbar_epochs = pbar_manager.counter(
+                total=self._epochs, desc=f'Step {step}', unit='epochs', leave=False
+            )
             for epoch in range(self._epochs):
                 if batch_mode == 'full':
                     self.fit_f_batch(X, y, Z, weights)
                 else:
-                    logger.info(f'g epoch {epoch + 1}/{self._epochs}')
+                    # logger.info(f'g epoch {epoch + 1}/{self._epochs}')
                     self.fit_f_minibatch(train, weights)
+                
+                pbar_epochs.update()
+            pbar_epochs.close()
+            pbar_gmm.update()
+        pbar_gmm.close()
 
         self.f.eval()
         return self
