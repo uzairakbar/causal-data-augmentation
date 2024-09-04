@@ -13,6 +13,17 @@ from typing import Any, Literal, List, Dict, Optional
 PLOT_DPI=1200
 PLOT_FORMAT='pdf'
 ARTIFACTS_DIRECTORY='artifacts'
+TEX_MAPPER = {
+    'Data': 'Data',
+    'ERM': 'ERM',
+    'DA+ERM': 'DA+ERM',
+    'DA+UIV-5fold': 'DA+UIV--$\\alpha^{\\text{5-fold}}$',
+    'DA+UIV-LOLO': 'DA+UIV--$\\alpha^{\\text{LOLO}}$',
+    'DA+UIV-CC': 'DA+UIV--$\\alpha^{\\text{CC}}$',
+    'DA+UIV-Pi': 'DA+UIV--$\Pi$',
+    'DA+UIV': 'DA+UIV',
+    'DA+IV': 'DA+IV',
+}
 
 
 def relative_sq_error(W, What) -> float:
@@ -54,21 +65,10 @@ def sweep_plot(
     for i, (method, errors) in enumerate(y.items()):
         mean = errors.mean(axis = 1)
 
-        if 'DAIVPi' == method:
-            label = fr'DA+UIV-$\Pi$'
-        elif 'DAIV' == method:
-            label = fr'DA+UIV'
-        elif 'DAIV+LOO' == method:
-            if method in vertical_plots:
-                label = 'average '+fr'-$\alpha^{{\mathrm{{\mathsf{{5-fold}}}}}}$'
-            else:
-                label = 'DA+UIV'+fr'-$\alpha^{{\mathrm{{\mathsf{{5-fold}}}}}}$'
-        elif 'DAIV' in method:
-            alpha = '' if (method == 'DAIValpha') else method.split('+')[-1]
-            label_prefix = 'average ' if (method in vertical_plots) else 'DA+UIV'
-            label = label_prefix + fr'-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$'
-        else:
-            label = method
+        label = TEX_MAPPER.get(method, method)
+        if method in vertical_plots:
+            label = f'average {label.split('--')[-1]}'
+        
         labels.append(label)
 
         if method in vertical_plots:
@@ -122,20 +122,7 @@ def box_plot(
     ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
     labels = []
     for method in data.keys():
-        if method in ['DAIVpi', 'mmDAIV', 'DAIVP__', 'DAIV', 'DAIVP_']:
-            mapper = {
-                'mmDAIV': 'mmDAIV',
-                'pDAIV': 'pDAIV',
-                'DAIVpi': 'DA+UIV-$\Pi$',
-                'DAIV': 'DA+UIV',
-                'DA+IV': 'DA+IV',
-            }
-            label = mapper[method]
-        elif 'DAIV' in method:
-            alpha = '' if (method == 'DAIV') else method.split('+')[-1]
-            label = fr'DA+UIV-$\alpha^{{\mathrm{{\mathsf{{{alpha}}}}}}}$'
-        else:
-            label = method
+        label = TEX_MAPPER.get(method, method)
         labels.append(label)
     ax.set(yticklabels=labels)
     ax.set(xlabel=xlabel, ylabel=ylabel)
@@ -156,16 +143,6 @@ def grid_plot(
         save: bool=True,
         fname: str='nonlinear_simulation'
     ):
-    label = {
-        'Data': 'Data',
-        'ERM': 'ERM',
-        'DA+ERM': 'DA+ERM',
-        'DA+IV': 'DA+IV',
-        'mmDAIV': 'mmDAIV',
-        'DAIV+LOO': r'DAIV-$\alpha^{\mathrm{\mathsf{LOO}}}$',
-        'DAIV+LOLO': r'DAIV-$\alpha^{\mathrm{\mathsf{LOLO}}}$',
-    }
-
     functions = data.keys()
     methods = ['Data'] + ([
         method for method in data['abs'].keys() if 'ERM' in method or 'DA' in method or 'IV' in method
@@ -195,10 +172,12 @@ def grid_plot(
 
                 axs[i, j].plot(x, mean, color=colors[0])
                 axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.1)
-                
+            
+            label = TEX_MAPPER.get(method, method)
+
             axs[i, j].plot(x, y, color=colors[1])
             if not i:
-                axs[i, j].set_title(label[method])
+                axs[i, j].set_title(label)
             if not j:
                 axs[i, j].set_ylabel(function)
             if j:
@@ -228,18 +207,6 @@ def tex_table(
         highlight: Literal['min', 'max']='min',
         decimals: int=3
     ):
-    label = {
-        'ERM': 'ERM',
-        'DA+ERM': 'DA+ERM',
-        'DAIV+LOO': 'DA+UIV--$\\alpha^{\\text{LOO}}$',
-        'DAIV+LOLO': 'DA+UIV--$\\alpha^{\\text{LOLO}}$',
-        'DAIV+CC': 'DA+UIV--$\\alpha^{\\text{CC}}$',
-        'mmDAIV': 'mmDAIV',
-        'pDAIV': 'pDAIV',
-        'DAIVpi': 'DA+UIV--$\Pi$',
-        'DAIV': 'DA+UIV',
-        'DA+IV': 'DA+IV',
-    }
     
     if 'ERM' in data:
         row_names = None
@@ -248,19 +215,19 @@ def tex_table(
             best = min(results, key = lambda v : v[0])[0]
         elif highlight == 'max':
             best = max(results, key = lambda v : v[0])[0]
-        column_names = [label[k] for k in data]
+        column_names = [TEX_MAPPER.get(k, k) for k in data]
     else:
         row_names = list(data.keys())
         results = {}
         best = {}
         for row in row_names:
-            columns = {col: data[row][col] for col in label.keys() if col in data[row]}
+            columns = {col: data[row][col] for col in TEX_MAPPER.keys() if col in data[row]}
             results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
             if highlight == 'min':
                 best[row] = min(results[row], key = lambda v : v[0])[0]
             elif highlight == 'max':
                 best[row] = max(results[row], key = lambda v : v[0])[0]
-        column_names = [label[k] for k in data[row_names[0]]]
+        column_names = [TEX_MAPPER.get(k, k) for k in data[row_names[0]]]
     
     with open(f'{ARTIFACTS_DIRECTORY}/{fname}.tex', 'w+') as f:
         backreturn = '\\\\\n' + ' '*8
@@ -369,3 +336,24 @@ def save(obj: Dict[str, Any], fname: str, format: Literal['pkl', 'json']='pkl'):
                 indent=4,
                 default=json_default
             )
+
+
+def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None):
+    if name == 'ERM':
+        model.fit(
+            X=X, y=y, pbar_manager=pbar_manager, **hyperparameters.erm
+        )
+    elif name == 'DA+ERM':
+        model.fit(
+            X=GX, y=y, pbar_manager=pbar_manager, **hyperparameters.erm
+        )
+    elif 'DA+UIV' in name:
+        model.fit(
+            X=X, y=y, G=G, GX=GX, pbar_manager=None, **hyperparameters.gmm
+        )
+    elif 'DA+IV' == name:
+        model.fit(
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **hyperparameters.gmm
+        )
+    else:
+        raise ValueError(f'Model {name} not implemented.')
