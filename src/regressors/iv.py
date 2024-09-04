@@ -40,17 +40,12 @@ class IVTwoStageLeastSquares(IV):
 class IVGeneralizedMomentMethod(IV):
     _models = MODELS
 
-    def __init__(self,
-                 model='linear',
-                 gmm_steps=10,
-                 epochs=100):
+    def __init__(self, model='linear'):
         if model in self._models:
             self.__model = self._models[model]
         else:
             raise ValueError(f'model has invalid value {str(model)}')
         self._optimizer = None
-        self._gmm_steps = gmm_steps
-        self._epochs = epochs
         super(IVGeneralizedMomentMethod, self).__init__()
 
     def fit_f_minibatch(self, train, weights):
@@ -75,7 +70,12 @@ class IVGeneralizedMomentMethod(IV):
     def fit_f_batch(self, X, y, Z, weights):
         _ = self._optimizer.step(lambda: self.loss(X, y, Z, weights))
 
-    def _fit(self, X, y, Z, pbar_manager=None):
+    def _fit(
+            self,
+            X, y, Z,
+            lr=0.001, epochs1=4, epochs2=10,
+            pbar_manager=None
+        ):
         from sklearn.preprocessing import PolynomialFeatures
         Z_poly_degree = 2
         Z = PolynomialFeatures(
@@ -93,7 +93,7 @@ class IVGeneralizedMomentMethod(IV):
         elif torch.backends.mps.is_available():
             self.f = self.f.to('mps')
         
-        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
+        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=lr)
         
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             y = torch.tensor(y, dtype=torch.long)
@@ -131,10 +131,10 @@ class IVGeneralizedMomentMethod(IV):
         if pbar_manager:
             method_name = self.__class__.__name__
             pbar_gmm = pbar_manager.counter(
-                total=self._gmm_steps, desc=f'{method_name}', unit='GMM steps', leave=False
+                total=epochs1, desc=f'{method_name}', unit='GMM steps', leave=False
             )
-        for step in range(self._gmm_steps):
-            # logger.info(f'GMM step {step + 1}/{self._gmm_steps}')
+        for step in range(epochs1):
+            # logger.info(f'GMM step {step + 1}/{epochs1}')
             if step > 0:
                 # optimize weights
                 with torch.no_grad():
@@ -174,13 +174,13 @@ class IVGeneralizedMomentMethod(IV):
             
             if pbar_manager:
                 pbar_epochs = pbar_manager.counter(
-                    total=self._epochs, desc=f'Step {step}', unit='epochs', leave=False
+                    total=epochs2, desc=f'Step {step}', unit='epochs', leave=False
                 )
-            for epoch in range(self._epochs):
+            for epoch in range(epochs2):
                 if batch_mode == 'full':
                     self.fit_f_batch(X, y, Z, weights)
                 else:
-                    # logger.info(f'g epoch {epoch + 1}/{self._epochs}')
+                    # logger.info(f'g epoch {epoch + 1}/{epochs2}')
                     self.fit_f_minibatch(train, weights)
                 
                 if pbar_manager: pbar_epochs.update()

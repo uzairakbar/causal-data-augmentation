@@ -10,7 +10,7 @@ from src.regressors.models import MODELS
 
 
 class LeastSquaresClosedForm(ERM):
-    def _fit(self, X, y):
+    def _fit(self, X, y, **kwargs):
         self._W = np.linalg.pinv(X) @ y
         return self
     
@@ -37,9 +37,7 @@ class LeastSquaresCvxpy(ERM):
 class LeastSquaresGradientDescent(ERM):
     _models = MODELS
 
-    def __init__(self,
-                 model='linear',
-                 epochs=1000):
+    def __init__(self, model='linear'):
         super().__init__()
 
         if model in self._models:
@@ -47,7 +45,6 @@ class LeastSquaresGradientDescent(ERM):
         else:
             raise ValueError(f'model has invalid value {model}')
         self._optimizer = None
-        self._epochs = epochs
 
     def fit_f_minibatch(self, train):
         losses = list()
@@ -66,7 +63,12 @@ class LeastSquaresGradientDescent(ERM):
     def fit_f_batch(self, X, y):
         _ = self._optimizer.step(lambda: self.loss(X, y))
 
-    def _fit(self, X, y, pbar_manager=None):
+    def _fit(
+            self,
+            X, y,
+            lr=0.001, epochs=40,
+            pbar_manager=None
+        ):
         n, m = X.shape
 
         self.f = self.__model(m)
@@ -77,7 +79,7 @@ class LeastSquaresGradientDescent(ERM):
         elif torch.backends.mps.is_available():
             self.f = self.f.to('mps')
 
-        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=0.001)
+        self._optimizer = torch.optim.Adam(self.f.parameters(), lr=lr)
 
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             y = torch.tensor(y, dtype=torch.long)
@@ -102,13 +104,13 @@ class LeastSquaresGradientDescent(ERM):
         
         method_name = self.__class__.__name__
         pbar_epochs = pbar_manager.counter(
-            total=self._epochs, desc=f'{method_name}', unit='epochs', leave=False
+            total=epochs, desc=f'{method_name}', unit='epochs', leave=False
         )
-        for epoch in range(self._epochs):
+        for epoch in range(epochs):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y)
             else:
-                # logger.info(f'g epoch {epoch + 1}/{self._epochs}')
+                # logger.info(f'g epoch {epoch + 1}/{epochs}')
                 self.fit_f_minibatch(train)
             
             pbar_epochs.update()

@@ -16,7 +16,7 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
     def __init__(self, alpha = 1.0):
         super(DAIVLeastSquaresClosedForm, self).__init__(alpha)
         
-    def _fit(self, X, y, G=None, GX=None):
+    def _fit(self, X, y, G=None, GX=None, **kwargs):
         N = len(GX)
         I = np.eye(N)
         Cgg = G.T @ G
@@ -167,36 +167,15 @@ class DAIVConstrainedLeastSquares(DAIVRegressor):
 class DAIVGeneralizedMomentMethod(IV, ERM):
     def __init__(self,
                  model='linear',
-                 alpha=1.0,
-                 gmm_steps=10,
-                 epochs=100):
+                 alpha=1.0):
         self.alpha = alpha
         self.model = model  # TODO: refactor code
         super(DAIVGeneralizedMomentMethod,
-                     self).__init__(model=model,
-                                    gmm_steps=gmm_steps,
-                                    epochs=epochs)
-        self.epochs = epochs
+                     self).__init__(model=model)
     
     def fit(self, X, y, G, GX, **kwargs):
         return super(DAIVGeneralizedMomentMethod,
                      self).fit(X=GX, y=y, Z=G, **kwargs)
-    
-    @property
-    def epochs(self):
-        return self._epochs
-
-    @epochs.setter
-    def epochs(self, epochs):
-        self._epochs = epochs
-
-    @property
-    def gmm_steps(self):
-        return self._gmm_steps
-
-    @gmm_steps.setter
-    def gmm_steps(self, gmm_steps):
-        self._gmm_steps = gmm_steps
     
     def loss(self,
              X, y, G,
@@ -209,18 +188,13 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 
 
 class MinMaxDAIV(IV, ERM):
-    def __init__(self,
-                 model='linear',
-                 epochs=1000):
+    def __init__(self, model='linear'):
         self.alpha = None
         self.model = model  # TODO: refactor code
         super(MinMaxDAIV,
-                     self).__init__(model=model,
-                                    gmm_steps=1,
-                                    epochs=epochs)
-        self.epochs = epochs
+                     self).__init__(model=model)
     
-    def fit(self, X, y, G, GX, **kwargs):
+    def fit(self, X, y, G, GX, lr=0.001, **kwargs):
         _, k = G.shape
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
@@ -231,27 +205,11 @@ class MinMaxDAIV(IV, ERM):
             self.f = self.alpha.to('mps')
         
         self._alpha_optimizer = torch.optim.Adam(
-            self.alpha.parameters(), lr=0.001, maximize=True
+            self.alpha.parameters(), lr=lr, maximize=True
         )
         
         return super(MinMaxDAIV,
-                     self).fit(X=GX, y=y, Z=G, **kwargs)
-    
-    @property
-    def epochs(self):
-        return self._epochs
-
-    @epochs.setter
-    def epochs(self, epochs):
-        self._epochs = epochs
-
-    @property
-    def gmm_steps(self):
-        return self._gmm_steps
-
-    @gmm_steps.setter
-    def gmm_steps(self, gmm_steps):
-        self._gmm_steps = gmm_steps
+                     self).fit(X=GX, y=y, Z=G, lr=lr, **kwargs)
     
     def loss(self,
              X, y, G,
@@ -283,19 +241,16 @@ class MinMaxDAIV(IV, ERM):
 
 
 class DAIVConstrainedOptimizationGMM(IV, ERM):
-    def __init__(self,
-                 model='linear',
-                 epochs=1000):
+    def __init__(self, model='linear'):
         self.alpha = None
         self.model = model  # TODO: refactor code
-        self.erm = ERM(model=model, epochs=epochs)
+        self.erm = ERM(model=model)
         super(DAIVConstrainedOptimizationGMM,
-                     self).__init__(model=model,
-                                    gmm_steps=1,
-                                    epochs=epochs)
-        self.epochs = epochs
+                     self).__init__(model=model)
     
-    def fit(self, X, y, G, GX, **kwargs):
+    def fit(
+            self, X, y, G, GX, lr=0.001, epochs1=4, epochs2=10, **kwargs
+        ):
         _, k = G.shape
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
@@ -306,29 +261,17 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
             self.f = self.alpha.to('mps')
         
         self._alpha_optimizer = torch.optim.Adam(
-            self.alpha.parameters(), lr=0.001, maximize=True
+            self.alpha.parameters(), lr=lr, maximize=True
         )
         
-        self.erm.fit(GX, y)
+        self.erm.fit(
+            GX, y, lr=lr, epochs=epochs1*epochs2
+        )
         return super(DAIVConstrainedOptimizationGMM,
-                     self).fit(X=GX, y=y, Z=G, **kwargs)
-    
-    @property
-    def epochs(self):
-        return self._epochs
+                     self).fit(
+                         X=GX, y=y, Z=G, lr=lr, epochs1=epochs1, epochs2=epochs2, **kwargs
+                        )
 
-    @epochs.setter
-    def epochs(self, epochs):
-        self._epochs = epochs
-
-    @property
-    def gmm_steps(self):
-        return self._gmm_steps
-
-    @gmm_steps.setter
-    def gmm_steps(self, gmm_steps):
-        self._gmm_steps = gmm_steps
-    
     def loss(self,
              X, y, G,
              weights):
