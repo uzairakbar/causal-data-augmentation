@@ -268,7 +268,7 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     vertical_plots = ([
-        method for method in ALL_METHODS.keys() if 'DA+UIV-' in method
+        method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
     ])
     sweep_plot(
         alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
