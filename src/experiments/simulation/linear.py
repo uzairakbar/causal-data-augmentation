@@ -52,12 +52,10 @@ class Experiment(ABC):
             self,
             seed: int,
             n_samples: int,
-            x_dimension: int,
             n_experiments: int,
             sweep_samples: int,
             methods: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]]
         ):
-        self.x_dimension = x_dimension
         self.n_samples = n_samples
         self.n_experiments = n_experiments
         self.seed = seed
@@ -111,7 +109,7 @@ class Experiment(ABC):
         all_sems = []
         all_augmenters = []
         for _ in range(self.n_experiments):
-            sem = SEM(self.x_dimension)
+            sem = SEM()
             da = DA(sem.W_XY)
             all_sems.append(sem)
             all_augmenters.append(da)
@@ -214,7 +212,6 @@ class AlphaSweep(Experiment):
 def run(
         seed: int,
         n_samples: int,
-        x_dimension: int,
         n_experiments: int,
         sweep_samples: int,
         methods: List[str],
@@ -234,7 +231,6 @@ def run(
     logger.info('Sweeping over lambda parameters.')
     lambda_values, results = LambdaSweep(
         seed=seed,
-        x_dimension=x_dimension,
         n_samples=n_samples,
         n_experiments=n_experiments,
         methods=methods,
@@ -251,7 +247,6 @@ def run(
     logger.info('Sweeping over gamma parameters.')
     gamma_values, results = GammaSweep(
         seed=seed,
-        x_dimension=x_dimension,
         n_samples=n_samples,
         n_experiments=n_experiments,
         methods=methods,
@@ -268,7 +263,6 @@ def run(
     logger.info('Sweeping over alpha parameters.')
     alpha_values, results = AlphaSweep(
         seed=seed,
-        x_dimension=x_dimension,
         n_samples=n_samples,
         n_experiments=n_experiments,
         methods=methods,
@@ -292,9 +286,6 @@ if __name__ == '__main__':
     )
     CLI.add_argument(
         '--n_samples', type=int, default=2000, help='Number of samples per experiment.'
-    )
-    CLI.add_argument(
-        '--x_dimension', type=int, default=30, help='Dimension of treatment.'
     )
     CLI.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
     CLI.add_argument(
