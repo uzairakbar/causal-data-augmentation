@@ -50,23 +50,57 @@ class Compose(transforms.Compose):
         return img, params
 
 
-class Hue(transforms.ColorJitter):
-    def __init__(self, hue = 0):
-        self.param_scaler = BetaStandardScaler(-1*hue, hue)
-        return super(Hue, self).__init__(0, 0, 0, hue = hue)
+class Jitter(transforms.ColorJitter):
+    def __init__(
+        self,
+        brightness = 0,
+        contrast = 0,
+        saturation = 0,
+        hue = 0
+    ):
+        self.brightness_scaler = BetaStandardScaler(
+            max(0, 1 - brightness), 1 + brightness
+        )
+        self.contrast_scaler = BetaStandardScaler(
+            max(0, 1 - contrast), 1 + contrast
+        )
+        self.saturation_scaler = BetaStandardScaler(
+            max(0, 1 - saturation), 1 + saturation
+        )
+        self.hue_scaler = BetaStandardScaler(-1*hue, hue)
+        return super(Jitter, self).__init__(
+            brightness=brightness,
+            contrast=contrast,
+            saturation=saturation,
+            hue=hue
+        )
     
     def get_params(
         self
     ):
+        b = float( torch.distributions.beta.Beta(ALPHA, BETA).sample() )
+        c = float( torch.distributions.beta.Beta(ALPHA, BETA).sample() )
+        s = float( torch.distributions.beta.Beta(ALPHA, BETA).sample() )
         h = float( torch.distributions.beta.Beta(ALPHA, BETA).sample() )
-        h = self.param_scaler.rescale(h)
-        return h
+        b = self.brightness_scaler.rescale(b)
+        c = self.contrast_scaler.rescale(c)
+        s = self.saturation_scaler.rescale(s)
+        h = self.hue_scaler.rescale(h)
+        return b, c, s, h
 
     def forward(self, img):
-        param = self.get_params()
-        img = F.adjust_hue(img, param)
-        scaled_param = self.param_scaler(param)
-        return img, (scaled_param,)
+        b, c, s, h = self.get_params()
+        img = F.adjust_brightness(img, b)
+        img = F.adjust_contrast(img, c)
+        img = F.adjust_saturation(img, s)
+        img = F.adjust_hue(img, h)
+        scaled_b = self.brightness_scaler(b)
+        scaled_c = self.contrast_scaler(c)
+        scaled_s = self.saturation_scaler(s)
+        scaled_h = self.hue_scaler(h)
+        return img, (
+            scaled_b,scaled_c,scaled_s,scaled_h
+        )
 
 
 class Translate(transforms.RandomAffine):
@@ -123,7 +157,9 @@ class ColoredDigitsDA(DA):
     def __init__(self):
         self.to_pil = transforms.ToPILImage(mode='RGB')
         self.to_tensor = transforms.ToTensor()
-        self._augmentor = Compose([Hue(0.5), Translate((0.2, 0.2))])
+        self._augmentor = Compose([
+            Jitter(0.5, 0.5, 0.5, 0.5), Translate((0.2, 0.2))
+        ])
     
     def augment(self, X):
         GX, G = [], []
