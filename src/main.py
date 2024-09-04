@@ -18,41 +18,41 @@ from src.experiments.real import (
 
 if __name__ == '__main__':
 
-    with open('src/config.yaml', 'r') as file:
+    with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
     config = munchify(config)
 
-    if config.linear_simulaton:
+    if 'linear_simulation' in config:
         logger.info('Running linear simulation experiment.')
         linear_simulation.run(
             **config.linear_simulaton,
-            **config.hyperparameters
+            hyperparameters=config.hyperparameters
         )
     
-    if config.nonlinear_simulaton:
+    if 'nonlinear_simulation' in config:
         logger.info('Running non-linear simulation experiment.')
         nonlinear_simulation.run(
             **config.nonlinear_simulaton,
-            **config.hyperparameters
+            hyperparameters=config.hyperparameters
         )
     
-    if config.optical_device:
+    if 'optical_device' in config:
         logger.info('Running optical device experiment.')
         optical_device_experiment.run(
             **config.optical_device,
-            **config.hyperparameters
+            hyperparameters=config.hyperparameters
         )
     
-    if config.colored_mnist:
+    if 'colored_mnist' in config:
         logger.info('Running colored MNIST experiment.')
         colored_mnist_experiment.run(
             **config.colored_mnist,
-            **config.hyperparameters
+            hyperparameters=config.hyperparameters
         )
     
-    if config.rotated_mnist:
+    if 'rotated_mnist' in config:
         logger.info('Running rotated MNIST experiment.')
         rotated_mnist_experiment.run(
             **config.rotated_mnist,
-            **config.hyperparameters
+            hyperparameters=config.hyperparameters
         )
