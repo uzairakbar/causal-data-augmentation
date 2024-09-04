@@ -17,6 +17,7 @@ TEX_MAPPER = {
     'Data': 'Data',
     'ERM': 'ERM',
     'DA+ERM': 'DA+ERM',
+    'DA+UIV-a': 'DA+UIV--$\\alpha$',
     'DA+UIV-5fold': 'DA+UIV--$\\alpha^{\\text{5-fold}}$',
     'DA+UIV-LOLO': 'DA+UIV--$\\alpha^{\\text{LOLO}}$',
     'DA+UIV-CC': 'DA+UIV--$\\alpha^{\\text{CC}}$',
