@@ -67,7 +67,7 @@ def sweep_plot(
 
         label = TEX_MAPPER.get(method, method)
         if method in vertical_plots:
-            label = f'average {label.split('--')[-1]}'
+            label = f'average {label.split("--")[-1]}'
         
         labels.append(label)
 
