@@ -28,22 +28,22 @@ from src.experiments.utils import (
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 ALL_METHODS: Dict[str, ModelBuilder] = {
     'ERM': lambda: ERM(
-        model='cmnist', epochs=40
+        model='cmnist'
     ),
     'DA+ERM': lambda: ERM(
-        model='cmnist', epochs=40
+        model='cmnist'
     ),
     'DA+UIV-5fold': lambda: CV(
         metric='accuracy',
         estimator=UIV_a(
-            model='cmnist', gmm_steps=4, epochs=10
+            model='cmnist'
         ),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
         frac=0.2,
         n_jobs=-1,
     ),
     'DA+IV': lambda: IV(
-        model='cmnist', gmm_steps=4, epochs=10
+        model='cmnist'
     )
 }
 manager = enlighten.get_manager()
