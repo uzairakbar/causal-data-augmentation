@@ -1,8 +1,7 @@
-import argparse
 import enlighten
 import numpy as np
-from enlighten import Manager
-from typing import Dict, Callable, Optional
+from argparse import ArgumentParser
+from typing import Dict, Callable, Optional, List
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 
@@ -11,11 +10,10 @@ from src.sem.real.cmnist import ColoredDigitsSEM as SEM
 from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
-from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
-from src.regressors.daiv import MinMaxDAIV as mmDAIV
-from src.regressors.daiv import DAIVConstrainedOptimizationGMM as DAIVp
+from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
+from src.regressors.daiv import MinMaxDAIV as UIV
+from src.regressors.daiv import DAIVConstrainedOptimizationGMM as UIV
 
-# from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import VanillaCV as CV
 
 from src.experiments.utils import (
@@ -24,44 +22,39 @@ from src.experiments.utils import (
     bootstrap,
     box_plot,
     tex_table,
+    fit_model
 )
 
-
-ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
+ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+ALL_METHODS: Dict[str, ModelBuilder] = {
     'ERM': lambda: ERM(
         model='cmnist', epochs=40
     ),
     'DA+ERM': lambda: ERM(
         model='cmnist', epochs=40
     ),
-    'DAIV+LOO': lambda: CV(
+    'DA+UIV-5fold': lambda: CV(
         metric='accuracy',
-        estimator=DAIV(
+        estimator=UIV_a(
             model='cmnist', gmm_steps=4, epochs=10
         ),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
         frac=0.2,
         n_jobs=-1,
     ),
-    'DAIV': lambda: mmDAIV(
-        model='cmnist', epochs=40
-    ),
-    'DAIVp': lambda: DAIVp(
-        model='cmnist', epochs=40
-    ),
     'DA+IV': lambda: IV(
         model='cmnist', gmm_steps=4, epochs=10
     )
 }
-MANAGER = enlighten.get_manager()
+manager = enlighten.get_manager()
 
 
 def run(
         seed: int,
         num_seeds: int,
         n_samples: int,
-        methods: str,
-        manager: Manager=MANAGER
+        methods: List[str],
+        hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     
     status = manager.status_bar(
@@ -71,10 +64,7 @@ def run(
         autorefresh=True, min_delta=0.5
     )
 
-    if methods == 'all':
-        methods = ALL_METHODS
-    else:
-        methods = {m: ALL_METHODS[m] for m in methods.split(',')}
+    methods: Dict[str, ModelBuilder] = {m: ALL_METHODS[m] for m in methods}
     
     error_dim = (num_seeds,)
     all_errors = {name: np.zeros(error_dim) for name in methods}
@@ -87,7 +77,7 @@ def run(
         total=num_seeds, desc='Experiments', unit='experiments'
     )
     for i in range(num_seeds):
-        set_seed(seed+i)
+        if seed >= 0: set_seed(seed+i)
 
         sem = SEM(train=True)
         da = DA()
@@ -99,18 +89,16 @@ def run(
             total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
         )
         for method_name, method in methods.items():
-            set_seed(seed+i)
+            if seed >= 0: set_seed(seed+i)
 
             model = method()
-            if 'ERM' in method_name:
-                if 'DA' in method_name:
-                    model.fit(X=GX, y=y, pbar_manager=manager)
-                else:
-                    model.fit(X=X, y=y, pbar_manager=manager)
-            elif 'DAIV' in method_name:
-                model.fit(X=X, y=y, G=G, GX=GX, pbar_manager=None)
-            else:
-                model.fit(X=GX, y=y, Z=G, pbar_manager=manager)
+            fit_model(
+                model=model,
+                name=method_name,
+                X=X, y=y, G=G, GX=GX,
+                hyperparameters=hyperparameters,
+                pbar_manager=manager
+            )
             
             y_test_hat = model.predict(X_test)
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
@@ -136,27 +124,28 @@ def run(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Colored MNIST experiment.')
-    parser.add_argument(
+    CLI = ArgumentParser(description='Colored MNIST experiment.')
+    CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--num_seeds',
         type=int,
         default=10,
         help='Number of seeds to try -- average results over [`seed`, `seed+num_seeds`] seeds.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--n_samples',
         type=int,
         default=-1,
         help='Number of samples per experiment. Negative is all available samples.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--methods',
+        nargs="*",
         type=str,
-        default='all',
-        help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
+        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
     )
-    args = parser.parse_args()
+    args = CLI.parse_args()
     run(**vars(args))

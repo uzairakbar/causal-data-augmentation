@@ -1,8 +1,7 @@
-import argparse
 import enlighten
 import numpy as np
-from enlighten import Manager
-from typing import Dict, Callable, Optional
+from argparse import ArgumentParser
+from typing import Dict, Callable, Optional, List
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
@@ -11,15 +10,14 @@ from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
-# from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
-# from src.regressors.daiv import MinMaxDAIV as mmDAIV
-# from src.regressors.daiv import DAIVProjectedLeastSquaresClosedForm as pDAIV
-from src.regressors.daiv import DAIVProjectedLeastSquares as DAIVpi
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIValpha
-from src.regressors.daiv import DAIVConstrainedLeastSquares as DAIV
+# from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
+# from src.regressors.daiv import DAIVProjectedLeastSquaresClosedForm as UIV_Pi
+from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
+from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
+from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 from src.regressors.iv import IVTwoStageLeastSquares as IV
 
-from src.regressors.model_selectors import LeaveOneOut as LOO
+from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
 from src.regressors.model_selectors import ConfounderCorrection as CC
 
@@ -30,38 +28,38 @@ from src.experiments.utils import (
     bootstrap,
     box_plot,
     tex_table,
+    fit_model
 )
 
 
-ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
+ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+ALL_METHODS: Dict[str, ModelBuilder] = {
     'ERM': lambda: ERM(),
     'DA+ERM': lambda: ERM(),
-    'DAIV+LOO': lambda: LOO(
-        estimator=DAIValpha(),
+    'DA+UIV-5fold': lambda: KFold(
+        estimator=UIV_a(),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        cv=5,                                # TODO: proper LOO CV
+        cv=5,
         n_jobs=-1,
     ),
-    # 'DAIV+LOLO': lambda: LOLO(
-    #     estimator=DAIValpha(),
-    #     param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-    #     n_jobs=-1,
-    # ),
-    'DAIV+CC': lambda: CC(estimator=DAIValpha()),
-    # 'mmDAIV': lambda: mmDAIV(),
-    # 'DAIVP_': lambda: pDAIV(),
-    'DAIVpi': lambda: DAIVpi(),
-    'DAIV': lambda: DAIV(),
+    'DA+UIV-LOLO': lambda: LOLO(
+        estimator=UIV_a(),
+        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
+        n_jobs=-1,
+    ),
+    'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+    'DA+UIV-Pi': lambda: UIV_Pi(),
+    'DA+UIV': lambda: UIV(),
     'DA+IV': lambda: IV()
 }
-MANAGER = enlighten.get_manager()
+manager = enlighten.get_manager()
 
 
 def run(
         seed: int,
         n_samples: int,
-        methods: str,
-        manager: Manager=MANAGER
+        methods: List[str],
+        hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = manager.status_bar(
         status_format=u'Optical device experiment{fill}{elapsed}',
@@ -70,13 +68,9 @@ def run(
         autorefresh=True, min_delta=0.5
     )
 
-    if seed >= 0:
-        set_seed(seed)
+    if seed >= 0: set_seed(seed)
     
-    if methods == 'all':
-        methods = ALL_METHODS
-    else:
-        methods = {m: ALL_METHODS[m] for m in methods.split(',')}
+    methods: ModelBuilder= {m: ALL_METHODS[m] for m in methods}
     
     all_sems = []
     all_augmenters = []
@@ -105,15 +99,12 @@ def run(
         for method_name, method in methods.items():
 
             model = method()
-            if 'ERM' in method_name:
-                if 'DA' in method_name:
-                    model.fit(X=GX, y=y)
-                else:
-                    model.fit(X=X, y=y)
-            elif 'DAIV' in method_name:
-                model.fit(X=X, y=y, G=G, GX=GX)
-            else:
-                model.fit(X=X, y=y, Z=G)
+            fit_model(
+                model=model,
+                name=method_name,
+                X=X, y=y, G=G, GX=GX,
+                pbar_manager=manager
+            )
             
             method_solution = model.solution
             
@@ -137,20 +128,21 @@ def run(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
+    CLI = ArgumentParser(
         description='Optical device dataset experiment.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--methods',
+        nargs="*",
         type=str,
-        default='all',
-        help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
+        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
     )
-    args = parser.parse_args()
+    args = CLI.parse_args()
     run(**vars(args))

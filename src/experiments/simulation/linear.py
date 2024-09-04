@@ -1,23 +1,22 @@
-import argparse
 import enlighten
 import numpy as np
 from loguru import logger
-from enlighten import Manager
 from abc import ABC, abstractmethod
-from typing import Dict, Callable, Optional
+from argparse import ArgumentParser
+from typing import Dict, Callable, Optional, List
 
 from src.data_augmentors.simulation.linear import NullSpaceTranslation as DA
 
 from src.sem.simulation.linear import LinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as DAIValpha
+from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVTwoStageLeastSquares as IV
-from src.regressors.daiv import DAIVProjectedLeastSquares as DAIVPi
-from src.regressors.daiv import DAIVConstrainedLeastSquares as DAIV
+from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
+from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 
-from src.regressors.model_selectors import LeaveOneOut as LOO
+from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import ConfounderCorrection as CC
 
 from src.experiments.utils import (
@@ -26,24 +25,26 @@ from src.experiments.utils import (
     bootstrap,
     sweep_plot,
     relative_sq_error,
+    fit_model
 )
 
 
-ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
+ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+ALL_METHODS: Dict[str, ModelBuilder] = {
     'ERM': lambda: ERM(),
     'DA+ERM': lambda: ERM(),
-    'DAIV+LOO': lambda: LOO(
-        estimator=DAIValpha(),
+    'DA+UIV-5fold': lambda: KFold(
+        estimator=UIV_a(),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        cv=5,                                # TODO: proper LOO CV
+        cv=5,
         n_jobs=-1,
     ),
-    'DAIV+CC': lambda: CC(estimator=DAIValpha()),
-    'DAIVPi': lambda: DAIVPi(),
-    'DAIV': lambda: DAIV(),
+    'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+    'DA+UIV-Pi': lambda: UIV_Pi(),
+    'DA+UIV': lambda: UIV(),
     'DA+IV': lambda: IV(),
 }
-MANAGER = enlighten.get_manager()
+manager = enlighten.get_manager()
 
 
 class Experiment(ABC):
@@ -68,20 +69,17 @@ class Experiment(ABC):
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
             param: float) -> Regressor | ModelSelector:
-        if method_name == 'DAIValpha':
+        if method_name == 'DA+UIV-a':
             model = method(alpha = param)
         else:
             model = method()
         
-        if 'ERM' in method_name:
-            if 'DA' in method_name:
-                model.fit(X=GX, y=y)
-            else:
-                model.fit(X=X, y=y)
-        elif 'DAIV' in method_name:
-            model.fit(X=X, y=y, G=G, GX=GX)
-        else:
-            model.fit(X=GX, y=y, Z=G)
+        fit_model(
+            model=model,
+            name=method_name,
+            X=X, y=y, G=G, GX=GX,
+            pbar_manager=manager
+        )
         
         return model
     
@@ -182,8 +180,8 @@ class AlphaSweep(Experiment):
     def __init__(self,
                  **kwargs):
         super(AlphaSweep, self).__init__(**kwargs)
-        self.methods['DAIValpha'] = (
-            lambda alpha: DAIValpha(alpha = alpha)
+        self.methods['DA+UIV-a'] = (
+            lambda alpha: UIV_a(alpha = alpha)
         )
 
     def generate_dataset(self, sem: SEM, da: DA, param: float):
@@ -207,7 +205,7 @@ class AlphaSweep(Experiment):
             method_name, method, X, y, G, GX, param
         )
         error = relative_sq_error(sem_solution, model.solution)**0.5
-        if 'DAIV+' in method_name:
+        if 'DA+UIV-' in method_name:
             return model.alpha
         else:
             return error
@@ -219,8 +217,8 @@ def run(
         x_dimension: int,
         n_experiments: int,
         sweep_samples: int,
-        methods: str,
-        manager: Manager=MANAGER
+        methods: List[str],
+        hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = manager.status_bar(
         status_format=u'Linear simulation{fill}Sweeping {sweep}{fill}{elapsed}',
@@ -228,11 +226,8 @@ def run(
         justify=enlighten.Justify.CENTER, sweep='<parameter>',
         autorefresh=True, min_delta=0.5
     )
-    
-    if methods == 'all':
-        methods = ALL_METHODS
-    else:
-        methods = {m: ALL_METHODS[m] for m in methods.split(',')}
+
+    methods: Dict[str, ModelBuilder] = {m: ALL_METHODS[m] for m in methods}
     
     # sweep over lambda parameter
     status.update(sweep='lambda')
@@ -280,7 +275,7 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     vertical_plots = ([
-        method for method in ALL_METHODS.keys() if 'DAIV+' in method
+        method for method in ALL_METHODS.keys() if 'DA+UIV-' in method
     ])
     sweep_plot(
         alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
@@ -291,25 +286,26 @@ def run(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Linear simulation experiment.')
-    parser.add_argument(
+    CLI = ArgumentParser(description='Linear simulation experiment.')
+    CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--n_samples', type=int, default=2000, help='Number of samples per experiment.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--x_dimension', type=int, default=30, help='Dimension of treatment.'
     )
-    parser.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
-    parser.add_argument(
+    CLI.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
+    CLI.add_argument(
         '--sweep_samples', type=int, default=10, help='Sweep resolution across lambda, alpha and gamma.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--methods',
+        nargs="*",
         type=str,
-        default='all',
-        help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
+        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
     )
-    args = parser.parse_args()
+    args = CLI.parse_args()
     run(**vars(args))

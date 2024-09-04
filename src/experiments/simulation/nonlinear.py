@@ -1,8 +1,7 @@
-import argparse
 import enlighten
 import numpy as np
-from enlighten import Manager
-from typing import Dict, Callable, Optional
+from argparse import ArgumentParser
+from typing import Dict, Callable, Optional, List
 
 from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
 
@@ -11,10 +10,10 @@ from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
-from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
-from src.regressors.daiv import MinMaxDAIV as mmDAIV
+from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
+from src.regressors.daiv import MinMaxDAIV as UIV
 
-from src.regressors.model_selectors import LeaveOneOut as LOO
+from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
 
 from src.experiments.utils import (
@@ -22,37 +21,38 @@ from src.experiments.utils import (
     set_seed,
     grid_plot,
     tex_table,
+    fit_model
 )
 
 
-ALL_METHODS: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]] = {
+ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+ALL_METHODS: Dict[str, ModelBuilder] = {
     'ERM': lambda: ERM(model='2-layer'),
     'DA+ERM': lambda: ERM(model='2-layer'),
-    'DAIV+LOO': lambda: LOO(
+    'DA+UIV-5fold': lambda: KFold(
         metric='mse',
-        estimator=DAIV(model='2-layer'),
+        estimator=UIV_a(model='2-layer'),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        cv=5,                                # TODO: proper LOO CV
+        cv=5,
         n_jobs=-1,
     ),
-    'DAIV+LOLO': lambda: LOLO(
+    'DA+UIV-LOLO': lambda: LOLO(
         metric='mse',
-        estimator=DAIV(model='2-layer'),
+        estimator=UIV_a(model='2-layer'),
         param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
         n_jobs=-1,
     ),
-    'mmDAIV': lambda: mmDAIV(model='2-layer'),
     'DA+IV': lambda: IV(model='2-layer')
 }
-MANAGER = enlighten.get_manager()
+manager = enlighten.get_manager()
 
 
 def run(
         seed: int,
         n_samples: int,
         n_experiments: int,
-        methods: str,
-        manager: Manager=MANAGER
+        methods: List[str],
+        hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = manager.status_bar(
         status_format=u'Non-linear simulation{fill}Function {function}{fill}{elapsed}',
@@ -61,13 +61,9 @@ def run(
         autorefresh=True, min_delta=0.5
     )
 
-    if seed >= 0:
-        set_seed(seed)
+    if seed >= 0: set_seed(seed)
     
-    if methods == 'all':
-        methods = ALL_METHODS
-    else:
-        methods = {m: ALL_METHODS[m] for m in methods.split(',')}
+    methods: ModelBuilder = {m: ALL_METHODS[m] for m in methods}
     
     all_sems = []
     all_augmenters = []
@@ -123,15 +119,13 @@ def run(
             for method_name, method in methods.items():
 
                 model = method()
-                if 'ERM' in method_name:
-                    if 'DA' in method_name:
-                        model.fit(X=GX, y=y, pbar_manager=manager)
-                    else:
-                        model.fit(X=X, y=y, pbar_manager=manager)
-                elif 'DAIV' in method_name:
-                    model.fit(X=GX, y=y, G=G, GX=GX, pbar_manager=None)
-                else:
-                    model.fit(X=GX, y=y, Z=G, pbar_manager=manager)
+                fit_model(
+                    model=model,
+                    name=method_name,
+                    X=X, y=y, G=G, GX=GX,
+                    hyperparameters=hyperparameters,
+                    pbar_manager=manager
+                )
 
                 y_hat = model.predict(x_gt)
                 
@@ -159,21 +153,22 @@ def run(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
+    CLI = ArgumentParser(
         description='Nonlinear simulation experiment.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
-    parser.add_argument(
+    CLI.add_argument(
         '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
     )
-    parser.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
-    parser.add_argument(
+    CLI.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
+    CLI.add_argument(
         '--methods',
+        nargs="*",
         type=str,
-        default='all',
-        help='Methods to use. Specify in comma-separated format -- "ERM,DA+ERM,DA+UIV,DA+IV". Default is "all".'
+        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
     )
-    args = parser.parse_args()
+    args = CLI.parse_args()
     run(**vars(args))
