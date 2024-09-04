@@ -30,21 +30,10 @@ from src.experiments.utils import (
 
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
-ALL_METHODS: Dict[str, ModelBuilder] = {
-    'ERM': lambda: ERM(),
-    'DA+ERM': lambda: ERM(),
-    'DA+UIV-5fold': lambda: KFold(
-        estimator=UIV_a(),
-        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        cv=5,
-        n_jobs=-1,
-    ),
-    'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
-    'DA+UIV-Pi': lambda: UIV_Pi(),
-    'DA+UIV': lambda: UIV(),
-    'DA+IV': lambda: IV(),
-}
-manager = enlighten.get_manager()
+MANAGER = enlighten.get_manager()
+DEFAULT_CV_SAMPLES=10
+DEFAULT_CV_FOLDS=5
+DEFAULT_CV_JOBS=1
 
 
 class Experiment(ABC):
@@ -117,12 +106,12 @@ class Experiment(ABC):
         results = {name: np.zeros(error_dim) for name in self.methods}
         
         experiment_name = self.__class__.__name__
-        pbar_experiment = manager.counter(
+        pbar_experiment = MANAGER.counter(
             total=self.sweep_samples, desc=f'{experiment_name}', unit='params'
         )
         for i, param in enumerate(param_values):
 
-            pbar_sem = manager.counter(
+            pbar_sem = MANAGER.counter(
                 total=self.n_experiments, desc=f'Param. {param:.2f}', unit='experiments', leave=False
             )
             for j, (sem, da) in enumerate(zip(all_sems, all_augmenters)):
@@ -130,7 +119,7 @@ class Experiment(ABC):
 
                 X, y, G, GX = self.generate_dataset(sem, da, param)
                 
-                pbar_methods = manager.counter(
+                pbar_methods = MANAGER.counter(
                     total=len(self.methods), desc=f'SEM {j}', unit='methods', leave=False
                 )
                 for method_name, method in self.methods.items():
@@ -216,14 +205,33 @@ def run(
         methods: List[str],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
-    status = manager.status_bar(
+    status = MANAGER.status_bar(
         status_format=u'Linear simulation{fill}Sweeping {sweep}{fill}{elapsed}',
         color='bold_underline_bright_white_on_lightslategray',
         justify=enlighten.Justify.CENTER, sweep='<parameter>',
         autorefresh=True, min_delta=0.5
     )
 
-    methods: Dict[str, ModelBuilder] = {m: ALL_METHODS[m] for m in methods}
+    cv = getattr(hyperparameters, 'cv', None)
+    all_methods: Dict[str, ModelBuilder] = {
+        'ERM': lambda: ERM(),
+        'DA+ERM': lambda: ERM(),
+        'DA+UIV-5fold': lambda: KFold(
+            estimator=UIV_a(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
+        ),
+        'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+        'DA+UIV-Pi': lambda: UIV_Pi(),
+        'DA+UIV': lambda: UIV(),
+        'DA+IV': lambda: IV(),
+    }
+    methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
     # sweep over lambda parameter
     status.update(sweep='lambda')

@@ -26,25 +26,10 @@ from src.experiments.utils import (
 
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
-ALL_METHODS: Dict[str, ModelBuilder] = {
-    'ERM': lambda: ERM(model='2-layer'),
-    'DA+ERM': lambda: ERM(model='2-layer'),
-    'DA+UIV-5fold': lambda: KFold(
-        metric='mse',
-        estimator=UIV_a(model='2-layer'),
-        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        cv=5,
-        n_jobs=-1,
-    ),
-    'DA+UIV-LOLO': lambda: LOLO(
-        metric='mse',
-        estimator=UIV_a(model='2-layer'),
-        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        n_jobs=-1,
-    ),
-    'DA+IV': lambda: IV(model='2-layer')
-}
-manager = enlighten.get_manager()
+MANAGER = enlighten.get_manager()
+DEFAULT_CV_SAMPLES=10
+DEFAULT_CV_FOLDS=5
+DEFAULT_CV_JOBS=1
 
 
 def run(
@@ -54,7 +39,7 @@ def run(
         methods: List[str],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
-    status = manager.status_bar(
+    status = MANAGER.status_bar(
         status_format=u'Non-linear simulation{fill}Function {function}{fill}{elapsed}',
         color='bold_underline_bright_white_on_lightslategray',
         justify=enlighten.Justify.CENTER, function='<function>',
@@ -63,7 +48,34 @@ def run(
 
     if seed >= 0: set_seed(seed)
     
-    methods: ModelBuilder = {m: ALL_METHODS[m] for m in methods}
+    cv = getattr(hyperparameters, 'cv', None)
+    all_methods: Dict[str, ModelBuilder] = {
+        'ERM': lambda: ERM(model='2-layer'),
+        'DA+ERM': lambda: ERM(model='2-layer'),
+        'DA+UIV-5fold': lambda: KFold(
+            metric='mse',
+            estimator=UIV_a(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
+        ),
+        'DA+UIV-LOLO': lambda: LOLO(
+            metric='mse',
+            estimator=UIV_a(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
+        ),
+        'DA+IV': lambda: IV(model='2-layer')
+    }
+    methods: ModelBuilder = {m: all_methods[m] for m in methods}
     
     all_sems = []
     all_augmenters = []
@@ -91,7 +103,7 @@ def run(
         all_functions[sem.function_name]['x'] = x_gt.flatten()
         all_functions[sem.function_name]['y'] = sem.f(x_gt).flatten()
 
-        pbar_sem = manager.counter(
+        pbar_sem = MANAGER.counter(
             total=n_experiments, desc=f'Function {sem.function_name}', unit='experiments'
         )
         for i in range(n_experiments):
@@ -113,7 +125,7 @@ def run(
                 all_functions[sem.function_name]['x_data'] = X.flatten()
                 all_functions[sem.function_name]['y_data'] = y.flatten()
             
-            pbar_methods = manager.counter(
+            pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'Experiment {i}', unit='methods', leave=False
             )
             for method_name, method in methods.items():
@@ -124,7 +136,7 @@ def run(
                     name=method_name,
                     X=X, y=y, G=G, GX=GX,
                     hyperparameters=hyperparameters,
-                    pbar_manager=manager
+                    pbar_manager=MANAGER
                 )
 
                 y_hat = model.predict(x_gt)

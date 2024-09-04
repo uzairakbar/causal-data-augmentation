@@ -26,27 +26,10 @@ from src.experiments.utils import (
 )
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
-ALL_METHODS: Dict[str, ModelBuilder] = {
-    'ERM': lambda: ERM(
-        model='cmnist'
-    ),
-    'DA+ERM': lambda: ERM(
-        model='cmnist'
-    ),
-    'DA+UIV-5fold': lambda: CV(
-        metric='accuracy',
-        estimator=UIV_a(
-            model='cmnist'
-        ),
-        param_distributions = {'alpha': np.random.lognormal(1, 1, 10)},
-        frac=0.2,
-        n_jobs=-1,
-    ),
-    'DA+IV': lambda: IV(
-        model='cmnist'
-    )
-}
-manager = enlighten.get_manager()
+MANAGER = enlighten.get_manager()
+DEFAULT_CV_SAMPLES=10
+DEFAULT_CV_FRAC=5
+DEFAULT_CV_JOBS=1
 
 
 def run(
@@ -57,14 +40,31 @@ def run(
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     
-    status = manager.status_bar(
+    status = MANAGER.status_bar(
         status_format=u'Colored MNIST experiment{fill}{elapsed}',
         color='bold_underline_bright_white_on_lightslategray',
         justify=enlighten.Justify.CENTER,
         autorefresh=True, min_delta=0.5
     )
 
-    methods: Dict[str, ModelBuilder] = {m: ALL_METHODS[m] for m in methods}
+    cv = getattr(hyperparameters, 'cv', None)
+    all_methods: Dict[str, ModelBuilder] = {
+        'ERM': lambda: ERM(model='cmnist'),
+        'DA+ERM': lambda: ERM(model='cmnist'),
+        'DA+UIV-5fold': lambda: CV(
+            metric='accuracy',
+            estimator=UIV_a(model='cmnist'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'DA+IV': lambda: IV(model='cmnist')
+    }
+    methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
     error_dim = (num_seeds,)
     all_errors = {name: np.zeros(error_dim) for name in methods}
@@ -73,7 +73,7 @@ def run(
     sem_test = SEM(train=False)
     X_test, y_test = sem_test(N = n_samples)
 
-    pbar_experiment = manager.counter(
+    pbar_experiment = MANAGER.counter(
         total=num_seeds, desc='Experiments', unit='experiments'
     )
     for i in range(num_seeds):
@@ -85,7 +85,7 @@ def run(
         X, y = sem(N = n_samples)
         GX, G = da(X)
 
-        pbar_methods = manager.counter(
+        pbar_methods = MANAGER.counter(
             total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
         )
         for method_name, method in methods.items():
@@ -97,7 +97,7 @@ def run(
                 name=method_name,
                 X=X, y=y, G=G, GX=GX,
                 hyperparameters=hyperparameters,
-                pbar_manager=manager
+                pbar_manager=MANAGER
             )
             
             y_test_hat = model.predict(X_test)
