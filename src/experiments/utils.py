@@ -339,21 +339,49 @@ def save(obj: Dict[str, Any], fname: str, format: Literal['pkl', 'json']='pkl'):
 
 
 def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None):
+    if not pbar_manager:
+        return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters)
+
+    erm_params = getattr(hyperparameters, 'erm', dict())
+    gmm_params = getattr(hyperparameters, 'gmm', dict())
     if name == 'ERM':
         model.fit(
-            X=X, y=y, pbar_manager=pbar_manager, **hyperparameters.erm
+            X=X, y=y, pbar_manager=pbar_manager, **erm_params
         )
     elif name == 'DA+ERM':
         model.fit(
-            X=GX, y=y, pbar_manager=pbar_manager, **hyperparameters.erm
+            X=GX, y=y, pbar_manager=pbar_manager, **erm_params
         )
     elif 'DA+UIV' in name:
         model.fit(
-            X=X, y=y, G=G, GX=GX, pbar_manager=None, **hyperparameters.gmm
+            X=X, y=y, G=G, GX=GX, pbar_manager=None, **gmm_params
         )
     elif 'DA+IV' == name:
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **hyperparameters.gmm
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **gmm_params
+        )
+    else:
+        raise ValueError(f'Model {name} not implemented.')
+
+
+def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None):
+    erm_params = getattr(hyperparameters, 'erm', dict())
+    gmm_params = getattr(hyperparameters, 'gmm', dict())
+    if name == 'ERM':
+        model.fit(
+            X=X, y=y, **erm_params
+        )
+    elif name == 'DA+ERM':
+        model.fit(
+            X=GX, y=y, **erm_params
+        )
+    elif 'DA+UIV' in name:
+        model.fit(
+            X=X, y=y, G=G, GX=GX, **gmm_params
+        )
+    elif 'DA+IV' == name:
+        model.fit(
+            X=GX, y=y, Z=G, **gmm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

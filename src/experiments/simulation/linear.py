@@ -75,8 +75,7 @@ class Experiment(ABC):
         fit_model(
             model=model,
             name=method_name,
-            X=X, y=y, G=G, GX=GX,
-            pbar_manager=manager
+            X=X, y=y, G=G, GX=GX
         )
         
         return model

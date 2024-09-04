@@ -102,8 +102,7 @@ def run(
             fit_model(
                 model=model,
                 name=method_name,
-                X=X, y=y, G=G, GX=GX,
-                pbar_manager=manager
+                X=X, y=y, G=G, GX=GX
             )
             
             method_solution = model.solution
