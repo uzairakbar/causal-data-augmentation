@@ -50,8 +50,8 @@ colored_mnist:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV+5fold
-        - DA+UIV+LOLO
+        - DA+UIV-5fold
+        - DA+UIV-LOLO
         - DA+IV
     augmentations:
         - jitter > translate
@@ -63,8 +63,8 @@ rotated_mnist:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV+5fold
-        - DA+UIV+LOLO
+        - DA+UIV-5fold
+        - DA+UIV-LOLO
         - DA+IV
     augmentations:
         - rotation
@@ -77,8 +77,8 @@ hyperparameters:
         epochs: 40
     gmm:
         lr: 0.001
-        epochs1: 4           # iterations to fit GMM weights
-        epochs2: 10          # iterations to fit network for given GMM weights. total training iterations are `epoch1*epoch2`.
+        epochs1: 4          # iterations to fit GMM weights
+        epochs2: 10         # iterations to fit network for given GMM weights. total training iterations are `epoch1*epoch2`.
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
