@@ -26,14 +26,14 @@ def main():
     if 'linear_simulation' in config:
         logger.info('Running linear simulation experiment.')
         linear_simulation.run(
-            **config.linear_simulaton,
+            **config.linear_simulation,
             hyperparameters=config.hyperparameters
         )
     
     if 'nonlinear_simulation' in config:
         logger.info('Running non-linear simulation experiment.')
         nonlinear_simulation.run(
-            **config.nonlinear_simulaton,
+            **config.nonlinear_simulation,
             hyperparameters=config.hyperparameters
         )
     
