@@ -31,4 +31,4 @@ RUN set -x && \
 COPY . .
 
 # run script
-CMD exec conda run -n $CONDAENV python src/main.py
+CMD exec conda run -n $CONDAENV python -u src/main.py
