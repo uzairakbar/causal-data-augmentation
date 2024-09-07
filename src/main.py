@@ -16,7 +16,8 @@ from src.experiments.real import (
     rmnist as rotated_mnist_experiment,
 )
 
-if __name__ == '__main__':
+
+def main():
 
     with open('config.yaml', 'r') as file:
         config = yaml.safe_load(file)
@@ -56,3 +57,7 @@ if __name__ == '__main__':
             **config.rotated_mnist,
             hyperparameters=config.hyperparameters
         )
+
+
+if __name__ == '__main__':
+    main()
