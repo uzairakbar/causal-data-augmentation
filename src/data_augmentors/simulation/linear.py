@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Tuple
 from numpy.typing import NDArray
+from typing import Dict, Literal, List, Optional
 
 from src.data_augmentors.abstract import DataAugmenter as DA
 
@@ -9,6 +10,10 @@ class NullSpaceTranslation(DA):
     def __init__(self, W_XY: NDArray):
         self.W_ZXtilde = self.null_space(W_XY.T).T
         self.param_dimension, _ = self.W_ZXtilde.shape
+    
+    @property
+    def augmentation(self):
+        return 'translation'
     
     def augment(
             self, X: NDArray, gamma: float=1.0
@@ -36,3 +41,41 @@ class NullSpaceTranslation(DA):
         null_space_basis = VT[num_singular:].T
         
         return null_space_basis
+
+
+class LinearSimulationDA(DA):
+    @property
+    def augmentation(self):
+        return 'linear_simulation'
+    
+    def augment(
+            self,
+            X: NDArray,
+            W_XY: NDArray,
+            augmentations: Optional[str]=None
+        ):
+
+        all_augmentations: Dict[str, DA] = {
+            augmenter.augmentation: augmenter for augmenter in ([
+                NullSpaceTranslation(W_XY=W_XY),
+            ])
+        }
+        
+        if augmentations:
+            augmentations: List[str] = augmentations.replace(' ','').split('>')
+        else:
+            augmentations: List[str] = list(all_augmentations.keys())
+        
+        augmentations: List[DA] = ([
+            all_augmentations[augmentation] for augmentation in augmentations
+        ])
+
+        GX: NDArray = X.copy()
+        G_list: List[NDArray] = []
+        for i, augmentation in enumerate(augmentations):
+            GX, G = augmentation(GX)
+            print(f'{augmentation.augmentation} {G.shape}')
+            G_list.append(G)
+        G: NDArray = np.hstack(G_list)
+
+        return GX, G

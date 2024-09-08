@@ -15,7 +15,7 @@ class NonlinearSimulationDA(DA):
         AUGMENTATION: Dict[FunctionType, AugmentorType] = {
             'abs': lambda x, g: (g * x),
             'sin': lambda x, g: (x + 2*np.pi*g),
-            'step': lambda x, g: (x * 10**(g)),
+            'step': lambda x, g: (x * np.float_power(10, g)),
         }
         SAMPLER: Dict[FunctionType, SamplerType] = {
             'abs': lambda N: np.random.choice([-1, 1], size=(N, 1)),
@@ -25,6 +25,10 @@ class NonlinearSimulationDA(DA):
         self.function_name = function_name
         self._augment = AUGMENTATION[function_name]
         self._sampler = SAMPLER[function_name]
+    
+    @property
+    def augmentation(self):
+        return 'nonlinear_simulation'
     
     def augment(self, X: NDArray) -> Tuple[NDArray, NDArray]:
         N = len(X)

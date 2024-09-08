@@ -1,5 +1,7 @@
 import numpy as np
 from abc import abstractmethod
+from numpy.typing import NDArray
+from typing import Dict, Literal, List, Optional
 
 from src.data_augmentors.abstract import DataAugmenter as DA
 
@@ -37,7 +39,11 @@ class RandomPermutation(DA):
             g = G[i]
             GX[i, :] = self.augment(x, g)
         
-        return GX, self.param_scaler(G)
+        return GX, self.param_scaler(G).reshape(-1,1)
+    
+    @property
+    def augmentation(self):
+        return 'permutation'
     
     @abstractmethod
     def augment(self, x, g):
@@ -53,6 +59,10 @@ class RandomPermutation(DA):
 
 
 class RandomRotation(RandomPermutation):
+    @property
+    def augmentation(self):
+        return 'rotation'
+    
     def augment(self, x, g):
         ROTATION90 = np.array([6, 3, 0,
                                7, 4, 1,
@@ -60,6 +70,10 @@ class RandomRotation(RandomPermutation):
         return self.permute(x, g, ROTATION90)
 
 class RandomHorizontalFlip(RandomPermutation):
+    @property
+    def augmentation(self):
+        return 'hflip'
+    
     def augment(self, x, g):
         HORIZONTAL_FLIP = np.array([2, 1, 0,
                                     5, 4, 3,
@@ -67,6 +81,10 @@ class RandomHorizontalFlip(RandomPermutation):
         return self.permute(x, g, HORIZONTAL_FLIP)
 
 class RandomVerticalFlip(RandomPermutation):
+    @property
+    def augmentation(self):
+        return 'vflip'
+    
     def augment(self, x, g):
         VERTICAL_FLIP = np.array([6, 7, 8,
                                   3, 4, 5,
@@ -81,26 +99,50 @@ class GaussianNoise(DA):
         GX = self.augment(X, G)
         return GX, G
     
+    @property
+    def augmentation(self):
+        return 'gaussian_noise'
+    
     def augment(self, X, G):
         return X + np.sqrt(0.1) * np.std(X) * G
 
 
+ALL_AUGMENTATIONS: Dict[str, DA] = {
+    augmenter.augmentation: augmenter for augmenter in ([
+        RandomRotation(),
+        RandomHorizontalFlip(),
+        RandomVerticalFlip(),
+        GaussianNoise()
+    ])
+}
+
+
 class OpticalDeviceDA(DA):
-    def augment(self, X):
-        augmentations = ([
-            RandomRotation(),
-            RandomHorizontalFlip(),
-            RandomVerticalFlip(),
-        ])
-        GX = X.copy()
-        G = np.zeros(( len(X), len(augmentations) ))
-        for i, augmentation in enumerate(augmentations):
-            GX, G[:, i] = augmentation(GX)
+    @property
+    def augmentation(self):
+        return 'optical_device'
+    
+    def augment(
+            self,
+            X: NDArray,
+            augmentations: Optional[str]=None
+        ):
         
-        # # don't use LOLO when using additive Gaussian noise DA
-        # noise = GaussianNoise()
-        # GX, G_noise = noise(GX)
-        # G = np.hstack((G, G_noise))
+        if augmentations:
+            augmentations: List[str] = augmentations.replace(' ','').split('>')
+        else:
+            augmentations: List[str] = list(ALL_AUGMENTATIONS.keys())
+        
+        augmentations: List[DA] = ([
+            ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
+        ])
+
+        GX: NDArray = X.copy()
+        G_list: List[NDArray] = []
+        for i, augmentation in enumerate(augmentations):
+            GX, G = augmentation(GX)
+            print(f'{augmentation.augmentation} {G.shape}')
+            G_list.append(G)
+        G: NDArray = np.hstack(G_list)
 
         return GX, G
-

@@ -43,6 +43,7 @@ def run(
         seed: int,
         n_samples: int,
         methods: List[str],
+        augmentations: Optional[List[str]],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = MANAGER.status_bar(

@@ -1,6 +1,11 @@
 from abc import ABC, abstractmethod
 
 class DataAugmenter(ABC):
+    @property
+    @abstractmethod
+    def augmentation(self):
+        pass
+
     @abstractmethod
     def augment(self, X, **kwargs):
         pass

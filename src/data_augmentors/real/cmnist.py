@@ -161,6 +161,10 @@ class ColoredDigitsDA(DA):
             Jitter(0.5, 0.5, 0.5, 0.5), Translate((0.2, 0.2))
         ])
     
+    @property
+    def augmentation(self):
+        return 'colored_mnist'
+    
     def augment(self, X):
         GX, G = [], []
         for image in X:

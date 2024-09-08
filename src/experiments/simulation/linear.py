@@ -203,6 +203,7 @@ def run(
         n_experiments: int,
         sweep_samples: int,
         methods: List[str],
+        augmentations: Optional[List[str]],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = MANAGER.status_bar(
