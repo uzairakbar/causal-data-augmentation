@@ -26,7 +26,7 @@ conda activate "$environment"
 conda install pip --yes
 pip install -r requirements.txt
 ```
-Then run experiments with `conda run -n causal-data-augmentation python src/main.py`.
+Then run experiments with `conda run --no-capture-output -n causal-data-augmentation python src/main.py`.
 
 ### Docker
 Build provided `Dockerfile` and run.
