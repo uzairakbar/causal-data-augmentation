@@ -41,7 +41,7 @@ optical_device:
         - DA+IV
     augmentations:
         - rotation > hflip > vflip
-        - gaussian-noise
+        - gaussian_noise
 
 colored_mnist:
     seed: 42
