@@ -5,9 +5,9 @@ FROM continuumio/miniconda3:24.7.1-0
 WORKDIR /app
 
 # set environment variables
-ENV PYTHONPATH /app
-ENV CONDAENV causal-data-augmentation
-ENV PYTHONVERSION 3.10.14
+ENV PYTHONPATH=/app
+ENV CONDAENV=causal-data-augmentation
+ENV PYTHONVERSION=3.10.14
 
 # install packages
 COPY requirements.txt .
@@ -31,4 +31,4 @@ RUN set -x && \
 COPY . .
 
 # run script
-CMD exec conda run -n $CONDAENV python -u src/main.py
+CMD exec conda run --no-capture-output -n $CONDAENV python -u src/main.py
