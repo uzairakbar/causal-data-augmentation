@@ -14,16 +14,16 @@ PLOT_DPI=1200
 PLOT_FORMAT='pdf'
 ARTIFACTS_DIRECTORY='artifacts'
 TEX_MAPPER = {
-    'Data': 'Data',
-    'ERM': 'ERM',
-    'DA+ERM': 'DA+ERM',
-    'DA+UIV-a': 'DA+UIV--$\alpha$',
-    'DA+UIV-5fold': 'DA+UIV--$\alpha^{\mathrm{5-fold}}$',
-    'DA+UIV-LOLO': 'DA+UIV--$\alpha^{\mathrm{LOLO}}$',
-    'DA+UIV-CC': 'DA+UIV--$\alpha^{\mathrm{CC}}$',
-    'DA+UIV-Pi': 'DA+UIV--$\Pi$',
-    'DA+UIV': 'DA+UIV',
-    'DA+IV': 'DA+IV',
+    'Data': r'Data',
+    'ERM': r'ERM',
+    'DA+ERM': r'DA+ERM',
+    'DA+UIV-a': r'DA+UIV--$\alpha$',
+    'DA+UIV-5fold': r'DA+UIV--$\alpha^{\mathrm{5-fold}}$',
+    'DA+UIV-LOLO': r'DA+UIV--$\alpha^{\mathrm{LOLO}}$',
+    'DA+UIV-CC': r'DA+UIV--$\alpha^{\mathrm{CC}}$',
+    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
+    'DA+UIV': r'DA+UIV',
+    'DA+IV': r'DA+IV',
 }
 
 
