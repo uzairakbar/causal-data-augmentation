@@ -13,8 +13,10 @@ linear_simulation:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
+        - DA+IRM
+        - DA+ICP
     augmentations:
-        - translation
+        - translate
 
 nonlinear_simulation:
     seed: 42
@@ -39,6 +41,8 @@ optical_device:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
+        - DA+IRM
+        - DA+ICP
     augmentations:
         - rotation > hflip > vflip
         - gaussian_noise
