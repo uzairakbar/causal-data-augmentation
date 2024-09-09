@@ -13,8 +13,8 @@ linear_simulation:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
-        - DA+IRM
-        - DA+ICP
+        - IRM
+        - ICP
     augmentations:
         - translate
 
@@ -28,6 +28,7 @@ nonlinear_simulation:
         - DA+UIV-5fold
         - DA+UIV-LOLO
         - DA+IV
+        - IRM
 
 optical_device:
     seed: 42
@@ -41,8 +42,8 @@ optical_device:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
-        - DA+IRM
-        - DA+ICP
+        - IRM
+        - ICP
     augmentations:
         - rotation > hflip > vflip
         - gaussian_noise
@@ -78,13 +79,15 @@ rotated_mnist:
 hyperparameters:
     erm:
         lr: 0.001
+        batch: 512
         epochs: 40
     gmm:
         lr: 0.001
+        batch: 512
         epochs1: 4          # iterations to fit GMM weights
         epochs2: 10         # iterations to fit network for given GMM weights. total training iterations are `epoch1*epoch2`.
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
-        samples: 10         # number of samples for random search
+        samples: 5          # number of samples for random search
         n_jobs: -1          # number of jobs to run in parallel for hyperparam search

@@ -249,7 +249,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
                      self).__init__(model=model)
     
     def fit(
-            self, X, y, G, GX, lr=0.001, epochs1=4, epochs2=10, **kwargs
+            self, X, y, G, GX, lr=0.001, batch=512, epochs1=4, epochs2=10, **kwargs
         ):
         _, k = G.shape
         G_poly_degree = 2
@@ -269,7 +269,9 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
         )
         return super(DAIVConstrainedOptimizationGMM,
                      self).fit(
-                         X=GX, y=y, Z=G, lr=lr, epochs1=epochs1, epochs2=epochs2, **kwargs
+                         X=GX, y=y, Z=G,
+                         lr=lr, batch=batch, epochs1=epochs1, epochs2=epochs2,
+                         **kwargs
                         )
 
     def loss(self,

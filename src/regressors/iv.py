@@ -73,7 +73,7 @@ class IVGeneralizedMomentMethod(IV):
     def _fit(
             self,
             X, y, Z,
-            lr=0.001, epochs1=4, epochs2=10,
+            lr=0.001, batch=512, epochs1=4, epochs2=10,
             pbar_manager=None
         ):
         from sklearn.preprocessing import PolynomialFeatures
@@ -126,7 +126,7 @@ class IVGeneralizedMomentMethod(IV):
 
         batch_mode = 'mini' if n >= 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
-                                      batch_size=128, shuffle=True)
+                                      batch_size=batch, shuffle=True)
         
         if pbar_manager:
             method_name = self.__class__.__name__

@@ -66,7 +66,7 @@ class LeastSquaresGradientDescent(ERM):
     def _fit(
             self,
             X, y,
-            lr=0.001, epochs=40,
+            lr=0.001, batch=512, epochs=40,
             pbar_manager=None
         ):
         n, m = X.shape
@@ -100,7 +100,7 @@ class LeastSquaresGradientDescent(ERM):
 
         batch_mode = 'mini' if n > 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
-                                      batch_size=128, shuffle=True)
+                                      batch_size=batch, shuffle=True)
         
         method_name = self.__class__.__name__
         pbar_epochs = pbar_manager.counter(
