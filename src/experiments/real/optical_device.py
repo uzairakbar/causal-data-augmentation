@@ -75,6 +75,7 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
         'DA+UIV-LOLO': lambda: LOLO(
+            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
