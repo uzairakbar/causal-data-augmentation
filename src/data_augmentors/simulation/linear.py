@@ -8,7 +8,12 @@ from src.data_augmentors.abstract import DataAugmenter as DA
 
 class NullSpaceTranslation(DA):
     def __init__(self, W_XY: NDArray):
-        self.W_ZXtilde = self.null_space(W_XY.T).T
+        null_basis = self.null_space(W_XY.T).T
+
+        k_max, _ = null_basis.shape
+        sample = np.random.rand(k_max) > 0.5
+        
+        self.W_ZXtilde = null_basis[sample]
         self.param_dimension, _ = self.W_ZXtilde.shape
     
     @property
@@ -44,6 +49,7 @@ class NullSpaceTranslation(DA):
 
 
 Augmentation = Literal['translate']
+
 
 class LinearSimulationDA(DA):
     def __init__(
