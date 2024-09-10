@@ -29,7 +29,7 @@ from src.regressors.model_selectors import ConfounderCorrection as CC
 from src.experiments.utils import (
     save,
     set_seed,
-    relative_sq_error,
+    relative_error,
     bootstrap,
     box_plot,
     tex_table,
@@ -137,7 +137,7 @@ def run(
             
             method_solution = model.solution
             
-            error = relative_sq_error(sem_solution, method_solution)
+            error = relative_error(sem_solution, method_solution)
 
             all_errors[method_name][j] = error
             

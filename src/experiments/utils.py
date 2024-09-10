@@ -29,11 +29,12 @@ TEX_MAPPER = {
 }
 
 
-def relative_sq_error(W, What) -> float:
-    sqnorm = lambda x: (x**2).sum()
-    error = sqnorm(What - W)
-    relative_error = error / (error + sqnorm(W))
-    return relative_error
+
+def relative_error(W, What) -> float:
+    sq_norm = lambda x: (x**2).sum()
+    sq_error = sq_norm(What - W)
+    relative_sq_error = sq_error / (sq_error + sq_norm(W))
+    return relative_sq_error**0.5
 
 
 def set_seed(seed: int=42):
@@ -55,7 +56,7 @@ def set_seed(seed: int=42):
 def sweep_plot(
         x, y,
         xlabel: str,
-        ylabel: str='$\sqrt{{\mathrm{{\mathsf{{RSE}}}}}}$',
+        ylabel: str='Retalive Error',
         xscale: Literal['linear', 'log']='linear',
         vertical_plots: List=[],
         save: bool=True,
@@ -109,7 +110,7 @@ def sweep_plot(
 
 def box_plot(
         data: Dict,
-        xlabel: str='$\sqrt{{\mathrm{{\mathsf{{RSE}}}}}}$',
+        xlabel: str='Relative Error',
         ylabel: str='method',
         fname: str='optical_device',
         save: bool=True

@@ -31,7 +31,7 @@ from src.experiments.utils import (
     set_seed,
     bootstrap,
     sweep_plot,
-    relative_sq_error,
+    relative_error,
     fit_model
 )
 
@@ -93,7 +93,7 @@ class Experiment(ABC):
         model = self.fit(
             method_name, method, X, y, G, GX, param
         )
-        error = relative_sq_error(sem_solution, model.solution)**0.5
+        error = relative_error(sem_solution, model.solution)
         return error
 
     def run_experiment(self):
