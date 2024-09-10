@@ -65,6 +65,27 @@ class DAIVRegressor(Regressor):
         pass
 
 
+class BaselineRegressor(Regressor):
+    def __init__(self, alpha=1.0):
+        self._alpha = alpha
+        super(BaselineRegressor, self).__init__()
+    
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
+    
+    def fit(self, X, y, Z, **kwargs):
+        return super(BaselineRegressor, self).fit(X=X, y=y, Z=Z, **kwargs)
+
+    @abstractmethod
+    def _fit(self, X, y, Z, **kwargs):
+        pass
+
+
 class ModelSelector(ABC, BaseSearchCV):
     def __init__(self, metric='r2', **kwargs):
         if metric == 'r2':

@@ -10,13 +10,20 @@ from src.data_augmentors.simulation.linear import NullSpaceTranslation as DA
 from src.sem.simulation.linear import LinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
+
 from src.regressors.erm import LeastSquaresClosedForm as ERM
+
 from src.regressors.iv import IVTwoStageLeastSquares as IV
-from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
+
 from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
+from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
+from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
+
+from src.regressors.baselines import LinearIRM as IRM
+from src.regressors.baselines import InvariantCausalPrediction as ICP
 
 from src.regressors.model_selectors import LeaveOneOut as KFold
+from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
 from src.regressors.model_selectors import ConfounderCorrection as CC
 
 from src.experiments.utils import (
@@ -231,6 +238,8 @@ def run(
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
+        'IRM': lambda: IRM(),
+        'ICP': lambda: ICP()
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     

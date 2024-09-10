@@ -1,3 +1,4 @@
+import scipy
 import enlighten
 import numpy as np
 from argparse import ArgumentParser
@@ -11,11 +12,15 @@ from src.regressors.abstract import Regressor, ModelSelector
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
 # from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
+# from src.regressors.daiv import DAIVLeastSquaresGradientDescent as UIV_a_gd
 # from src.regressors.daiv import DAIVProjectedLeastSquaresClosedForm as UIV_Pi
 from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
 from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
 from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 from src.regressors.iv import IVTwoStageLeastSquares as IV
+
+from src.regressors.baselines import LinearIRM as IRM
+from src.regressors.baselines import InvariantCausalPrediction as ICP
 
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -81,10 +86,22 @@ def run(
         'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
-        'DA+IV': lambda: IV()
+        'DA+IV': lambda: IV(),
+        'IRM': lambda: LOLO(
+            metric='mse',
+            estimator=IRM(),
+            param_distributions = {
+                'alpha': scipy.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=2
+        ),
+        'ICP': lambda: ICP()
     }
     methods: ModelBuilder= {m: all_methods[m] for m in methods}
-    
+
     all_sems = []
     all_augmenters = []
     

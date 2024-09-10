@@ -24,6 +24,8 @@ TEX_MAPPER = {
     'DA+UIV-Pi': r'DA+UIV--$\Pi$',
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
+    'IRM': r'IRM',
+    'ICP': r'ICP',
 }
 
 
@@ -361,6 +363,16 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None)
         model.fit(
             X=GX, y=y, Z=G, pbar_manager=pbar_manager, **gmm_params
         )
+    elif 'IRM' in name:
+        G = discretize(G)
+        model.fit(
+            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
+        )
+    elif 'ICP' in name:
+        G = discretize(G)
+        model.fit(
+            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
+        )
     else:
         raise ValueError(f'Model {name} not implemented.')
 
@@ -383,6 +395,16 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None):
     elif 'DA+IV' == name:
         model.fit(
             X=GX, y=y, Z=G, **gmm_params
+        )
+    elif 'IRM' in name:
+        G = discretize(G)
+        model.fit(
+            X=GX, y=y, Z=G, **erm_params
+        )
+    elif 'ICP' in name:
+        G = discretize(G)
+        model.fit(
+            X=GX, y=y, Z=G, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

@@ -1,3 +1,4 @@
+import scipy
 import enlighten
 import numpy as np
 from argparse import ArgumentParser
@@ -8,11 +9,16 @@ from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 from src.sem.real.cmnist import ColoredDigitsSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
+
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
+
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
+
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
 from src.regressors.daiv import MinMaxDAIV as UIV
 from src.regressors.daiv import DAIVConstrainedOptimizationGMM as UIV
+
+from src.regressors.baselines import InvariantRiskMinimization as IRM
 
 from src.regressors.model_selectors import VanillaCV as CV
 
@@ -62,7 +68,18 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+IV': lambda: IV(model='cmnist')
+        'DA+IV': lambda: IV(model='cmnist'),
+        'IRM': lambda: CV(
+            metric='accuracy',
+            estimator=IRM(model='cmnist'),
+            param_distributions = {
+                'alpha': scipy.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        )
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     

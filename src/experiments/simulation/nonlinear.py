@@ -1,3 +1,4 @@
+import scipy
 import enlighten
 import numpy as np
 from argparse import ArgumentParser
@@ -8,10 +9,15 @@ from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
 from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
+
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
+
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
+
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
 from src.regressors.daiv import MinMaxDAIV as UIV
+
+from src.regressors.baselines import InvariantRiskMinimization as IRM
 
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -28,6 +34,7 @@ from src.experiments.utils import (
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 MANAGER = enlighten.get_manager()
 DEFAULT_CV_SAMPLES=10
+DEFAULT_CV_FRAC=0.2
 DEFAULT_CV_FOLDS=5
 DEFAULT_CV_JOBS=1
 
@@ -73,7 +80,18 @@ def run(
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
-        'DA+IV': lambda: IV(model='2-layer')
+        'DA+IV': lambda: IV(model='2-layer'),
+        'IRM': lambda: LOLO(
+            metric='mse',
+            estimator=IRM(model='cmnist'),
+            param_distributions = {
+                'alpha': scipy.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        )
     }
     methods: ModelBuilder = {m: all_methods[m] for m in methods}
     

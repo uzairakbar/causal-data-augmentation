@@ -28,11 +28,18 @@ class LeaveOneLevelOut(ModelSelector, RandomizedSearchCV):
     def __init__(self, **kwargs):
         super(LeaveOneLevelOut, self).__init__(**kwargs, cv=LeaveOneGroupOut())
 
-    def fit(self, X, y, G=None, GX=None, **kwargs):
-        _, groups = np.unique(G, return_inverse=True, axis=0)
-        return super(LeaveOneLevelOut, self).fit(X=GX,
+    def fit(self, X, y, G=None, GX=None, Z=None, **kwargs):
+        if G is None and Z is None:
+            raise ValueError('Either Z or G has to be specified.')
+        if G is not None:
+            _, groups = np.unique(G, return_inverse=True, axis=0)
+        else:
+            _, groups = np.unique(Z, return_inverse=True, axis=0)
+
+        return super(LeaveOneLevelOut, self).fit(X=X,
                                                  y=y,
                                                  G=G,
+                                                 Z=Z,
                                                  GX=GX,
                                                  groups=groups,
                                                  **kwargs)
