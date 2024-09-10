@@ -5,25 +5,31 @@ import torch.nn.functional as F
 import torch.utils.data as data_utils
 
 from src.regressors.abstract import IVRegressor as IV
-from src.regressors.models import MODELS
+
 from src.regressors.erm import (
     LeastSquaresClosedForm as LSCF,
     LeastSquaresGradientDescent as LSGD,
     LeastSquaresCvxpy as LSGD,
 )
 
+from src.regressors.utils import MODELS, Model, device
 
-ERM = {'cf': LSCF(),
-       'gd': LSGD()}
+
+DEVICE: str=device()
+MAX_BATCH: int=1_000
+ERM = {
+    'cf': LSCF(),
+    'gd': LSGD()
+}
 
 
 class IVTwoStageLeastSquares(IV):
-    def __init__(self, s1 = 'cf', s2 = 'gd'):
+    def __init__(self, s1='cf', s2='gd'):
         self.s1 = s1
         self.s2 = s2
         super(IVTwoStageLeastSquares, self).__init__()
     
-    def _fit(self, X, y, Z = None):
+    def _fit(self, X, y, Z):
 
         S1 = ERM[self.s1].fit(Z, X).solution
         Xhat = Z @ S1
@@ -40,7 +46,7 @@ class IVTwoStageLeastSquares(IV):
 class IVGeneralizedMomentMethod(IV):
     _models = MODELS
 
-    def __init__(self, model='linear'):
+    def __init__(self, model: Model='linear'):
         if model in self._models:
             self.__model = self._models[model]
         else:
@@ -51,16 +57,9 @@ class IVGeneralizedMomentMethod(IV):
     def fit_f_minibatch(self, train, weights):
         losses = list()
         for i, (X_b, y_b, Z_b) in enumerate(train):
-            if torch.cuda.is_available():
-                X_b = X_b.cuda()
-                y_b = y_b.cuda()
-                Z_b = Z_b.cuda()
-                weights = weights.cuda()
-            elif torch.backends.mps.is_available():
-                X_b = X_b.to('mps')
-                y_b = y_b.to('mps')
-                Z_b = Z_b.to('mps')
-                weights = weights.to('mps')
+            X_b, y_b, Z_b, weights = (
+                X_b.to(DEVICE), y_b.to(DEVICE), Z_b.to(DEVICE), weights.to(DEVICE)
+            )
             loss_val = self._optimizer.step(
                 lambda: self.loss(X_b, y_b, Z_b, weights)
             )
@@ -88,11 +87,8 @@ class IVGeneralizedMomentMethod(IV):
         self.f = self.__model(m)
         self.f.float()
         self.f.train()
-        if torch.cuda.is_available():
-            self.f = self.f.cuda()
-        elif torch.backends.mps.is_available():
-            self.f = self.f.to('mps')
-        
+        self.f = self.f.to(DEVICE)
+
         self._optimizer = torch.optim.Adam(self.f.parameters(), lr=lr)
         
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
@@ -101,28 +97,15 @@ class IVGeneralizedMomentMethod(IV):
             y = torch.tensor(y, dtype=torch.float)
         X = torch.tensor(X, dtype=torch.float)
         Z = torch.tensor(Z, dtype=torch.float)
-
-        if torch.cuda.is_available():
-            X = X.cuda()
-            y = y.cuda()
-            Z = Z.cuda()
-            logger.info('Using CUDA')
-        elif torch.backends.mps.is_available():
-            X = X.to('mps')
-            y = y.to('mps')
-            Z = Z.to('mps')
-            logger.info('Using MPS')
-        else:
-            logger.info('Using CPU')
         
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             weights = torch.eye(10*k)
         else:
             weights = torch.eye(k)
-        if torch.cuda.is_available():
-            weights = weights.cuda()
-        elif torch.backends.mps.is_available():
-            weights = weights.to('mps')
+        
+        X, y, Z, weights = (
+            X.to(DEVICE), y.to(DEVICE), Z.to(DEVICE), weights.to(DEVICE)
+        )
 
         batch_mode = 'mini' if n >= 1000 else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
@@ -167,10 +150,7 @@ class IVGeneralizedMomentMethod(IV):
                         ),
                         dtype=torch.float
                     )
-                    if torch.cuda.is_available():
-                        weights = weights.cuda()
-                    elif torch.backends.mps.is_available():
-                        weights = weights.to('mps')
+                    weights, _ = weights.to(DEVICE)
             
             if pbar_manager:
                 pbar_epochs = pbar_manager.counter(
@@ -194,10 +174,7 @@ class IVGeneralizedMomentMethod(IV):
     def _predict(self, X):
         X = torch.tensor(X, dtype=torch.float)
         
-        if torch.cuda.is_available():
-            X = X.cuda()
-        elif torch.backends.mps.is_available():
-            X = X.to('mps')
+        X, _ = X.to(DEVICE)
         
         output = self.f(X).data.cpu().numpy()
 

@@ -5,8 +5,13 @@ from loguru import logger
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 
+from src.regressors.utils import MODELS, Model, device
+
 from src.regressors.abstract import EmpiricalRiskMinimizer as ERM
-from src.regressors.models import MODELS
+
+
+DEVICE: str=device()
+MAX_BATCH: int=1_000
 
 
 class LeastSquaresClosedForm(ERM):
@@ -16,7 +21,7 @@ class LeastSquaresClosedForm(ERM):
     
     def _predict(self, X):
         return X @ self._W
-    
+
 
 class LeastSquaresCvxpy(ERM):
     def _fit(self, X, y):
@@ -37,7 +42,7 @@ class LeastSquaresCvxpy(ERM):
 class LeastSquaresGradientDescent(ERM):
     _models = MODELS
 
-    def __init__(self, model='linear'):
+    def __init__(self, model: Model='linear'):
         super().__init__()
 
         if model in self._models:
@@ -49,13 +54,9 @@ class LeastSquaresGradientDescent(ERM):
     def fit_f_minibatch(self, train):
         losses = list()
         for i, (X_b, y_b) in enumerate(train):
-            if torch.cuda.is_available():
-                X_b = X_b.cuda()
-                y_b = y_b.cuda()
-            elif torch.backends.mps.is_available():
-                X_b = X_b.to('mps')
-                y_b = y_b.to('mps')
-            
+            X_b, y_b = (
+                X_b.to(DEVICE), y_b.to(DEVICE)
+            )
             loss_val = self._optimizer.step(lambda: self.loss(X_b, y_b))
             losses += [loss_val.data.cpu().numpy()]
         logger.info(f'  train loss {np.mean(losses):.2f}')
@@ -74,10 +75,7 @@ class LeastSquaresGradientDescent(ERM):
         self.f = self.__model(m)
         self.f.float()
         self.f.train()
-        if torch.cuda.is_available():
-            self.f = self.f.cuda()
-        elif torch.backends.mps.is_available():
-            self.f = self.f.to('mps')
+        self.f = self.f.to(DEVICE)
 
         self._optimizer = torch.optim.Adam(self.f.parameters(), lr=lr)
 
@@ -86,19 +84,12 @@ class LeastSquaresGradientDescent(ERM):
         else:
             y = torch.tensor(y, dtype=torch.float)
         X = torch.tensor(X, dtype=torch.float)
-        
-        if torch.cuda.is_available():
-            X = X.cuda()
-            y = y.cuda()
-            logger.info('Using CUDA')
-        elif torch.backends.mps.is_available():
-            X = X.to('mps')
-            y = y.to('mps')
-            logger.info('Using MPS')
-        else:
-            logger.info('Using CPU')
 
-        batch_mode = 'mini' if n > 1000 else 'full'
+        X, y = (
+            X.to(DEVICE), y.to(DEVICE)
+        )
+
+        batch_mode = 'mini' if n > MAX_BATCH else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y),
                                       batch_size=batch, shuffle=True)
         
@@ -120,11 +111,7 @@ class LeastSquaresGradientDescent(ERM):
 
     def _predict(self, X):
         X = torch.tensor(X, dtype=torch.float)
-        
-        if torch.cuda.is_available():
-            X = X.cuda()
-        elif torch.backends.mps.is_available():
-            X = X.to('mps')
+        X = X.to(DEVICE)
         
         output = self.f(X).data.cpu().numpy()
 

@@ -5,11 +5,16 @@ from math import comb
 import torch.nn.functional as F
 from scipy.optimize import minimize
 
+from src.regressors.utils import Model, device
+
 from src.regressors.abstract import DAIVRegressor
 from src.regressors.erm import LeastSquaresClosedForm as OLS
 
-from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.iv import IVGeneralizedMomentMethod as IV
+from src.regressors.erm import LeastSquaresGradientDescent as ERM
+
+
+DEVICE: str=device()
 
 
 class DAIVLeastSquaresClosedForm(DAIVRegressor):
@@ -166,7 +171,7 @@ class DAIVConstrainedLeastSquares(DAIVRegressor):
 
 class DAIVGeneralizedMomentMethod(IV, ERM):
     def __init__(self,
-                 model='linear',
+                 model: Model='linear',
                  alpha=1.0):
         self.alpha = alpha
         self.model = model  # TODO: refactor code
@@ -188,7 +193,7 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 
 
 class MinMaxDAIV(IV, ERM):
-    def __init__(self, model='linear'):
+    def __init__(self, model: Model='linear'):
         self.alpha = None
         self.model = model  # TODO: refactor code
         super(MinMaxDAIV,
@@ -199,10 +204,7 @@ class MinMaxDAIV(IV, ERM):
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
         self.alpha = torch.nn.Linear(alpha_in_dim, 1, bias=False)
-        if torch.cuda.is_available():
-            self.f = self.alpha.cuda()
-        elif torch.backends.mps.is_available():
-            self.f = self.alpha.to('mps')
+        self.f = self.f.to(DEVICE)
         
         self._alpha_optimizer = torch.optim.Adam(
             self.alpha.parameters(), lr=lr, maximize=True
@@ -241,7 +243,7 @@ class MinMaxDAIV(IV, ERM):
 
 
 class DAIVConstrainedOptimizationGMM(IV, ERM):
-    def __init__(self, model='linear'):
+    def __init__(self, model: Model='linear'):
         self.alpha = None
         self.model = model  # TODO: refactor code
         self.erm = ERM(model=model)
@@ -255,10 +257,7 @@ class DAIVConstrainedOptimizationGMM(IV, ERM):
         G_poly_degree = 2
         alpha_in_dim = comb(k+G_poly_degree, G_poly_degree) - 1
         self.alpha = torch.nn.Linear(alpha_in_dim, 1, bias=False)
-        if torch.cuda.is_available():
-            self.f = self.alpha.cuda()
-        elif torch.backends.mps.is_available():
-            self.f = self.alpha.to('mps')
+        self.alpha = self.alpha.to(DEVICE)
         
         self._alpha_optimizer = torch.optim.Adam(
             self.alpha.parameters(), lr=lr, maximize=True
