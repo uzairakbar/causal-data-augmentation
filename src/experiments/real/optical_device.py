@@ -38,10 +38,13 @@ from src.experiments.utils import (
 
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+
 MANAGER = enlighten.get_manager()
-DEFAULT_CV_SAMPLES=10
-DEFAULT_CV_FOLDS=5
-DEFAULT_CV_JOBS=1
+EXPERIMENT: str='optical_device'
+DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_FRAC: float=0.2
+DEFAULT_CV_FOLDS: int=5
+DEFAULT_CV_JOBS: int=1
 
 
 def run(
@@ -97,7 +100,7 @@ def run(
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=2
+            verbose=1
         ),
         'ICP': lambda: ICP()
     }
@@ -147,14 +150,23 @@ def run(
         pbar_experiment.update()
         status.update()
     pbar_experiment.close()
+
+    save(
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+    )
     
     errors_bootstrapped = bootstrap(all_errors)
-    box_plot(errors_bootstrapped, fname='optical_device')
-    tex_table(
+    box_plot(
+        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+    )
+    
+    table = tex_table(
         errors_bootstrapped, fname='optical_device',
         caption='RSE $\pm$ one standard deviation across the optical device datasets.'
     )
-    save(all_errors, 'optical_device')
+    save(
+        obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
 
 
 if __name__ == '__main__':

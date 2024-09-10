@@ -32,10 +32,13 @@ from src.experiments.utils import (
 )
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+
 MANAGER = enlighten.get_manager()
-DEFAULT_CV_SAMPLES=10
-DEFAULT_CV_FRAC=5
-DEFAULT_CV_JOBS=1
+EXPERIMENT: str='colored_mnist'
+DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_FRAC: float=0.2
+DEFAULT_CV_FOLDS: int=5
+DEFAULT_CV_JOBS: int=1
 
 
 def run(
@@ -120,7 +123,9 @@ def run(
             y_test_hat = model.predict(X_test)
             all_errors[method_name][i] = accuracy(y_test, y_test_hat)
 
-            save(obj=all_errors, fname='cmnist', format='json')
+            save(
+                obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+            )
 
             pbar_methods.update()
         pbar_methods.close()
@@ -128,13 +133,20 @@ def run(
         status.update()
     pbar_experiment.close()
     
-    save(obj=all_errors, fname='cmnist', format='json')
     save(
-        obj=np.arange(seed, seed+num_seeds), fname='cmnist_seeds', format='json'
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    )
+    save(
+        obj=np.arange(seed, seed+num_seeds),
+        fname='seeds', experiment=EXPERIMENT, format='json'
     )
 
-    box_plot(all_errors, xlabel='accuracy', fname='cmnist')
-    tex_table(
+    box_plot(
+        all_errors, xlabel='Accuracy',
+        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+    )
+
+    table = tex_table(
         all_errors, fname='cmnist', highlight='max',
         caption=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
     )

@@ -32,11 +32,13 @@ from src.experiments.utils import (
 
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+
 MANAGER = enlighten.get_manager()
-DEFAULT_CV_SAMPLES=10
-DEFAULT_CV_FRAC=0.2
-DEFAULT_CV_FOLDS=5
-DEFAULT_CV_JOBS=1
+EXPERIMENT: str='nonlinear_simulation'
+DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_FRAC: float=0.2
+DEFAULT_CV_FOLDS: int=5
+DEFAULT_CV_JOBS: int=1
 
 
 def run(
@@ -173,13 +175,26 @@ def run(
             pbar_sem.update()
         pbar_sem.close()
     
-    grid_plot(all_functions, fname='nonlinear_simulation')
-    tex_table(
-        all_errors, fname='nonlinear_simulation',
+    save(
+        obj=all_errors, fname=f'{EXPERIMENT}_errors',
+        experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=all_functions, fname=f'{EXPERIMENT}_functions',
+        experiment=EXPERIMENT, format='pkl'
+    )
+    
+    table = tex_table(
+        all_errors,
         caption='Test MSE $\\pm$ one standard deviation across $10$ runs.'
     )
-    save(all_errors, 'nonlinear_sim_errors')
-    save(all_functions, 'nonlinear_sim_functions')
+    save(
+        obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
+    
+    grid_plot(
+        all_functions, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+    )
 
 
 if __name__ == '__main__':

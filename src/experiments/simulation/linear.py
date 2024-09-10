@@ -37,10 +37,13 @@ from src.experiments.utils import (
 
 
 ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
+
 MANAGER = enlighten.get_manager()
-DEFAULT_CV_SAMPLES=10
-DEFAULT_CV_FOLDS=5
-DEFAULT_CV_JOBS=1
+EXPERIMENT: str='linear_simulation'
+DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_FRAC: float=0.2
+DEFAULT_CV_FOLDS: int=5
+DEFAULT_CV_JOBS: int=1
 
 
 class Experiment(ABC):
@@ -243,6 +246,7 @@ def run(
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
         'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+UIV-Pi': lambda: UIV_Pi(),
@@ -263,11 +267,15 @@ def run(
         methods=methods,
         sweep_samples=sweep_samples
     ).run_experiment()
+    save(
+        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+    )
     sweep_plot(
         lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
     )
-    save(lambda_values, 'lambda_values')
-    save(results, 'lambda_results')
 
     # sweep over gamma parameter
     status.update(sweep='gamma')
@@ -279,11 +287,15 @@ def run(
         methods=methods,
         sweep_samples=sweep_samples
     ).run_experiment()
+    save(
+        obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
+    )
     sweep_plot(
         gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
     )
-    save(gamma_values, 'gamma_values')
-    save(results, 'gamma_results')
 
     # sweep over alpha parameter
     status.update(sweep='alpha')
@@ -298,12 +310,16 @@ def run(
     vertical_plots = ([
         method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
     ])
+    save(
+        obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
+    )
     sweep_plot(
         alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
-        vertical_plots=vertical_plots, trivial_solution=False
+        vertical_plots=vertical_plots, trivial_solution=True
     )
-    save(alpha_values, 'alpha_values')
-    save(results, 'alpha_results')
 
 
 if __name__ == '__main__':

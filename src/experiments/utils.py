@@ -3,6 +3,7 @@ import json
 import torch
 import random
 import pickle
+import typing
 import numpy as np
 import seaborn as sns
 from loguru import logger
@@ -12,11 +13,22 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import KBinsDiscretizer
 from typing import Any, Literal, List, Dict, Optional
 
+from src.sem.simulation.linear import COVARIATE_DIMENSION
 
-PLOT_DPI=1200
-PLOT_FORMAT='pdf'
-ARTIFACTS_DIRECTORY='artifacts'
-TEX_MAPPER = {
+
+Experiment = Literal[
+    'linear_simulation',
+    'nonlinear_simulation',
+    'optical_device',
+    'colored_mnist',
+    'rotated_mnist'
+]
+Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
+
+PLOT_DPI: int=1200
+PLOT_FORMAT: Plot='pdf'
+ARTIFACTS_DIRECTORY: str='artifacts'
+TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
@@ -72,11 +84,12 @@ def set_seed(seed: int=42):
 def sweep_plot(
         x, y,
         xlabel: str,
-        ylabel: str='Retalive Error',
-        xscale: Literal['linear', 'log']='linear',
-        vertical_plots: List=[],
-        save: bool=True,
-        trivial_solution: bool=True
+        ylabel: Optional[str]='Retalive Error',
+        xscale: Optional[Literal['linear', 'log']]='linear',
+        vertical_plots: Optional[List]=[],
+        trivial_solution: Optional[bool]=True,
+        savefig: Optional[bool]=True,
+        format: Plot=PLOT_FORMAT
     ):
     sns.set_style('darkgrid')
     colors = sns.color_palette()[:len(y)+1]
@@ -97,7 +110,7 @@ def sweep_plot(
             plt.plot(x, mean, color=colors[i], label=label)
     
     if trivial_solution:
-        label = r'$\mathbf{0}_{30}$'
+        label = f'$\\mathbf{{0}}_{{{COVARIATE_DIMENSION}}}$'
         labels.append(label)
         plt.axhline(y = 0.5**0.5, color = colors[-1], label=label)
         
@@ -113,23 +126,25 @@ def sweep_plot(
     plt.legend(labels)
     plt.tight_layout()
     plt.show()
-    if save:
+    if savefig:
         fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
-        if not os.path.exists(ARTIFACTS_DIRECTORY):
-            os.mkdir(ARTIFACTS_DIRECTORY)
-        fig.savefig(
-            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
-            format=PLOT_FORMAT,
+        save(
+            obj=fig,
+            fname=fname,
+            experiment='linear_simulation',
+            format=format,
             dpi=PLOT_DPI
         )
 
 
 def box_plot(
         data: Dict,
-        xlabel: str='Relative Error',
-        ylabel: str='method',
-        fname: str='optical_device',
-        save: bool=True
+        fname: str,
+        experiment: Experiment,
+        xlabel: Optional[str]='Relative Error',
+        ylabel: Optional[str]='method',
+        savefig: Optional[bool]=True,
+        format: Plot=PLOT_FORMAT
     ):
     if len(list(data.values())[0].shape) > 1:
         data = {
@@ -148,20 +163,22 @@ def box_plot(
     ax.set(xlabel=xlabel, ylabel=ylabel)
     plt.tight_layout()
     plt.show()
-    if save:
-        if not os.path.exists(ARTIFACTS_DIRECTORY):
-            os.mkdir(ARTIFACTS_DIRECTORY)
-        fig.savefig(
-            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
-            format=PLOT_FORMAT,
+    if savefig:
+        save(
+            obj=fig,
+            fname=fname,
+            experiment=experiment,
+            format=format,
             dpi=PLOT_DPI
         )
 
 
 def grid_plot(
         data: Dict,
-        save: bool=True,
-        fname: str='nonlinear_simulation'
+        fname: str,
+        experiment: Experiment,
+        savefig: Optional[bool]=True,
+        format: Plot=PLOT_FORMAT
     ):
     functions = data.keys()
     methods = ['Data'] + ([
@@ -209,12 +226,12 @@ def grid_plot(
             axs[i, j].set_ylim([min(y) - y_pad, max(y) + y_pad])
     plt.tight_layout(pad = 0.333)
     plt.show()
-    if save:
-        if not os.path.exists(ARTIFACTS_DIRECTORY):
-            os.mkdir(ARTIFACTS_DIRECTORY)
-        fig.savefig(
-            f'{ARTIFACTS_DIRECTORY}/{fname}.{PLOT_FORMAT}',
-            format=PLOT_FORMAT,
+    if savefig:
+        save(
+            obj=fig,
+            fname=fname,
+            experiment=experiment,
+            format=format,
             dpi=PLOT_DPI,
             bbox_inches='tight'
         )
@@ -222,7 +239,6 @@ def grid_plot(
 
 def tex_table(
         data: Dict,
-        fname: str,
         caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3
@@ -249,55 +265,54 @@ def tex_table(
                 best[row] = max(results[row], key = lambda v : v[0])[0]
         column_names = [TEX_MAPPER.get(k, k) for k in data[row_names[0]]]
     
-    with open(f'{ARTIFACTS_DIRECTORY}/{fname}.tex', 'w+') as f:
-        backreturn = '\\\\\n' + ' '*8
+    backreturn = '\\\\\n' + ' '*8
 
-        num_columns = len(column_names) + int(row_names is not None)
-        columns_preamble = ' '.join(['c']*num_columns)
+    num_columns = len(column_names) + int(row_names is not None)
+    columns_preamble = ' '.join(['c']*num_columns)
 
-        columns = ' & '.join(column_names)
-        if row_names is not None:
-            columns = ' & ' + columns
-        
-        def row_content(row_data, best):
-            if highlight == 'min':
-                row = ' & '.join([
-                    f'${mean:.3f}\\pm {std:.3f}$' if mean > best
-                    else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
-                    for (mean, std) in row_data
-                ])
-            elif highlight == 'max':
-                row = ' & '.join([
-                    f'${mean:.3f}\\pm {std:.3f}$' if mean < best
-                    else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
-                    for (mean, std) in row_data
-                ])
-            return row
-        
-        if row_names is not None:
-            content = backreturn.join([
-                f'{row_name} & ' + row_content(results[row_name], best[row_name])
-                for row_name in row_names
+    columns = ' & '.join(column_names)
+    if row_names is not None:
+        columns = ' & ' + columns
+    
+    def row_content(row_data, best):
+        if highlight == 'min':
+            row = ' & '.join([
+                f'${mean:.3f}\\pm {std:.3f}$' if mean > best
+                else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
+                for (mean, std) in row_data
             ])
-        else:
-            content = row_content(results, best)
+        elif highlight == 'max':
+            row = ' & '.join([
+                f'${mean:.3f}\\pm {std:.3f}$' if mean < best
+                else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
+                for (mean, std) in row_data
+            ])
+        return row
+    
+    if row_names is not None:
+        content = backreturn.join([
+            f'{row_name} & ' + row_content(results[row_name], best[row_name])
+            for row_name in row_names
+        ])
+    else:
+        content = row_content(results, best)
         
-        f.write(f'''
-                \\begin{{table}}[ht]
-                    \\caption{{
-                        {caption}
-                    }}
-                    \\centering
-                    \\begin{{tabular}}{{@{{}}{columns_preamble}@{{}}}}
-                        \\toprule
-                        {columns} \\\\
-                        \\midrule
-                        {content}\\\\
-                        \\bottomrule
-                    \\end{{tabular}}
-                    \\label{{table:nonlin}}
-                \\end{{table}}
-                    '''.strip())
+    return f'''
+        \\begin{{table}}[ht]
+            \\caption{{
+                {caption}
+            }}
+            \\centering
+            \\begin{{tabular}}{{@{{}}{columns_preamble}@{{}}}}
+                \\toprule
+                {columns} \\\\
+                \\midrule
+                {content}\\\\
+                \\bottomrule
+            \\end{{tabular}}
+            \\label{{table:nonlin}}
+        \\end{{table}}
+    '''.strip()
 
 
 def bootstrap(data: Dict, n_samples: int=1000) -> Dict:
@@ -340,22 +355,56 @@ def json_default(obj: Any):
     raise TypeError(f'Unknown type: {type(obj)}.')
 
 
-def save(obj: Dict[str, Any], fname: str, format: Literal['pkl', 'json']='pkl'):
-    if not os.path.exists(ARTIFACTS_DIRECTORY):
-        os.mkdir(ARTIFACTS_DIRECTORY)
-    if format == 'pkl':
-        with open(f'{ARTIFACTS_DIRECTORY}/{fname}.pkl', 'wb+') as file:
-            pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
-    elif format == 'json':
-        with open(f'{ARTIFACTS_DIRECTORY}/{fname}.json', 'w+') as file:
-            json.dump(
-                obj,
-                file,
-                separators=(',', ':'),
-                sort_keys=True,
-                indent=4,
-                default=json_default
+def save(
+        obj: Any,
+        fname: str,
+        experiment: Experiment,
+        format: Plot | Literal['pkl', 'json', 'tex'],
+        **kwargs
+    ):
+    path = f'{ARTIFACTS_DIRECTORY}/{experiment}'
+    
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    try:
+        if format == 'pkl':
+            with open(f'{path}/{fname}.pkl', 'wb+') as file:
+                pickle.dump(obj, file, pickle.HIGHEST_PROTOCOL)
+        elif format == 'json':
+            with open(f'{path}/{fname}.json', 'w+') as file:
+
+                try:
+                    json.dump(
+                        obj,
+                        file,
+                        separators=(',', ':'),
+                        sort_keys=True,
+                        indent=4,
+                        default=json_default
+                    )
+                except Exception as e:
+                    logger.error(
+                        f'Could not convert {fname} obj from exp {experiment} to json.'
+                    )
+                    raise e
+                
+        elif format == 'tex':
+            with open(f'{path}/{fname}.tex', 'w+') as file:
+                file.write(obj)
+        elif format in typing.get_args(Plot):
+            obj.savefig(
+                f'{path}/{fname}.{format}',
+                format=format,
+                **kwargs
             )
+        else:
+            raise NotImplementedError(f'Save not implemented for {format} file.')
+    except Exception as e:
+        logger.error(f'Could not save file {fname}.{format} at path {path}.')
+        raise e
+    
+    logger.info(f'Saved file {fname}.{format} at path {path}.')
 
 
 def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None):
