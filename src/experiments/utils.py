@@ -7,6 +7,9 @@ import numpy as np
 import seaborn as sns
 from loguru import logger
 import matplotlib.pyplot as plt
+from numpy.typing import NDArray
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import KBinsDiscretizer
 from typing import Any, Literal, List, Dict, Optional
 
 
@@ -28,6 +31,19 @@ TEX_MAPPER = {
     'ICP': r'ICP',
 }
 
+
+def discretize(
+        G: NDArray,
+        n_bins: int=2,
+        strategy: str='uniform'
+    ):
+    binner = KBinsDiscretizer(
+        n_bins=n_bins, encode='ordinal', strategy=strategy
+    )
+    scaler = StandardScaler()
+    G = binner.fit_transform(G)
+    G = scaler.fit_transform(G).round(decimals=2)
+    return G
 
 
 def relative_error(W, What) -> float:
@@ -357,6 +373,8 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None)
             X=GX, y=y, pbar_manager=pbar_manager, **erm_params
         )
     elif 'DA+UIV' in name:
+        if 'LOLO' in name:
+            G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, pbar_manager=None, **gmm_params
         )
@@ -390,6 +408,8 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None):
             X=GX, y=y, **erm_params
         )
     elif 'DA+UIV' in name:
+        if 'LOLO' in name:
+            G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, **gmm_params
         )
