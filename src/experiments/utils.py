@@ -243,14 +243,20 @@ def tex_table(
         highlight: Literal['min', 'max']='min',
         decimals: int=3
     ):
-    
-    if 'ERM' in data:
-        row_names = None
-        results = [np.round((np.mean(v), np.std(v)), decimals) for v in data.values()]
+    # check if data keys are subset of TEX_MAPPER keys
+    # i.e., check if data keys only correspond to methods
+    # if yes, then we need to construct a single row table
+    single_row = set(data) <= set(TEX_MAPPER)
+    if single_row:
+        results = ([
+            np.round((np.mean(v), np.std(v)), decimals) for v in data.values()
+        ])
         if highlight == 'min':
-            best = min(results, key = lambda v : v[0])[0]
+            ordered = sorted(results, key=lambda x: (x[0], x[1]))
         elif highlight == 'max':
-            best = max(results, key = lambda v : v[0])[0]
+            ordered = sorted(results, key=lambda x: (-x[0], x[1]))
+        best = ordered[0]
+        second = ordered[1]
         column_names = [TEX_MAPPER.get(k, k) for k in data]
     else:
         row_names = list(data.keys())
@@ -260,36 +266,40 @@ def tex_table(
             columns = {col: data[row][col] for col in TEX_MAPPER.keys() if col in data[row]}
             results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
             if highlight == 'min':
-                best[row] = min(results[row], key = lambda v : v[0])[0]
+                ordered = sorted(results[row], key=lambda x: (x[0], x[1]))
             elif highlight == 'max':
-                best[row] = max(results[row], key = lambda v : v[0])[0]
+                ordered = sorted(results[row], key=lambda x: (-x[0], x[1]))
+            best[row] = ordered[0]
+            second[row] = ordered[1]
         column_names = [TEX_MAPPER.get(k, k) for k in data[row_names[0]]]
     
     backreturn = '\\\\\n' + ' '*8
 
-    num_columns = len(column_names) + int(row_names is not None)
+    num_columns = len(column_names) + int(not single_row)
     columns_preamble = ' '.join(['c']*num_columns)
 
     columns = ' & '.join(column_names)
-    if row_names is not None:
+    if not single_row:
         columns = ' & ' + columns
     
     def row_content(row_data, best):
         if highlight == 'min':
             row = ' & '.join([
-                f'${mean:.3f}\\pm {std:.3f}$' if mean > best
-                else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
+                ( f'${mean:.3f} \\pm {std:.3f}$' ) if mean > second
+                else ( f'$\\mathit{{ {mean:.3f} \\pm {std:.3f} }}$' ) if mean > best
+                else ( f'$\\mathbf{{ {mean:.3f} \\pm {std:.3f} }}$' )
                 for (mean, std) in row_data
             ])
         elif highlight == 'max':
             row = ' & '.join([
-                f'${mean:.3f}\\pm {std:.3f}$' if mean < best
-                else ('$\\mathbf{ '+f'{mean:.3f}\\pm {std:.3f}'+' }$')
+                ( f'${mean:.3f} \\pm {std:.3f}$' ) if mean < second
+                else ( f'$\\mathit{{ {mean:.3f} \\pm {std:.3f} }}$' ) if mean < best
+                else ( f'$\\mathbf{{ {mean:.3f} \\pm {std:.3f} }}$' )
                 for (mean, std) in row_data
             ])
         return row
     
-    if row_names is not None:
+    if not single_row:
         content = backreturn.join([
             f'{row_name} & ' + row_content(results[row_name], best[row_name])
             for row_name in row_names
