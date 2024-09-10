@@ -1,7 +1,7 @@
 import numpy as np
 from abc import abstractmethod
 from numpy.typing import NDArray
-from typing import Dict, Literal, List, Optional
+from typing import Dict, Literal, List, Optional, Tuple
 
 from src.data_augmentors.abstract import DataAugmenter as DA
 
@@ -107,7 +107,10 @@ class GaussianNoise(DA):
         return X + np.sqrt(0.1) * np.std(X) * G
 
 
-ALL_AUGMENTATIONS: Dict[str, DA] = {
+Augmentation = (Literal[
+    'rotation', 'hflip', 'vflip', 'gaussian_noise'
+])
+ALL_AUGMENTATIONS: Dict[Augmentation, DA] = {
     augmenter.augmentation: augmenter for augmenter in ([
         RandomRotation(),
         RandomHorizontalFlip(),
@@ -118,30 +121,32 @@ ALL_AUGMENTATIONS: Dict[str, DA] = {
 
 
 class OpticalDeviceDA(DA):
+    def __init__(
+            self,
+            augmentations: Optional[str]=None
+        ):
+        if augmentations:
+            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
+        else:
+            augmentations: List[Augmentation] = list(ALL_AUGMENTATIONS.keys())
+        
+        self._augmentations: List[DA] = ([
+            ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
+        ])
+
     @property
     def augmentation(self):
         return 'optical_device'
     
     def augment(
             self,
-            X: NDArray,
-            augmentations: Optional[str]=None
-        ):
-        
-        if augmentations:
-            augmentations: List[str] = augmentations.replace(' ','').split('>')
-        else:
-            augmentations: List[str] = list(ALL_AUGMENTATIONS.keys())
-        
-        augmentations: List[DA] = ([
-            ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
-        ])
+            X: NDArray
+        ) -> Tuple[NDArray, NDArray]:
 
         GX: NDArray = X.copy()
         G_list: List[NDArray] = []
-        for i, augmentation in enumerate(augmentations):
+        for i, augmentation in enumerate(self._augmentations):
             GX, G = augmentation(GX)
-            print(f'{augmentation.augmentation} {G.shape}')
             G_list.append(G)
         G: NDArray = np.hstack(G_list)
 
