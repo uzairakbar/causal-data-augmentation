@@ -1,6 +1,6 @@
 import torch
 import numpy as np
-from torch.nn import nn
+from torch import nn
 from numpy.typing import NDArray
 from typing import Optional, Literal, Callable, Dict
 from sklearn.model_selection import BaseCrossValidator
