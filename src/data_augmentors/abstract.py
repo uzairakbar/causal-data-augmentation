@@ -12,4 +12,3 @@ class DataAugmenter(ABC):
     
     def __call__(self, X, **kwargs):
         return self.augment(X = X, **kwargs)
-

@@ -1,8 +1,10 @@
 import torch
 import numpy as np
+from numpy.typing import NDArray
 from torchvision import transforms
 from abc import ABC, abstractmethod
 from torchvision.transforms import functional as F
+from typing import Dict, Literal, List, Optional, Tuple
 
 from src.data_augmentors.abstract import DataAugmenter as DA
 
@@ -22,7 +24,7 @@ class UniformStandardScaler(StandardScaler):
         self.std = (high - low)/(12.0**0.5)
 
 
-ALPHA, BETA = 1, 1
+ALPHA, BETA = 2, 2
 class BetaStandardScaler(StandardScaler):
     def __init__(self, min, max, a=ALPHA, b=BETA):
         self.mean = a/(a + b)
@@ -75,6 +77,10 @@ class Jitter(transforms.ColorJitter):
             hue=hue
         )
     
+    @property
+    def augmentation(self):
+        return 'jitter'
+    
     def get_params(
         self
     ):
@@ -114,6 +120,11 @@ class Translate(transforms.RandomAffine):
                                                shear=None,
                                                interpolation=transforms.InterpolationMode.BILINEAR,
                                                fill=0)
+    
+    @property
+    def augmentation(self):
+        return 'translate'
+    
     def get_params(
         self,
         degrees,
@@ -153,22 +164,49 @@ class Translate(transforms.RandomAffine):
         return img, scaled_params
 
 
+JITTER_PARAM = 0.5
+TRANSLATE_PARAM = 0.2
+Augmentation = Literal['jitter', 'translate']
+ALL_AUGMENTATIONS: Dict[Augmentation, DA] = {
+    augmenter.augmentation: augmenter for augmenter in ([
+        Jitter(
+            JITTER_PARAM, JITTER_PARAM, JITTER_PARAM, JITTER_PARAM
+        ),
+        Translate(
+            (TRANSLATE_PARAM, TRANSLATE_PARAM)
+        ),
+    ])
+}
+
+
 class ColoredDigitsDA(DA):
-    def __init__(self):
-        self.to_pil = transforms.ToPILImage(mode='RGB')
-        self.to_tensor = transforms.ToTensor()
-        self._augmentor = Compose([
-            Jitter(0.5, 0.5, 0.5, 0.5), Translate((0.2, 0.2))
+    def __init__(
+            self,
+            augmentations: Optional[str]=None
+        ):
+        # self.to_pil = transforms.ToPILImage(mode='RGB')
+        # self.to_tensor = transforms.ToTensor()
+
+        if augmentations:
+            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
+        else:
+            augmentations: List[Augmentation] = list(ALL_AUGMENTATIONS.keys())
+        
+        self._augmentations: List[DA] = Compose([
+            ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
         ])
     
     @property
     def augmentation(self):
         return 'colored_mnist'
     
-    def augment(self, X):
+    def augment(
+            self,
+            X: NDArray
+        ) -> Tuple[NDArray, NDArray]:
         GX, G = [], []
         for image in X:
-            gx, g = self._augmentor(torch.tensor(image))
+            gx, g = self._augmentations(torch.tensor(image))
             GX.append(gx.numpy())
             G.append(np.array(g))
         GX = np.stack(GX)
