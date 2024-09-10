@@ -197,8 +197,8 @@ class AlphaSweep(Experiment):
         model = self.fit(
             method_name, method, X, y, G, GX, param
         )
-        error = relative_sq_error(sem_solution, model.solution)**0.5
         if 'DA+UIV-' in method_name:
+        error = relative_error(sem_solution, model.solution)
             return model.alpha
         else:
             return error
