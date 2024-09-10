@@ -31,7 +31,7 @@ class LeastSquaresCvxpy(ERM):
         prob = cp.Problem(
             cp.Minimize(cost)
         )
-        result = prob.solve(solver=cp.ECOS)
+        result = prob.solve(solver=cp.CLARABEL)
         self._W = h.value
         return self
     

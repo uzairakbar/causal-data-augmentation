@@ -132,7 +132,7 @@ class DAIVProjectedLeastSquares(DAIVRegressor):
             cp.Minimize(cost),
             constraints
         )
-        result = prob.solve(solver=cp.ECOS)
+        result = prob.solve(solver=cp.CLARABEL)
         self._W = h.value
 
         return self
@@ -161,7 +161,7 @@ class DAIVConstrainedLeastSquares(DAIVRegressor):
             cp.Minimize(cost),
             constraints
         )
-        result = prob.solve(solver=cp.ECOS)
+        result = prob.solve(solver=cp.CLARABEL)
         self._W = h.value
         return self
     
