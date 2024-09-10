@@ -5,6 +5,7 @@ from typing import Dict, Literal, List, Optional, Tuple
 
 from src.data_augmentors.abstract import DataAugmenter as DA
 
+
 class StandardScaler():
     @abstractmethod
     def __init__(self, **kwargs):
@@ -12,6 +13,7 @@ class StandardScaler():
     
     def __call__(self, sample):
         return (sample - self.mean)/self.std
+
 
 P = 0.50
 class BernoulliStandardScaler(StandardScaler):
@@ -69,6 +71,7 @@ class RandomRotation(RandomPermutation):
                                8, 5, 2])
         return self.permute(x, g, ROTATION90)
 
+
 class RandomHorizontalFlip(RandomPermutation):
     @property
     def augmentation(self):
@@ -79,6 +82,7 @@ class RandomHorizontalFlip(RandomPermutation):
                                     5, 4, 3,
                                     8, 7, 6])
         return self.permute(x, g, HORIZONTAL_FLIP)
+
 
 class RandomVerticalFlip(RandomPermutation):
     @property
