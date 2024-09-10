@@ -13,7 +13,7 @@ class NullSpaceTranslation(DA):
     
     @property
     def augmentation(self):
-        return 'translation'
+        return 'translate'
     
     def augment(
             self, X: NDArray, gamma: float=1.0
@@ -43,39 +43,44 @@ class NullSpaceTranslation(DA):
         return null_space_basis
 
 
+Augmentation = Literal['translate']
+
 class LinearSimulationDA(DA):
-    @property
-    def augmentation(self):
-        return 'linear_simulation'
-    
-    def augment(
+    def __init__(
             self,
-            X: NDArray,
             W_XY: NDArray,
             augmentations: Optional[str]=None
         ):
-
-        all_augmentations: Dict[str, DA] = {
+        all_augmentations: Dict[Augmentation, DA] = {
             augmenter.augmentation: augmenter for augmenter in ([
                 NullSpaceTranslation(W_XY=W_XY),
             ])
         }
         
         if augmentations:
-            augmentations: List[str] = augmentations.replace(' ','').split('>')
+            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
         else:
-            augmentations: List[str] = list(all_augmentations.keys())
+            augmentations: List[Augmentation] = list(all_augmentations.keys())
         
-        augmentations: List[DA] = ([
+        self._augmentations: List[DA] = ([
             all_augmentations[augmentation] for augmentation in augmentations
         ])
 
+    @property
+    def augmentation(self):
+        return 'linear_simulation'
+    
+    def augment(
+            self,
+            X: NDArray
+        ) -> Tuple[NDArray, NDArray]:
+
         GX: NDArray = X.copy()
         G_list: List[NDArray] = []
-        for i, augmentation in enumerate(augmentations):
+        for i, augmentation in enumerate(self._augmentations):
             GX, G = augmentation(GX)
             print(f'{augmentation.augmentation} {G.shape}')
             G_list.append(G)
         G: NDArray = np.hstack(G_list)
-
+        
         return GX, G
