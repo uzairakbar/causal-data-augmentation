@@ -234,6 +234,16 @@ def run(
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
+        'DA+UIV-LOLO': lambda: LOLO(
+            metric='mse',
+            estimator=UIV_a(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
         'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
