@@ -13,9 +13,13 @@ linear_simulation:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
-        - AR
         - IRM
         - ICP
+        - AR
+        - DRO
+        - RICE
+        - V-REx
+        - MM-REx
     augmentations:
         - translate
 
@@ -67,6 +71,12 @@ colored_mnist:
         - DA+UIV-5fold
         - DA+UIV-LOLO
         - DA+IV
+        - IRM
+        - AR
+        - DRO
+        - RICE
+        - V-REx
+        - MM-REx
     augmentations:
         - jitter > translate
 
@@ -80,6 +90,12 @@ rotated_mnist:
         - DA+UIV-5fold
         - DA+UIV-LOLO
         - DA+IV
+        - IRM
+        - AR
+        - DRO
+        - RICE
+        - V-REx
+        - MM-REx
     augmentations:
         - rotation
         - flip
