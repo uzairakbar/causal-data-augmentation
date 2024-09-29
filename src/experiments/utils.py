@@ -323,7 +323,6 @@ def tex_table(
         columns = ' & ' + columns
     
     def row_content(row_data, best, second):
-        print(f'best {best}, second {second}')
         if highlight == 'min':
             row = ' & '.join([
                 ( f'${mean:.3f} \\pm {std:.3f}$' ) if mean > second
