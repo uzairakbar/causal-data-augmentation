@@ -15,18 +15,18 @@ class StandardScaler():
         return (sample - self.mean)/self.std
 
 
-P = 0.50
+P = 0.5
 class BernoulliStandardScaler(StandardScaler):
     def __init__(self, p=P):
         self.mean = p
         self.std = np.sqrt(p*(1.0-p))
 
 
-class RandomPermutation(DA):
+class Permutation(DA):
     def __init__(self, p=P):
         self.p = p
         self.param_scaler = BernoulliStandardScaler(p=p)
-        return super(RandomPermutation, self).__init__()
+        return super(Permutation, self).__init__()
 
     def __call__(self, X):
         PERMUTE = ([1.0, 0.0])
@@ -60,7 +60,32 @@ class RandomPermutation(DA):
         return gx
 
 
-class RandomRotation(RandomPermutation):
+class RandomPermutation(Permutation):
+    def __call__(self, X):
+        N, M = X.shape
+        permutation_vector = np.arange(M, dtype=int)
+
+        GX = np.zeros_like(X)
+        G = np.zeros_like(X, dtype=int)
+        for i in range(N):
+            np.random.shuffle(permutation_vector)
+            G[i, :] = permutation_vector
+
+            x, g = X[i, :], G[i, :]
+            GX[i, :] = self.augment(x, g)
+        
+        G = (G - G.mean(axis=1)[:, np.newaxis]) / G.std(axis=1)[:, np.newaxis]
+        return GX, G
+    
+    @property
+    def augmentation(self):
+        return 'random-permutation'
+    
+    def augment(self, x, g):
+        return self.permute(x, 1.0, g)
+
+
+class RandomRotation(Permutation):
     @property
     def augmentation(self):
         return 'rotation'
@@ -72,7 +97,7 @@ class RandomRotation(RandomPermutation):
         return self.permute(x, g, ROTATION90)
 
 
-class RandomHorizontalFlip(RandomPermutation):
+class RandomHorizontalFlip(Permutation):
     @property
     def augmentation(self):
         return 'hflip'
@@ -84,7 +109,7 @@ class RandomHorizontalFlip(RandomPermutation):
         return self.permute(x, g, HORIZONTAL_FLIP)
 
 
-class RandomVerticalFlip(RandomPermutation):
+class RandomVerticalFlip(Permutation):
     @property
     def augmentation(self):
         return 'vflip'
@@ -105,21 +130,32 @@ class GaussianNoise(DA):
     
     @property
     def augmentation(self):
-        return 'gaussian_noise'
+        return 'gaussian-noise'
     
     def augment(self, X, G):
         return X + np.sqrt(0.1) * np.std(X) * G
 
 
+class Identity(DA):
+    @property
+    def augmentation(self):
+        return 'identity'
+    
+    def augment(self, X):
+        GX, G = X, X
+        return GX, G
+
+
 Augmentation = (Literal[
-    'rotation', 'hflip', 'vflip', 'gaussian_noise'
+    'rotation', 'hflip', 'vflip', 'gaussian-noise', 'random-permutation'
 ])
 ALL_AUGMENTATIONS: Dict[Augmentation, DA] = {
     augmenter.augmentation: augmenter for augmenter in ([
         RandomRotation(),
         RandomHorizontalFlip(),
         RandomVerticalFlip(),
-        GaussianNoise()
+        GaussianNoise(),
+        RandomPermutation()
     ])
 }
 
@@ -127,17 +163,20 @@ ALL_AUGMENTATIONS: Dict[Augmentation, DA] = {
 class OpticalDeviceDA(DA):
     def __init__(
             self,
-            augmentations: Optional[str]=None
+            augmentations: Optional[str]='all'
         ):
-        if augmentations:
-            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
-        else:
+        if augmentations == 'all':
             augmentations: List[Augmentation] = list(ALL_AUGMENTATIONS.keys())
-        
-        self._augmentations: List[DA] = ([
-            ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
-        ])
+        elif augmentations:
+            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
 
+        if augmentations:        
+            self._augmentations: List[DA] = ([
+                ALL_AUGMENTATIONS[augmentation] for augmentation in augmentations
+            ])
+        else:
+            self._augmentations: List[DA] = [Identity()]
+    
     @property
     def augmentation(self):
         return 'optical_device'

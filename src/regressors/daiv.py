@@ -3,7 +3,6 @@ import numpy as np
 import cvxpy as cp
 from math import comb
 import torch.nn.functional as F
-from scipy.optimize import minimize
 
 from src.regressors.utils import Model, device
 
@@ -25,9 +24,10 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         N = len(GX)
         I = np.eye(N)
         Cgg = G.T @ G
-        PI_G = G @ np.linalg.inv( Cgg ) @ G.T
+        PI_G = G @ np.linalg.pinv( Cgg ) @ G.T
         
-        K = (I + np.sqrt(self._alpha) * PI_G)
+        K = (np.sqrt(self._alpha) * I + PI_G)       # IV + a * ERM
+        # K = (I + np.sqrt(self._alpha) * PI_G)       # ERM + a * IV
         X_, y_ = K @ GX, K @ y
         
         self._W = OLS().fit(X_, y_).solution

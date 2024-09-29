@@ -24,12 +24,12 @@ ERM = {
 
 
 class IVTwoStageLeastSquares(IV):
-    def __init__(self, s1='cf', s2='gd'):
+    def __init__(self, s1='cf', s2='gd', **kwargs):
         self.s1 = s1
         self.s2 = s2
-        super(IVTwoStageLeastSquares, self).__init__()
+        super(IVTwoStageLeastSquares, self).__init__(**kwargs)
     
-    def _fit(self, X, y, Z):
+    def _fit(self, X, y, Z, **kwargs):
 
         S1 = ERM[self.s1].fit(Z, X).solution
         Xhat = Z @ S1

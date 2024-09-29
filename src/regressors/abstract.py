@@ -66,7 +66,7 @@ class DAIVRegressor(Regressor):
 
 
 class BaselineRegressor(Regressor):
-    def __init__(self, alpha=1.0):
+    def __init__(self, alpha: float=1.0):
         self._alpha = alpha
         super(BaselineRegressor, self).__init__()
     
@@ -78,7 +78,7 @@ class BaselineRegressor(Regressor):
     def alpha(self, alpha):
         self._alpha = alpha
     
-    def fit(self, X, y, Z, **kwargs):
+    def fit(self, X, y, Z=None, **kwargs):
         return super(BaselineRegressor, self).fit(X=X, y=y, Z=Z, **kwargs)
 
     @abstractmethod

@@ -65,6 +65,40 @@ class VanillaSplitter(BaseCrossValidator):
         return 1
 
 
+class LevelSplitter(BaseCrossValidator):
+    def __init__(self, frac: float=0.2, **kwargs):
+        self.frac = frac
+        super(LevelSplitter, self).__init__(**kwargs)
+    
+    def _iter_test_indices(
+            self,
+            X: NDArray,
+            y: NDArray=None,
+            groups: Optional[NDArray]=None
+        ):
+        levels, indices, level_count = np.unique(
+            groups, return_inverse=True, return_counts=True
+        )
+        
+        n_levels = len(levels)
+
+        n_test_levels = round(n_levels*self.frac)
+
+        p = level_count/sum(level_count)
+        p_inverse = (1.0 - p)/(len(p) - 1.0)
+        
+        test_levels = np.random.choice(
+            levels, size=n_test_levels, replace=False, p=p_inverse
+        )
+
+        test_indices = np.where(np.in1d(groups, test_levels))[0]
+
+        yield test_indices
+    
+    def get_n_splits(self, X=None, y=None, groups=None):
+        return 1
+
+
 def device():
     if torch.cuda.is_available():
         device = 'cuda'

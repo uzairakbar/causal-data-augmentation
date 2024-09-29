@@ -1,8 +1,9 @@
-import scipy
 import enlighten
 import numpy as np
+import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
+from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
@@ -19,9 +20,16 @@ from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
 from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 from src.regressors.iv import IVTwoStageLeastSquares as IV
 
-from src.regressors.baselines import LinearIRM as IRM
 from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import LinearAnchorRegression as AR
+from src.regressors.baselines import LinearVarianceREx as VREx
+from src.regressors.baselines import LinearMinimaxREx as MMREx
+from src.regressors.baselines import LinearRICE as RICE
+from src.regressors.baselines import LinearDRO as DRO
+from src.regressors.baselines import LinearIRM as IRM
 
+from src.regressors.model_selectors import LevelCV
+from src.regressors.model_selectors import VanillaCV as CV
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
 from src.regressors.model_selectors import ConfounderCorrection as CC
@@ -45,13 +53,17 @@ DEFAULT_CV_SAMPLES: int=5
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
+PLLYNOMIAL_DEGREE: int=1
+FEATURES = PolynomialFeatures(
+    PLLYNOMIAL_DEGREE, include_bias=False
+)
 
 
 def run(
         seed: int,
         n_samples: int,
         methods: List[str],
-        augmentations: Optional[List[str]],
+        augmentations: Optional[List[str]]=[None],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = MANAGER.status_bar(
@@ -91,68 +103,147 @@ def run(
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
-        'IRM': lambda: LOLO(
-            metric='mse',
+        'IRM': lambda: LevelCV(
             estimator=IRM(),
             param_distributions = {
-                'alpha': scipy.stats.loguniform.rvs(
+                'alpha': sp.stats.loguniform.rvs(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'ICP': lambda: ICP()
+        'AR': lambda: KFold(
+            estimator=AR(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'V-REx': lambda: LevelCV(
+            estimator=VREx(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'MM-REx': lambda: LevelCV(
+            estimator=MMREx(),
+            param_distributions = {
+                'alpha': np.random.normal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'RICE': lambda: CV(
+            estimator=RICE(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        # 'ICP': lambda: LevelCV(
+        #     estimator=ICP(),
+        #     param_distributions = {
+        #         'alpha': np.random.beta(
+        #             2, 40, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+        #         )
+        #     },
+        #     frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+        #     n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        #     verbose=1
+        # ),
+        'ICP': lambda: ICP(),
+        'DRO': lambda: DRO(),
     }
     methods: ModelBuilder= {m: all_methods[m] for m in methods}
 
-    all_sems = []
-    all_augmenters = []
-    
-    for exp in range(SEM.num_experiments()):
-        sem = SEM(exp)
-        da = DA()
-        all_sems.append(sem)
-        all_augmenters.append(da)
-    
-    error_dim = (SEM.num_experiments(),)
-    all_errors = {name: np.zeros(error_dim) for name in methods}
-    
-    pbar_experiment = MANAGER.counter(
-        total=SEM.num_experiments(), desc='Experiments', unit='experiments'
+    all_errors = {
+        augmentation: {
+            name: np.zeros(SEM.num_experiments()) for name in methods
+        } for augmentation in augmentations
+    }
+    all_sems = {
+        augmentation: ([
+            SEM(exp) for exp in range(SEM.num_experiments())
+        ]) for augmentation in augmentations
+    }
+    all_augmenters = {
+        augmentation: ([
+            DA(augmentation) for exp in range(SEM.num_experiments())
+        ]) for augmentation in augmentations
+    }
+
+    pbar_augmentation = MANAGER.counter(
+        total=len(augmentations), desc='Augmentations', unit='augmentations'
     )
-    for j, (sem, da) in enumerate(zip(all_sems, all_augmenters)):
-        sem_solution = sem.solution
-
-        X, y = sem(N = n_samples)
-        GX, G = da(X)
-        
-        pbar_methods = MANAGER.counter(
-            total=len(methods), desc=f'SEM {j}', unit='methods', leave=False
+    for augmentation in augmentations:
+        pbar_experiment = MANAGER.counter(
+            total=SEM.num_experiments(), desc=augmentation, unit='experiments',
         )
-        for method_name, method in methods.items():
+        if seed >= 0: set_seed(seed)
 
-            model = method()
-            fit_model(
-                model=model,
-                name=method_name,
-                X=X, y=y, G=G, GX=GX
+        for j, (sem, da) in enumerate(zip(
+                all_sems[augmentation], all_augmenters[augmentation]
+            )):
+            sem_solution = sem.solution
+
+            X, y = sem(N = n_samples)
+            GX, G = da(X)
+            G = FEATURES.fit_transform(G)
+            
+            pbar_methods = MANAGER.counter(
+                total=len(methods), desc=f'SEM {j}', unit='methods', leave=False
             )
-            
-            method_solution = model.solution
-            
-            error = relative_error(sem_solution, method_solution)
+            for method_name, method in methods.items():
 
-            all_errors[method_name][j] = error
-            
-            pbar_methods.update()
-        pbar_methods.close()
-        pbar_experiment.update()
-        status.update()
-    pbar_experiment.close()
+                model = method()
+                fit_model(
+                    model=model,
+                    name=method_name,
+                    X=X, y=y, G=G, GX=GX,
+                    hyperparameters=hyperparameters,
+                    da=da
+                )
+                
+                method_solution = model.solution
+                
+                error = relative_error(sem_solution, method_solution)
+
+                all_errors[augmentation][method_name][j] = error
+
+                save(
+                    obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+                )
+                
+                pbar_methods.update(), status.update()
+            pbar_methods.close()
+            pbar_experiment.update(), status.update()
+        pbar_experiment.close()
+        pbar_augmentation.update(), status.update()
+    pbar_augmentation.close()
 
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
     )
     
     errors_bootstrapped = bootstrap(all_errors)
@@ -161,7 +252,7 @@ def run(
     )
     
     table = tex_table(
-        errors_bootstrapped, fname='optical_device',
+        errors_bootstrapped, label=EXPERIMENT,
         caption='RSE $\pm$ one standard deviation across the optical device datasets.'
     )
     save(

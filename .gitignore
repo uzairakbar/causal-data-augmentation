@@ -129,6 +129,13 @@ dmypy.json
 .pyre/
 
 # output files
+*artifacts*
+*assets*
+*.json
 *.pdf
 *.tex
+*.pkl
 
+# data directory
+*/data/*
+data/*

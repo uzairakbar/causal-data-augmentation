@@ -48,6 +48,16 @@ class NullSpaceTranslation(DA):
         return null_space_basis
 
 
+class Identity(DA):
+    @property
+    def augmentation(self):
+        return 'identity'
+    
+    def augment(self, X):
+        GX, G = X, X
+        return GX, G
+
+
 Augmentation = Literal['translate']
 
 
@@ -55,7 +65,7 @@ class LinearSimulationDA(DA):
     def __init__(
             self,
             W_XY: NDArray,
-            augmentations: Optional[str]=None
+            augmentations: Optional[str]='all'
         ):
         all_augmentations: Dict[Augmentation, DA] = {
             augmenter.augmentation: augmenter for augmenter in ([
@@ -63,15 +73,18 @@ class LinearSimulationDA(DA):
             ])
         }
         
-        if augmentations:
-            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
-        else:
+        if augmentations == 'all':
             augmentations: List[Augmentation] = list(all_augmentations.keys())
-        
-        self._augmentations: List[DA] = ([
-            all_augmentations[augmentation] for augmentation in augmentations
-        ])
+        elif augmentations:
+            augmentations: List[Augmentation] = augmentations.replace(' ','').split('>')
 
+        if augmentations:        
+            self._augmentations: List[DA] = ([
+                all_augmentations[augmentation] for augmentation in augmentations
+            ])
+        else:
+            self._augmentations: List[DA] = [Identity()]
+        
     @property
     def augmentation(self):
         return 'linear_simulation'

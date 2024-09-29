@@ -70,6 +70,8 @@ class LeastSquaresGradientDescent(ERM):
             lr=0.001, batch=512, epochs=40,
             pbar_manager=None
         ):
+        logger.info(f'Using {device}.')
+        
         n, m = X.shape
 
         self.f = self.__model(m)

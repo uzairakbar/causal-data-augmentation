@@ -5,6 +5,7 @@ import random
 import pickle
 import typing
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from loguru import logger
 import matplotlib.pyplot as plt
@@ -40,7 +41,12 @@ TEX_MAPPER: Dict[str, str] = {
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
+    'AR': r'AR',
     'ICP': r'ICP',
+    'DRO': r'DRO',
+    'RICE': r'RICE',
+    'V-REx': r'V-REx',
+    'MM-REx': r'MM-REx',
 }
 
 
@@ -138,31 +144,63 @@ def sweep_plot(
 
 
 def box_plot(
-        data: Dict,
+        data: Dict[str, NDArray],
         fname: str,
         experiment: Experiment,
         xlabel: Optional[str]='Relative Error',
-        ylabel: Optional[str]='method',
+        ylabel: Optional[str]='Method',
+        zlabel: Optional[str]='Augmentation',
+        orient: Literal['h', 'v']='h',
         savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT
+        format: Plot=PLOT_FORMAT,
     ):
-    if len(list(data.values())[0].shape) > 1:
-        data = {
-            key: value.copy().flatten()
-            for key, value in data.items()
-        }
 
+    def prepare_data_for_plotting(
+            data: Dict[str, Dict[str, NDArray]]
+        ) -> pd.DataFrame:
+        records = []
+        for augmentation, methods in data.items():
+            for method, values in methods.items():
+                for value in values.flatten():
+                    records.append({
+                        zlabel: augmentation,
+                        ylabel: TEX_MAPPER.get(method, method),
+                        xlabel: value
+                    })
+        df = pd.DataFrame.from_records(records)
+        return df
+    
+    # check if data keys are subset of TEX_MAPPER keys
+    # i.e., check if data keys only correspond to methods
+    # if yes, then dont use zlabel as hue, else use zlabel.
+    single_row = (
+        set(data) <= set(TEX_MAPPER) or len(data) == 1
+    )
+    if single_row:
+        zlabel = ylabel
+        if len(data) > 1:
+            data = {None : data}
+    df = prepare_data_for_plotting(data)
+    
     sns.set_style('darkgrid')
     fig = plt.figure()
-    ax = sns.boxplot(data=list(data.values()), orient='h', showmeans=True)
-    labels = []
-    for method in data.keys():
-        label = TEX_MAPPER.get(method, method)
-        labels.append(label)
-    ax.set(yticklabels=labels)
-    ax.set(xlabel=xlabel, ylabel=ylabel)
+
+    if orient == 'v':
+        xlabel, ylabel = ylabel, xlabel
+        plt.xticks(rotation=45)
+
+    ax = sns.boxplot(
+        y=ylabel, x=xlabel, hue=zlabel,
+        data=df,
+        orient=orient,
+        showmeans=False,
+        flierprops={"marker": "d"},
+        showcaps=False,
+    )
+    
     plt.tight_layout()
     plt.show()
+    
     if savefig:
         save(
             obj=fig,
@@ -239,6 +277,7 @@ def grid_plot(
 
 def tex_table(
         data: Dict,
+        label: str,
         caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3
@@ -262,6 +301,7 @@ def tex_table(
         row_names = list(data.keys())
         results = {}
         best = {}
+        second = {}
         for row in row_names:
             columns = {col: data[row][col] for col in TEX_MAPPER.keys() if col in data[row]}
             results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
@@ -282,7 +322,8 @@ def tex_table(
     if not single_row:
         columns = ' & ' + columns
     
-    def row_content(row_data, best):
+    def row_content(row_data, best, second):
+        print(f'best {best}, second {second}')
         if highlight == 'min':
             row = ' & '.join([
                 ( f'${mean:.3f} \\pm {std:.3f}$' ) if mean > second
@@ -301,11 +342,12 @@ def tex_table(
     
     if not single_row:
         content = backreturn.join([
-            f'{row_name} & ' + row_content(results[row_name], best[row_name])
-            for row_name in row_names
+            f'{row_name} & ' + row_content(
+                results[row_name], best[row_name][0], second[row_name][0]
+            ) for row_name in row_names
         ])
     else:
-        content = row_content(results, best)
+        content = row_content(results, best[0], second[0])
         
     return f'''
         \\begin{{table}}[ht]
@@ -320,40 +362,58 @@ def tex_table(
                 {content}\\\\
                 \\bottomrule
             \\end{{tabular}}
-            \\label{{table:nonlin}}
+            \\label{{
+                table:{label}
+            }}
         \\end{{table}}
     '''.strip()
 
 
-def bootstrap(data: Dict, n_samples: int=1000) -> Dict:
-    if len(list(data.values())[0].shape) == 1:
-        data = {
-            key: value.copy().reshape(1, -1)
-            for key, value in data.items()
-        }
+def bootstrap(
+        data: Dict[str, NDArray] | Dict[str, Dict[str, NDArray]],
+        n_samples: int=1000
+    ) -> Dict:
+    def bootstrap_single_row(
+            data: Dict[str, NDArray], n_samples: int=n_samples
+        ):
+        if len(list(data.values())[0].shape) == 1:
+            data = {
+                key: value.copy().reshape(1, -1)
+                for key, value in data.items()
+            }
 
-    def bootstrap_sample(data, n_bootstrap: Optional[int]=None):
-        if len(data.shape) == 1:
-            data = data.copy().reshape(1, -1)
-        if n_bootstrap is None:
-            n_bootstrap = data.shape[-1]
-        N, M = data.shape
-        idx = np.random.randint(0, M, (N, n_bootstrap))
-        sample = np.take_along_axis(data, idx, axis=1)
-        return sample
-    
-
-    bootstrapped_data = {
-        model: np.zeros((data[model].shape[0], n_samples)) for model in data
-    }
-    for model in data:
-        for i in range(n_samples):
-            bootstrapped_data[model][:, i] = np.mean(
-                bootstrap_sample(data[model]),
-                axis = 1
-            )
+        def bootstrap_sample(data, n_bootstrap: Optional[int]=None):
+            if len(data.shape) == 1:
+                data = data.copy().reshape(1, -1)
+            if n_bootstrap is None:
+                n_bootstrap = data.shape[-1]
+            N, M = data.shape
+            idx = np.random.randint(0, M, (N, n_bootstrap))
+            sample = np.take_along_axis(data, idx, axis=1)
+            return sample
         
-    return bootstrapped_data
+
+        bootstrapped_data = {
+            model: np.zeros((data[model].shape[0], n_samples)) for model in data
+        }
+        for model in data:
+            for i in range(n_samples):
+                bootstrapped_data[model][:, i] = np.mean(
+                    bootstrap_sample(data[model]),
+                    axis = 1
+                )
+        return bootstrapped_data
+    
+    # check if data keys are subset of TEX_MAPPER keys
+    # i.e., check if data keys only correspond to methods
+    # if yes, then bootstrap, else access method sub-dict.
+    single_row = set(data) <= set(TEX_MAPPER)
+    if single_row:
+        return bootstrap_single_row(data)
+    else:
+        return {
+            key: bootstrap_single_row(data[key]) for key in data
+        }
 
 
 def json_default(obj: Any):
@@ -417,9 +477,9 @@ def save(
     logger.info(f'Saved file {fname}.{format} at path {path}.')
 
 
-def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None):
+def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None):
     if not pbar_manager:
-        return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters)
+        return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters, da)
 
     erm_params = getattr(hyperparameters, 'erm', dict())
     gmm_params = getattr(hyperparameters, 'gmm', dict())
@@ -441,21 +501,24 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None)
         model.fit(
             X=GX, y=y, Z=G, pbar_manager=pbar_manager, **gmm_params
         )
-    elif 'IRM' in name:
-        G = discretize(G)
+    elif 'AR' in name:
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
         )
-    elif 'ICP' in name:
+    elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
+        )
+    elif 'RICE' in name:
+        model.fit(
+            X=X, y=y, da=da, pbar_manager=pbar_manager, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
 
 
-def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None):
+def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
     erm_params = getattr(hyperparameters, 'erm', dict())
     gmm_params = getattr(hyperparameters, 'gmm', dict())
     if name == 'ERM':
@@ -476,15 +539,18 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None):
         model.fit(
             X=GX, y=y, Z=G, **gmm_params
         )
-    elif 'IRM' in name:
+    elif 'AR' in name:
+        model.fit(
+            X=GX, y=y, Z=G, **erm_params
+        )
+    elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
             X=GX, y=y, Z=G, **erm_params
         )
-    elif 'ICP' in name:
-        G = discretize(G)
+    elif 'RICE' in name:
         model.fit(
-            X=GX, y=y, Z=G, **erm_params
+            X=X, y=y, da=da, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

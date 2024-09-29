@@ -13,6 +13,7 @@ linear_simulation:
         - DA+UIV-Pi
         - DA+UIV
         - DA+IV
+        - AR
         - IRM
         - ICP
     augmentations:
@@ -29,6 +30,10 @@ nonlinear_simulation:
         - DA+UIV-LOLO
         - DA+IV
         - IRM
+    augmentations:
+        - abs
+        - sin
+        - step
 
 optical_device:
     seed: 42
@@ -37,16 +42,20 @@ optical_device:
         - ERM
         - DA+ERM
         - DA+UIV-5fold
-        - DA+UIV-LOLO
         - DA+UIV-CC
-        - DA+UIV-Pi
-        - DA+UIV
         - DA+IV
         - IRM
         - ICP
+        - AR
+        - DRO
+        - RICE
+        - V-REx
+        - MM-REx
     augmentations:
         - rotation > hflip > vflip
-        - gaussian_noise
+        - random-permutation
+        - gaussian-noise
+        - all
 
 colored_mnist:
     seed: 42
@@ -80,7 +89,7 @@ hyperparameters:
     erm:
         lr: 0.001
         batch: 512
-        epochs: 40
+        epochs: 5_000
     gmm:
         lr: 0.001
         batch: 512

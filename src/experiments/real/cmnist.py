@@ -20,6 +20,7 @@ from src.regressors.daiv import DAIVConstrainedOptimizationGMM as UIV
 
 from src.regressors.baselines import InvariantRiskMinimization as IRM
 
+from src.regressors.model_selectors import LevelCV
 from src.regressors.model_selectors import VanillaCV as CV
 
 from src.experiments.utils import (
@@ -71,18 +72,30 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
+        'DA+UIV-LOLO': lambda: LevelCV(
+            metric='accuracy',
+            estimator=UIV_a(model='cmnist'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
         'DA+IV': lambda: IV(model='cmnist'),
-        'IRM': lambda: CV(
+        'IRM': lambda: LevelCV(
             metric='accuracy',
             estimator=IRM(model='cmnist'),
             param_distributions = {
-                'alpha': scipy.stats.loguniform.rvs(
+                'alpha': sp.stats.loguniform.rvs(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-        )
+            verbose=1
+        ),
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     

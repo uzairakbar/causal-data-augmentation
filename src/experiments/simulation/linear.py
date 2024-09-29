@@ -1,5 +1,6 @@
 import enlighten
 import numpy as np
+import scipy as sp
 from loguru import logger
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
@@ -21,6 +22,7 @@ from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
 
 from src.regressors.baselines import LinearIRM as IRM
 from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import LinearAnchorRegression as AR
 
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
@@ -32,7 +34,9 @@ from src.experiments.utils import (
     bootstrap,
     sweep_plot,
     relative_error,
-    fit_model
+    fit_model,
+    box_plot,
+    tex_table
 )
 
 
@@ -46,7 +50,7 @@ DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
 
 
-class Experiment(ABC):
+class SweepExperiment(ABC):
     def __init__(
             self,
             seed: int,
@@ -146,7 +150,7 @@ class Experiment(ABC):
         return param_values, results
 
 
-class LambdaSweep(Experiment):
+class LambdaSweep(SweepExperiment):
     def generate_dataset(self, sem: SEM, da: DA, param: float):
         X, y = sem(N = self.n_samples, lamda = param)
         GX, G = da(X)
@@ -159,7 +163,7 @@ class LambdaSweep(Experiment):
         return lambda_values
 
 
-class GammaSweep(Experiment):
+class GammaSweep(SweepExperiment):
     def generate_dataset(self, sem: SEM, da: DA, param: float):
         X, y = sem(N = self.n_samples)
         GX, G = da(X, gamma = param)
@@ -172,9 +176,8 @@ class GammaSweep(Experiment):
         return gamma_values
 
 
-class AlphaSweep(Experiment):
-    def __init__(self,
-                 **kwargs):
+class AlphaSweep(SweepExperiment):
+    def __init__(self, **kwargs):
         super(AlphaSweep, self).__init__(**kwargs)
         self.methods['DA+UIV-a'] = (
             lambda alpha: UIV_a(alpha = alpha)
@@ -205,6 +208,22 @@ class AlphaSweep(Experiment):
             return model.alpha
         else:
             return error
+
+
+class BaselineExperiment(SweepExperiment):
+    def __init__(self, **kwargs):
+        super(BaselineExperiment, self).__init__(
+            sweep_samples=1, **kwargs
+        )
+
+    def generate_dataset(self, sem: SEM, da: DA, param: float):
+        X, y = sem(N = self.n_samples)
+        GX, G = da(X, gamma = param)
+        return X, y, G, GX
+
+    def param_sweep(self):
+        gamma = [1.0]
+        return gamma
 
 
 def run(
@@ -252,7 +271,28 @@ def run(
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
-        'IRM': lambda: IRM(),
+        'IRM': lambda: KFold(
+            estimator=IRM(),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'AR': lambda: KFold(
+            estimator=AR(),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
         'ICP': lambda: ICP()
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
@@ -319,6 +359,36 @@ def run(
     sweep_plot(
         alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
         vertical_plots=vertical_plots, trivial_solution=True
+    )
+
+    # no sweep, just compare baselines with gamma=1 and lambda=1
+    status.update(sweep='N/A')
+    logger.info('Linear experiemnt with gamma=1 and lambda=1.')
+    _, results = BaselineExperiment(
+        seed=seed,
+        n_samples=n_samples,
+        n_experiments=n_experiments,
+        methods=methods
+    ).run_experiment()
+    save(
+        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    )
+
+    errors_bootstrapped = bootstrap(results)
+    box_plot(
+        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT,
+        orient='v', savefig=True
+    )
+    
+    table = tex_table(
+        errors_bootstrapped, label=EXPERIMENT,
+        caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
+    )
+    save(
+        obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
     )
 
 

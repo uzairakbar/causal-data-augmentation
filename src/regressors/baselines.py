@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import cvxpy as cp
 from typing import List
 from loguru import logger
 from torch import autograd
@@ -10,6 +11,8 @@ from scipy.stats import f as fdist
 import torch.utils.data as data_utils
 from itertools import chain, combinations
 from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
 from src.regressors.abstract import BaselineRegressor
 
 from src.regressors.utils import MODELS, Model, device
@@ -17,6 +20,279 @@ from src.regressors.utils import MODELS, Model, device
 
 DEVICE: str=device()
 MAX_BATCH: int=1_000
+LOG_FREQUENCY: int=100
+
+
+class LinearDRO(BaselineRegressor):
+    def __init__(self):
+        super(LinearDRO, self).__init__()
+        
+    def _fit(
+            self,
+            X, y, Z,
+            lr: float=0.001,
+            epochs: int=40,
+            **kwargs
+        ):
+        logger.info(f'Fitting {self.__class__.__name__} with lr={lr}.')
+        N, M = X.shape
+        X, y = (
+            torch.tensor(X,  dtype=torch.float32).to(DEVICE),
+            torch.tensor(y,  dtype=torch.float32).to(DEVICE)
+        )
+        self.w, self.phi = torch.ones(M, 1), torch.eye(M, M)
+        self.w, self.phi = self.w.to(DEVICE), self.phi.to(DEVICE)
+        self.w = torch.nn.Parameter(self.w, requires_grad=True)
+        self.phi = torch.nn.Parameter(self.phi, requires_grad=True)
+        
+        opt = torch.optim.Adam([self.phi, self.w], lr=lr)
+        mse = torch.nn.MSELoss(reduction='mean')
+
+        environments = np.unique(Z, axis=0)
+
+        for iteration in range(epochs):
+            max_error = 0
+            for e in range(len(environments)):
+                environment = environments[e, :]
+                idx_e = np.where((Z == environment).all(axis=1))[0]
+
+                x_e, y_e = X[idx_e, :], y[idx_e, :]
+                
+                error_e = mse(x_e @ self.phi @ self.w, y_e)
+                if error_e > max_error:
+                    max_error = error_e
+            
+            opt.zero_grad()
+            max_error.backward()
+            opt.step()
+            if not iteration%LOG_FREQUENCY:
+                logger.info(
+                    f'Iteration {iteration}/{epochs} -- Loss: {max_error.item():.2f}.'
+                )
+        
+        self.w = self.w.cpu().detach().numpy()
+        self.phi = self.phi.cpu().detach().numpy()
+        self._W = (self.phi @ self.w).reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class LinearMinimaxREx(BaselineRegressor):
+    def __init__(self, alpha: float=0.0, **kwargs):
+        super(LinearMinimaxREx, self).__init__(alpha=alpha)
+        
+    def _fit(
+            self,
+            X, y, Z,
+            lr: float=0.001,
+            epochs: int=40,
+            **kwargs
+        ):
+        logger.info(f'Fitting {self.__class__.__name__} with lr={lr}.')
+        N, M = X.shape
+        X, y = (
+            torch.tensor(X,  dtype=torch.float32).to(DEVICE),
+            torch.tensor(y,  dtype=torch.float32).to(DEVICE)
+        )
+        self.w, self.phi = torch.ones(M, 1), torch.eye(M, M)
+        self.w, self.phi = self.w.to(DEVICE), self.phi.to(DEVICE)
+        self.w = torch.nn.Parameter(self.w, requires_grad=True)
+        self.phi = torch.nn.Parameter(self.phi, requires_grad=True)
+        
+        opt = torch.optim.Adam([self.phi, self.w], lr=lr)
+        mse = torch.nn.MSELoss(reduction='mean')
+
+        environments = np.unique(Z, axis=0)
+        m = len(environments)
+        for iteration in range(epochs):
+            max_error = 0
+            sum_error = 0
+            for e in range(m):
+                environment = environments[e, :]
+                idx_e = np.where((Z == environment).all(axis=1))[0]
+
+                x_e, y_e = X[idx_e, :], y[idx_e, :]
+                
+                error_e = mse(x_e @ self.phi @ self.w, y_e)
+                sum_error += error_e
+                if error_e > max_error:
+                    max_error = error_e
+            
+            opt.zero_grad()
+            loss = (
+                (1 - m * self._alpha) * max_error + self._alpha * sum_error
+            )
+            loss.backward()
+            opt.step()
+            if not iteration%LOG_FREQUENCY:
+                logger.info(
+                    f'Iteration {iteration}/{epochs} -- Loss: {loss.item():.2f}.'
+                )
+        
+        self.w = self.w.cpu().detach().numpy()
+        self.phi = self.phi.cpu().detach().numpy()
+        self._W = (self.phi @ self.w).reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class LinearVarianceREx(BaselineRegressor):
+    def __init__(self, alpha: float=1.0, **kwargs):
+        super(LinearVarianceREx, self).__init__(alpha=alpha)
+        
+    def _fit(
+            self,
+            X, y, Z,
+            lr: float=0.001,
+            epochs: int=40,
+            **kwargs
+        ):
+        logger.info(f'Fitting {self.__class__.__name__} with lr={lr}.')
+        N, M = X.shape
+        X, y = (
+            torch.tensor(X,  dtype=torch.float32).to(DEVICE),
+            torch.tensor(y,  dtype=torch.float32).to(DEVICE)
+        )
+        self.w, self.phi = torch.ones(M, 1), torch.eye(M, M)
+        self.w, self.phi = self.w.to(DEVICE), self.phi.to(DEVICE)
+        self.w = torch.nn.Parameter(self.w, requires_grad=True)
+        self.phi = torch.nn.Parameter(self.phi, requires_grad=True)
+        
+        opt = torch.optim.Adam([self.phi, self.w], lr=lr)
+        mse = torch.nn.MSELoss(reduction='mean')
+
+        environments = np.unique(Z, axis=0)
+        m = len(environments)
+        for iteration in range(epochs):
+            errors = []
+            for e in range(m):
+                environment = environments[e, :]
+                idx_e = np.where((Z == environment).all(axis=1))[0]
+
+                x_e, y_e = X[idx_e, :], y[idx_e, :]
+                
+                error_e = mse(x_e @ self.phi @ self.w, y_e)
+                errors.append(error_e)
+            
+            errors = torch.stack(errors)
+            
+            opt.zero_grad()
+            loss = (
+                self._alpha * torch.var(errors) + torch.sum(errors)
+            )
+            loss.backward()
+            opt.step()
+            if not iteration%LOG_FREQUENCY:
+                logger.info(
+                    f'Iteration {iteration}/{epochs} -- Loss: {loss.item():.2f}.'
+                )
+        
+        self.w = self.w.cpu().detach().numpy()
+        self.phi = self.phi.cpu().detach().numpy()
+        self._W = (self.phi @ self.w).reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class LinearRICE(BaselineRegressor):
+    def __init__(self, alpha: float=1.0, **kwargs):
+        super(LinearRICE, self).__init__(alpha=alpha)
+        
+    def _fit(
+            self,
+            X, y,
+            da,
+            num_augmentations: int=2,
+            lr: float=0.001,
+            epochs: int=40,
+            **kwargs
+        ):
+        logger.info(f'Fitting {self.__class__.__name__} with lr={lr}.')
+        X, _, y, _ = train_test_split(
+            X, y, train_size=1.0/num_augmentations
+        )
+        I_g = ([
+            torch.tensor(da(X)[0],  dtype=torch.float32).to(DEVICE)
+            for _ in range(num_augmentations)
+        ])
+
+        N, M = X.shape
+        X, y = (
+            torch.tensor(X,  dtype=torch.float32).to(DEVICE),
+            torch.tensor(y,  dtype=torch.float32).to(DEVICE)
+        )
+
+        self.w, self.phi = torch.ones(M, 1), torch.eye(M, M)
+        self.w, self.phi = self.w.to(DEVICE), self.phi.to(DEVICE)
+        self.w = torch.nn.Parameter(self.w, requires_grad=True)
+        self.phi = torch.nn.Parameter(self.phi, requires_grad=True)
+        
+        opt = torch.optim.Adam([self.phi, self.w], lr=lr)
+        mse = torch.nn.MSELoss(reduction='mean')
+        D = torch.nn.MSELoss(reduction='none')
+
+        for iteration in range(epochs):
+            penalties_T = []
+            for TX in I_g:
+                penalty_T = D(
+                    X @ self.phi @ self.w, TX @ self.phi @ self.w
+                )
+                penalties_T.append(penalty_T)
+            
+            penalties_T = torch.stack(penalties_T)
+            sup_T_penalty = torch.max(penalties_T, axis=0)[0]
+            
+            opt.zero_grad()
+            loss = (
+                mse(X @ self.phi @ self.w, y) + self._alpha * torch.mean(sup_T_penalty)
+            )
+            loss.backward()
+            opt.step()
+            if not iteration%LOG_FREQUENCY:
+                logger.info(
+                    f'Iteration {iteration}/{epochs} -- Loss: {loss.item():.2f}.'
+                )
+        
+        self.w = self.w.cpu().detach().numpy()
+        self.phi = self.phi.cpu().detach().numpy()
+        self._W = (self.phi @ self.w).reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
+
+
+class LinearAnchorRegression(BaselineRegressor):
+    def __init__(self, alpha: float=1.0):
+        super(LinearAnchorRegression, self).__init__(alpha=alpha)
+        
+    def _fit(
+            self,
+            X, y, Z,
+            **kwargs
+        ):
+        N = len(X)
+        I = np.eye(N)
+        Cgg = Z.T @ Z
+        PI_Z = Z @ np.linalg.pinv( Cgg ) @ Z.T
+        
+        K = (I + (np.sqrt(self._alpha) - 1) * PI_Z)
+        X_, y_ = K @ X, K @ y
+        
+        self._W = LinearRegression(
+            fit_intercept=False
+        ).fit(X_, y_).coef_.reshape(-1, 1)
+
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
 
 
 class LinearIRM(BaselineRegressor):
@@ -30,6 +306,7 @@ class LinearIRM(BaselineRegressor):
             epochs: int=40,
             **kwargs
         ):
+        logger.info(f'Fitting {self.__class__.__name__} with lr={lr}.')
         N, M = X.shape
         X, y = (
             torch.tensor(X,  dtype=torch.float32).to(DEVICE),
@@ -42,7 +319,7 @@ class LinearIRM(BaselineRegressor):
         self.w.requires_grad = True
 
         opt = torch.optim.Adam([self.phi], lr=lr)
-        loss = torch.nn.MSELoss()
+        mse = torch.nn.MSELoss()
 
         environments = np.unique(Z, axis=0)
 
@@ -53,12 +330,12 @@ class LinearIRM(BaselineRegressor):
                 environment = environments[e, :]
                 idx_e = np.where((Z == environment).all(axis=1))[0]
 
-                if len(idx_e) == 1:
-                    continue
+                # if len(idx_e) == 1:
+                #     continue
 
                 x_e, y_e = X[idx_e, :], y[idx_e, :]
                 
-                error_e = loss(x_e @ self.phi @ self.w, y_e)
+                error_e = mse(x_e @ self.phi @ self.w, y_e)
                 penalty += grad(error_e, self.w,
                                 create_graph=True)[0].pow(2).mean()
                 error += error_e
@@ -66,8 +343,13 @@ class LinearIRM(BaselineRegressor):
             # logger.info(f'IRM iteration {iteration}')
 
             opt.zero_grad()
-            (self._alpha * error + (1 - self._alpha) * penalty).backward()
+            loss = (self._alpha * error + (1 - self._alpha) * penalty)
+            loss.backward()
             opt.step()
+            if not iteration%LOG_FREQUENCY:
+                logger.info(
+                    f'Iteration {iteration}/{epochs} -- Loss: {loss.item():.2f}.'
+                )
         
         self.w = self.w.cpu().detach().numpy()
         self.phi = self.phi.cpu().detach().numpy()
@@ -90,6 +372,7 @@ class InvariantCausalPrediction(BaselineRegressor):
         ):
         N, M = X.shape
         environments = np.unique(Z, axis=0)
+
         accepted_subsets = []
         for subset in self.powerset(range(M)):
             if len(subset) == 0:
@@ -115,19 +398,17 @@ class InvariantCausalPrediction(BaselineRegressor):
                 res_out = (y[e_out, :] - reg.predict(x_s[e_out, :])).ravel()
 
                 p_values.append(self.mean_var_test(res_in, res_out))
-
+            
             # TODO: Jonas uses "min(p_values) * len(environments) - 1"
             p_value = min(p_values) * len(environments)
 
-            if p_value > self.alpha:
+            if p_value > self._alpha:
                 accepted_subsets.append(set(subset))
-                if True:
-                    logger.info(f'Accepted subset: {subset}')
-
+                logger.info(f'Accepted subset: {subset}')
+        
         if len(accepted_subsets):
             accepted_features = list(set.intersection(*accepted_subsets))
-            if verbose:
-                logger.info(f'Intersection: {accepted_features}')
+            logger.info(f'Intersection: {accepted_features}')
             self.coefficients = np.zeros(M)
 
             if len(accepted_features):
@@ -139,7 +420,7 @@ class InvariantCausalPrediction(BaselineRegressor):
         
         self._W = self.coefficients.reshape(-1, 1)
         return self
-    
+
     def _predict(self, X):
         return X @ self._W
 
@@ -148,7 +429,7 @@ class InvariantCausalPrediction(BaselineRegressor):
         pvalue_var1 = 1 - fdist.cdf(np.var(X, ddof=1) / np.var(y, ddof=1),
                                     X.shape[0] - 1,
                                     y.shape[0] - 1)
-
+        
         pvalue_var2 = 2 * min(pvalue_var1, 1 - pvalue_var1)
 
         return 2 * min(pvalue_mean, pvalue_var2)
