@@ -508,14 +508,16 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
     elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
             X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
         )
         model.fit(
-            X=X, y=y, da=da, num_augmentations=RICE_AUGMENTATIONS, pbar_manager=pbar_manager, **erm_params
+            X=X_rice, y=y_rice,
+            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            pbar_manager=pbar_manager, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
@@ -556,7 +558,9 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
         )
         model.fit(
-            X=X_rice, y=y_rice, da=da, num_augmentations=RICE_AUGMENTATIONS, **erm_params
+            X=X_rice, y=y_rice,
+            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
