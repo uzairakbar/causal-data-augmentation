@@ -10,9 +10,9 @@ import seaborn as sns
 from loguru import logger
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import KBinsDiscretizer
+from sklearn.model_selection import train_test_split
 from typing import Any, Literal, List, Dict, Optional
+from sklearn.preprocessing import StandardScaler, KBinsDiscretizer
 
 from src.sem.simulation.linear import COVARIATE_DIMENSION
 
@@ -28,6 +28,7 @@ Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
 PLOT_DPI: int=1200
 PLOT_FORMAT: Plot='pdf'
+RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
@@ -323,7 +324,6 @@ def tex_table(
         columns = ' & ' + columns
     
     def row_content(row_data, best, second):
-        print(f'best {best}, second {second}')
         if highlight == 'min':
             row = ' & '.join([
                 ( f'${mean:.3f} \\pm {std:.3f}$' ) if mean > second
@@ -508,11 +508,14 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
     elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
         )
     elif 'RICE' in name:
+        X_rice, _, y_rice, _ = train_test_split(
+            X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
+        )
         model.fit(
-            X=X, y=y, da=da, pbar_manager=pbar_manager, **erm_params
+            X=X, y=y, da=da, num_augmentations=RICE_AUGMENTATIONS, pbar_manager=pbar_manager, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
@@ -549,8 +552,11 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X=GX, y=y, Z=G, **erm_params
         )
     elif 'RICE' in name:
+        X_rice, _, y_rice, _ = train_test_split(
+            X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
+        )
         model.fit(
-            X=X, y=y, da=da, **erm_params
+            X=X_rice, y=y_rice, da=da, num_augmentations=RICE_AUGMENTATIONS, **erm_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

@@ -20,13 +20,13 @@ from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
 from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 from src.regressors.iv import IVTwoStageLeastSquares as IV
 
-from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import RICE as RICE
+from src.regressors.baselines import MiniMaxREx as MMREx
+from src.regressors.baselines import VarianceREx as VREx
 from src.regressors.baselines import LinearAnchorRegression as AR
-from src.regressors.baselines import LinearVarianceREx as VREx
-from src.regressors.baselines import LinearMinimaxREx as MMREx
-from src.regressors.baselines import LinearRICE as RICE
-from src.regressors.baselines import LinearDRO as DRO
-from src.regressors.baselines import LinearIRM as IRM
+from src.regressors.baselines import InvariantRiskMinimization as IRM
+from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import DistributionallyRobustOptimization as DRO
 
 from src.regressors.model_selectors import LevelCV
 from src.regressors.model_selectors import VanillaCV as CV
@@ -80,10 +80,11 @@ def run(
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
         'DA+UIV-5fold': lambda: KFold(
+            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
@@ -104,7 +105,8 @@ def run(
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
-            estimator=IRM(),
+            metric='mse',
+            estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -115,6 +117,7 @@ def run(
             verbose=1
         ),
         'AR': lambda: KFold(
+            metric='mse',
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -126,7 +129,8 @@ def run(
             verbose=1
         ),
         'V-REx': lambda: LevelCV(
-            estimator=VREx(),
+            metric='mse',
+            estimator=VREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -137,7 +141,8 @@ def run(
             verbose=1
         ),
         'MM-REx': lambda: LevelCV(
-            estimator=MMREx(),
+            metric='mse',
+            estimator=MMREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.normal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -148,7 +153,8 @@ def run(
             verbose=1
         ),
         'RICE': lambda: CV(
-            estimator=RICE(),
+            metric='mse',
+            estimator=RICE(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -158,22 +164,11 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        # 'ICP': lambda: LevelCV(
-        #     estimator=ICP(),
-        #     param_distributions = {
-        #         'alpha': np.random.beta(
-        #             2, 40, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-        #         )
-        #     },
-        #     frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-        #     n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-        #     verbose=1
-        # ),
         'ICP': lambda: ICP(),
-        'DRO': lambda: DRO(),
+        'DRO': lambda: DRO(model='linear'),
     }
-    methods: ModelBuilder= {m: all_methods[m] for m in methods}
-
+    methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
+    
     all_errors = {
         augmentation: {
             name: np.zeros(SEM.num_experiments()) for name in methods
@@ -199,7 +194,7 @@ def run(
         )
         if seed >= 0: set_seed(seed)
 
-        for j, (sem, da) in enumerate(zip(
+        for i, (sem, da) in enumerate(zip(
                 all_sems[augmentation], all_augmenters[augmentation]
             )):
             sem_solution = sem.solution
@@ -209,7 +204,7 @@ def run(
             G = FEATURES.fit_transform(G)
             
             pbar_methods = MANAGER.counter(
-                total=len(methods), desc=f'SEM {j}', unit='methods', leave=False
+                total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
             )
             for method_name, method in methods.items():
 
@@ -226,7 +221,7 @@ def run(
                 
                 error = relative_error(sem_solution, method_solution)
 
-                all_errors[augmentation][method_name][j] = error
+                all_errors[augmentation][method_name][i] = error
 
                 save(
                     obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'

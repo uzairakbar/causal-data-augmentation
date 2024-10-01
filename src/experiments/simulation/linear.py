@@ -20,10 +20,16 @@ from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
 from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
 
-from src.regressors.baselines import LinearIRM as IRM
-from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import RICE as RICE
+from src.regressors.baselines import MiniMaxREx as MMREx
+from src.regressors.baselines import VarianceREx as VREx
 from src.regressors.baselines import LinearAnchorRegression as AR
+from src.regressors.baselines import InvariantRiskMinimization as IRM
+from src.regressors.baselines import InvariantCausalPrediction as ICP
+from src.regressors.baselines import DistributionallyRobustOptimization as DRO
 
+from src.regressors.model_selectors import LevelCV
+from src.regressors.model_selectors import VanillaCV as CV
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
 from src.regressors.model_selectors import ConfounderCorrection as CC
@@ -271,19 +277,19 @@ def run(
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
-        'IRM': lambda: KFold(
-            estimator=IRM(),
+        'IRM': lambda: LevelCV(
+            estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
         'AR': lambda: KFold(
-            estimator=AR(),
+            estimator=AR(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -293,7 +299,41 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'ICP': lambda: ICP()
+        'V-REx': lambda: LevelCV(
+            estimator=VREx(model='linear'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'MM-REx': lambda: LevelCV(
+            estimator=MMREx(model='linear'),
+            param_distributions = {
+                'alpha': np.random.normal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'RICE': lambda: CV(
+            estimator=RICE(model='linear'),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'ICP': lambda: ICP(),
+        'DRO': lambda: DRO(model='linear')
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     

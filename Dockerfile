@@ -8,6 +8,7 @@ WORKDIR /app
 ENV PYTHONPATH=/app
 ENV CONDAENV=causal-data-augmentation
 ENV PYTHONVERSION=3.10.14
+ENV PYTORCH_ENABLE_MPS_FALLBACK=1
 
 # install packages
 COPY requirements.txt .
