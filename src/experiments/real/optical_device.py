@@ -185,11 +185,11 @@ def run(
         pbar_experiment = MANAGER.counter(
             total=SEM.num_experiments(), desc=augmentation, unit='experiments',
         )
-        if seed >= 0: set_seed(seed)
-
         for i, (sem, da) in enumerate(zip(
                 all_sems[augmentation], all_augmenters[augmentation]
             )):
+            if seed >= 0: set_seed(seed)
+
             sem_solution = sem.solution
 
             X, y = sem(N = n_samples)
@@ -200,6 +200,7 @@ def run(
                 total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
             )
             for method_name, method in methods.items():
+                if seed >= 0: set_seed(seed)
 
                 model = method()
                 fit_model(
