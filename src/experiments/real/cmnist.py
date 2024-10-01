@@ -117,7 +117,7 @@ def run(
         ),
         'V-REx': lambda: LevelCV(
             metric='accuracy',
-            estimator=VREx(),
+            estimator=VREx(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -129,7 +129,7 @@ def run(
         ),
         'MM-REx': lambda: LevelCV(
             metric='accuracy',
-            estimator=MMREx(),
+            estimator=MMREx(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.normal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -141,7 +141,7 @@ def run(
         ),
         'RICE': lambda: CV(
             metric='accuracy',
-            estimator=RICE(),
+            estimator=RICE(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -151,7 +151,7 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DRO': lambda: DRO(),
+        'DRO': lambda: DRO(model='cmnist'),
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
 
