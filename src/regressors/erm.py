@@ -99,9 +99,10 @@ class LeastSquaresGradientDescent(ERM):
         logger.info(
             f'Training {method_name} in {batch_mode}-batch mode with lr={lr}, epoch={epochs}, batch={batch}'
         )
-        pbar_epochs = pbar_manager.counter(
-            total=epochs, desc=f'{method_name}', unit='epochs', leave=False
-        )
+        if pbar_manager:
+            pbar_epochs = pbar_manager.counter(
+                total=epochs, desc=f'{method_name}', unit='epochs', leave=False
+            )
         for epoch in range(epochs):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y)
@@ -109,8 +110,8 @@ class LeastSquaresGradientDescent(ERM):
                 # logger.info(f'g epoch {epoch + 1}/{epochs}')
                 self.fit_f_minibatch(train)
             
-            pbar_epochs.update()
-        pbar_epochs.close()
+            if pbar_manager: pbar_epochs.update()
+        if pbar_manager: pbar_epochs.close()
         self.f.eval()
         return self
 
