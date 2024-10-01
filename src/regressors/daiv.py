@@ -112,15 +112,16 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
     
     def loss(self,
              X, y, G):
+        N, M = X.shape
+        I = torch.eye(N).to(DEVICE)
+        Pi = G @ torch.linalg.pinv( G.t() @ G ) @ G.t()
+
         mse = F.mse_loss(self.f(X), y, reduction='none')
 
-        gmm_weights = torch.linalg.pinv( G.t() @ G )
-        Pi = G @ gmm_weights @ G.t()
-        
-        gmm_iv_loss = Pi @ mse
-        erm_loss = mse
-
-        uiv_loss = ( gmm_iv_loss + self.alpha * erm_loss ).mean()
+        # IV loss := Pi @ mse
+        # ERM loss := mse
+        #   => UIV loss := IV + a * ERM
+        uiv_a_loss = ((Pi + self.alpha * I) @ mse).mean()
         self._optimizer.zero_grad()
-        uiv_loss.backward()
-        return uiv_loss
+        uiv_a_loss.backward()
+        return uiv_a_loss
