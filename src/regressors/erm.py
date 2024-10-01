@@ -97,7 +97,7 @@ class LeastSquaresGradientDescent(ERM):
         
         method_name = self.__class__.__name__
         logger.info(
-            f'Training {method_name} in {batch_mode} mode with lr={lr}, epoch={epochs}, batch={batch}'
+            f'Training {method_name} in {batch_mode}-batch mode with lr={lr}, epoch={epochs}, batch={batch}'
         )
         pbar_epochs = pbar_manager.counter(
             total=epochs, desc=f'{method_name}', unit='epochs', leave=False

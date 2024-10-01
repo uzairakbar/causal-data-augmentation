@@ -1,6 +1,7 @@
 import enlighten
 import numpy as np
 import scipy as sp
+from loguru import logger
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
 
@@ -115,6 +116,7 @@ def run(
             verbose=1
         ),
         'V-REx': lambda: LevelCV(
+            metric='accuracy',
             estimator=VREx(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -126,6 +128,7 @@ def run(
             verbose=1
         ),
         'MM-REx': lambda: LevelCV(
+            metric='accuracy',
             estimator=MMREx(),
             param_distributions = {
                 'alpha': np.random.normal(
@@ -137,6 +140,7 @@ def run(
             verbose=1
         ),
         'RICE': lambda: CV(
+            metric='accuracy',
             estimator=RICE(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -155,10 +159,6 @@ def run(
         augmentation: {
             name: np.zeros(num_seeds) for name in methods
         } for augmentation in augmentations
-    }
-    
-    all_augmenters = {
-        augmentation: DA(augmentation) for augmentation in augmentations
     }
 
     accuracy = lambda y, yhat: (y == yhat).mean()
@@ -199,7 +199,10 @@ def run(
                 )
                 
                 y_test_hat = model.predict(X_test)
-                all_errors[augmentation][method_name][i] = accuracy(y_test, y_test_hat)
+                score = accuracy(y_test, y_test_hat)
+                all_errors[augmentation][method_name][i] = score
+
+                logger.info(f'Test accuracy for {method_name}: \t {score}.')
 
                 save(
                     obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'

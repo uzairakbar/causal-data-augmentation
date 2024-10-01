@@ -11,7 +11,7 @@ class NullSpaceTranslation(DA):
         null_basis = self.null_space(W_XY.T).T
 
         k_max, _ = null_basis.shape
-        sample = np.random.rand(k_max) > 0.5
+        sample = np.random.rand(k_max) >= 0.5
         
         self.W_ZXtilde = null_basis[sample]
         self.param_dimension, _ = self.W_ZXtilde.shape

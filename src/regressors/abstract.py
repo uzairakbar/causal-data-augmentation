@@ -7,6 +7,10 @@ from sklearn.model_selection._search import BaseSearchCV
 
 class Regressor(ABC, BaseEstimator):
     def fit(self, X, y, **kwargs):
+        method_name = self.__class__.__name__
+        if method_name == 'RICE':
+            return self._fit(X, y, **kwargs)
+        
         X = X.reshape(*X.shape[:1], -1)
         return self._fit(X, y, **kwargs)
     

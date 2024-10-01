@@ -114,7 +114,7 @@ class IVGeneralizedMomentMethod(IV):
         
         method_name = self.__class__.__name__
         logger.info(
-            f'Training {method_name} in {batch_mode} mode with lr={lr}, epochs1={epochs1}, epochs2={epochs2}, batch={batch}'
+            f'Training {method_name} in {batch_mode}-batch mode with lr={lr}, epochs1={epochs1}, epochs2={epochs2}, batch={batch}'
         )
         if pbar_manager:
             pbar_gmm = pbar_manager.counter(
