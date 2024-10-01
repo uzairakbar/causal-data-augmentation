@@ -17,10 +17,16 @@ from src.regressors.erm import LeastSquaresGradientDescent as ERM
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
 from src.regressors.daiv import MinMaxDAIV as UIV
 
+from src.regressors.baselines import RICE as RICE
+from src.regressors.baselines import MiniMaxREx as MMREx
+from src.regressors.baselines import VarianceREx as VREx
+from src.regressors.baselines import AnchorRegression as AR
 from src.regressors.baselines import InvariantRiskMinimization as IRM
+from src.regressors.baselines import DistributionallyRobustOptimization as DRO
 
 from src.regressors.model_selectors import LeaveOneOut as KFold
 from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
+
 
 from src.experiments.utils import (
     save,

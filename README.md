@@ -13,6 +13,7 @@ Setup the python virtual environemnt (requires python `3.10.14`).
 python -m venv .env
 source .env/bin/activate
 pip install -r requirements.txt
+export PYTORCH_ENABLE_MPS_FALLBACK=1
 ```
 
 Then run the main script `.env/bin/python src/main.py`.
@@ -25,6 +26,7 @@ conda create --name "$environment" python=3.10.14 --yes
 conda activate "$environment"
 conda install pip --yes
 pip install -r requirements.txt
+export PYTORCH_ENABLE_MPS_FALLBACK=1
 ```
 Then run experiments with `conda run --no-capture-output -n causal-data-augmentation python src/main.py`.
 
