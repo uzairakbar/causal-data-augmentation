@@ -11,7 +11,8 @@ from src.regressors.abstract import EmpiricalRiskMinimizer as ERM
 
 
 DEVICE: str=device()
-MAX_BATCH: int=1_000
+MAX_BATCH: int=2_500
+LOG_FREQUENCY: int=100
 
 
 class LeastSquaresClosedForm(ERM):
@@ -140,7 +141,7 @@ class LeastSquaresGradientDescent(ERM):
         return loss
 
     @staticmethod
-    def _loss(X, y, f, reduction='sum'):
+    def _loss(X, y, f, reduction='mean'):
         y_hat = f(X)
         if isinstance(f[-1], torch.nn.LogSoftmax):
             loss = F.nll_loss(y_hat, y.flatten(), reduction=reduction)
@@ -149,4 +150,3 @@ class LeastSquaresGradientDescent(ERM):
         else:
             loss = F.mse_loss(y_hat, y, reduction=reduction)
         return loss
-

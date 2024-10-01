@@ -16,7 +16,8 @@ from src.regressors.utils import MODELS, Model, device
 
 
 DEVICE: str=device()
-MAX_BATCH: int=1_000
+MAX_BATCH: int=2_500
+LOG_FREQUENCY: int=100
 ERM = {
     'cf': LSCF(),
     'gd': LSGD()
@@ -107,7 +108,7 @@ class IVGeneralizedMomentMethod(IV):
             X.to(DEVICE), y.to(DEVICE), Z.to(DEVICE), weights.to(DEVICE)
         )
 
-        batch_mode = 'mini' if n >= 1000 else 'full'
+        batch_mode = 'mini' if n > MAX_BATCH else 'full'
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=batch, shuffle=True)
         
@@ -150,7 +151,7 @@ class IVGeneralizedMomentMethod(IV):
                         ),
                         dtype=torch.float
                     )
-                    weights, _ = weights.to(DEVICE)
+                    weights = weights.to(DEVICE)
             
             if pbar_manager:
                 pbar_epochs = pbar_manager.counter(
@@ -172,9 +173,7 @@ class IVGeneralizedMomentMethod(IV):
         return self
 
     def _predict(self, X):
-        X = torch.tensor(X, dtype=torch.float)
-        
-        X, _ = X.to(DEVICE)
+        X = torch.tensor(X, dtype=torch.float).to(DEVICE)
         
         output = self.f(X).data.cpu().numpy()
 

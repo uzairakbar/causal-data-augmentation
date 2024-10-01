@@ -14,6 +14,8 @@ from src.regressors.erm import LeastSquaresGradientDescent as ERM
 
 
 DEVICE: str=device()
+MAX_BATCH: int=2_500
+LOG_FREQUENCY: int=100
 
 
 class DAIVLeastSquaresClosedForm(DAIVRegressor):
