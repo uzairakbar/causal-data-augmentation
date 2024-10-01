@@ -69,6 +69,7 @@ colored_mnist:
         - ERM
         - DA+ERM
         - DA+UIV-5fold
+        - DA+UIV-LOLO
         - DA+IV
         - IRM
         - AR
@@ -101,15 +102,10 @@ colored_mnist:
 #         - gan
 
 hyperparameters:
-    erm:
-        lr: 0.001
+    sgd:
+        lr: 0.01
         batch: 512
-        epochs: 1_000
-    gmm:
-        lr: 0.001
-        batch: 512
-        epochs1: 10         # iterations to fit GMM weights
-        epochs2: 100        # iterations to fit network for given GMM weights. total training iterations are `epoch1*epoch2`.
+        epochs: 10
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
