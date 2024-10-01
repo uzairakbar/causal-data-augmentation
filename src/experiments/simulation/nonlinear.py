@@ -15,7 +15,7 @@ from src.regressors.iv import IVGeneralizedMomentMethod as IV
 from src.regressors.erm import LeastSquaresGradientDescent as ERM
 
 from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
-from src.regressors.daiv import MinMaxDAIV as UIV
+from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
 
 from src.regressors.baselines import RICE as RICE
 from src.regressors.baselines import MiniMaxREx as MMREx

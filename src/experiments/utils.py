@@ -481,34 +481,25 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
     if not pbar_manager:
         return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters, da)
 
-    erm_params = getattr(hyperparameters, 'erm', dict())
-    gmm_params = getattr(hyperparameters, 'gmm', dict())
+    sgd_params = getattr(hyperparameters, 'sgd', dict())
     if name == 'ERM':
         model.fit(
-            X=X, y=y, pbar_manager=pbar_manager, **erm_params
+            X=X, y=y, pbar_manager=pbar_manager, **sgd_params
         )
     elif name == 'DA+ERM':
         model.fit(
-            X=GX, y=y, pbar_manager=pbar_manager, **erm_params
+            X=GX, y=y, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'DA+UIV' in name:
         if 'LOLO' in name:
             G = discretize(G)
         model.fit(
-            X=X, y=y, G=G, GX=GX, pbar_manager=None, **gmm_params
+            X=X, y=y, G=G, GX=GX, pbar_manager=None, **sgd_params
         )
-    elif 'DA+IV' == name:
-        model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **gmm_params
-        )
-    elif 'AR' in name:
-        model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
-        )
-    elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
@@ -517,41 +508,32 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
         model.fit(
             X=X_rice, y=y_rice,
             da=da, num_augmentations=RICE_AUGMENTATIONS,
-            pbar_manager=pbar_manager, **erm_params
+            pbar_manager=pbar_manager, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
 
 
 def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
-    erm_params = getattr(hyperparameters, 'erm', dict())
-    gmm_params = getattr(hyperparameters, 'gmm', dict())
+    sgd_params = getattr(hyperparameters, 'sgd', dict())
     if name == 'ERM':
         model.fit(
-            X=X, y=y, **erm_params
+            X=X, y=y, **sgd_params
         )
     elif name == 'DA+ERM':
         model.fit(
-            X=GX, y=y, **erm_params
+            X=GX, y=y, **sgd_params
         )
     elif 'DA+UIV' in name:
         if 'LOLO' in name:
             G = discretize(G)
         model.fit(
-            X=X, y=y, G=G, GX=GX, **gmm_params
+            X=X, y=y, G=G, GX=GX, **sgd_params
         )
-    elif 'DA+IV' == name:
-        model.fit(
-            X=GX, y=y, Z=G, **gmm_params
-        )
-    elif 'AR' in name:
-        model.fit(
-            X=GX, y=y, Z=G, **erm_params
-        )
-    elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, **erm_params
+            X=GX, y=y, Z=G, **sgd_params
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
@@ -560,7 +542,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
         model.fit(
             X=X_rice, y=y_rice,
             da=da, num_augmentations=RICE_AUGMENTATIONS,
-            **erm_params
+            **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

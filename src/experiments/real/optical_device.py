@@ -80,7 +80,6 @@ def run(
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
         'DA+UIV-5fold': lambda: KFold(
-            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -91,7 +90,6 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
         'DA+UIV-LOLO': lambda: LOLO(
-            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -105,7 +103,6 @@ def run(
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
-            metric='mse',
             estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
@@ -117,7 +114,6 @@ def run(
             verbose=1
         ),
         'AR': lambda: KFold(
-            metric='mse',
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -129,7 +125,6 @@ def run(
             verbose=1
         ),
         'V-REx': lambda: LevelCV(
-            metric='mse',
             estimator=VREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -141,11 +136,10 @@ def run(
             verbose=1
         ),
         'MM-REx': lambda: LevelCV(
-            metric='mse',
             estimator=MMREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.normal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -153,7 +147,6 @@ def run(
             verbose=1
         ),
         'RICE': lambda: CV(
-            metric='mse',
             estimator=RICE(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -192,11 +185,11 @@ def run(
         pbar_experiment = MANAGER.counter(
             total=SEM.num_experiments(), desc=augmentation, unit='experiments',
         )
-        if seed >= 0: set_seed(seed)
-
         for i, (sem, da) in enumerate(zip(
                 all_sems[augmentation], all_augmenters[augmentation]
             )):
+            if seed >= 0: set_seed(seed)
+
             sem_solution = sem.solution
 
             X, y = sem(N = n_samples)
@@ -207,6 +200,7 @@ def run(
                 total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
             )
             for method_name, method in methods.items():
+                if seed >= 0: set_seed(seed)
 
                 model = method()
                 fit_model(

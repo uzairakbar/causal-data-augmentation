@@ -72,8 +72,8 @@ def run(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -83,8 +83,8 @@ def run(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -103,7 +103,7 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'AR': lambda: LevelCV(
+        'AR': lambda: CV(
             metric='accuracy',
             estimator=AR(model='cmnist'),
             param_distributions = {
@@ -132,7 +132,7 @@ def run(
             estimator=MMREx(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.normal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
