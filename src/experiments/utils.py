@@ -508,7 +508,7 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
     elif name in ('DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
-            X=GX, y=y, Z=G, pbar_manager=pbar_manager, **erm_params
+            X=GX, y=y, Z=G, pbar_manager=None, **erm_params
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
