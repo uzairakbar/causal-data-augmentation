@@ -30,12 +30,16 @@ class LevelCV(ModelSelector, RandomizedSearchCV):
             raise ValueError('Either Z or G has to be specified.')
         if G is not None:
             _, groups = np.unique(G, return_inverse=True, axis=0)
-        else:
-            _, groups = np.unique(Z, return_inverse=True, axis=0)
-
-        return super(LevelCV, self).fit(X=X,
+            return super(LevelCV, self).fit(X=X,
                                         y=y,
                                         G=G,
+                                        GX=GX,
+                                        groups=groups,
+                                        **kwargs)
+        else:
+            _, groups = np.unique(Z, return_inverse=True, axis=0)
+            return super(LevelCV, self).fit(X=X,
+                                        y=y,
                                         Z=Z,
                                         GX=GX,
                                         groups=groups,
