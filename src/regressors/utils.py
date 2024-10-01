@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from torch import nn
+from loguru import logger
 from numpy.typing import NDArray
 from typing import Optional, Literal, Callable, Dict
 from sklearn.model_selection import BaseCrossValidator
@@ -106,4 +107,5 @@ def device():
         device = 'mps'
     else:
         device = 'cpu'
+    logger.info(f'Using {device}.')
     return torch.device(device)

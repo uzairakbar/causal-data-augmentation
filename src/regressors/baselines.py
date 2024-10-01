@@ -1,14 +1,14 @@
 import torch
+import random
 import numpy as np
 from typing import List
 from loguru import logger
 from torch import autograd
 from abc import abstractmethod
 import torch.nn.functional as F
-from scipy.stats import ttest_ind
-from scipy.stats import f as fdist
 import torch.utils.data as data_utils
 from itertools import chain, combinations
+from scipy.stats import f as fdist, ttest_ind
 from sklearn.linear_model import LinearRegression
 
 from src.regressors.abstract import BaselineRegressor
@@ -19,6 +19,7 @@ from src.regressors.utils import MODELS, Model, device
 DEVICE: str=device()
 MAX_BATCH: int=2_500
 LOG_FREQUENCY: int=100
+MAX_ICP_SUBSETS: int=1024
 
 
 class LinearAnchorRegression(BaselineRegressor):
@@ -62,7 +63,8 @@ class InvariantCausalPrediction(BaselineRegressor):
         environments = np.unique(Z, axis=0)
 
         accepted_subsets = []
-        for subset in self._powerset(range(M)):
+        randomised_subsets = self._random_powerset(range(M))
+        for i, subset in enumerate(randomised_subsets):
             if len(subset) == 0:
                 continue
 
@@ -87,12 +89,15 @@ class InvariantCausalPrediction(BaselineRegressor):
 
                 p_values.append(self._mean_var_test(res_in, res_out))
             
-            # TODO: Jonas uses "min(p_values) * len(environments) - 1"
+            # Jonas uses `min(p_values) * len(environments) - 1`
             p_value = min(p_values) * len(environments)
 
             if p_value > self._alpha:
                 accepted_subsets.append(set(subset))
                 logger.info(f'Accepted subset: {subset}')
+            
+            if i >= MAX_ICP_SUBSETS:
+                break
         
         if len(accepted_subsets):
             accepted_features = list(set.intersection(*accepted_subsets))
@@ -121,10 +126,18 @@ class InvariantCausalPrediction(BaselineRegressor):
         pvalue_var2 = 2 * min(pvalue_var1, 1 - pvalue_var1)
 
         return 2 * min(pvalue_mean, pvalue_var2)
-
-    def _powerset(self, s: List[int]):
+    
+    def _random_powerset(self, s: List[int]):
+        '''
+        Since exhaustive search over all feature combinations can be expensive,
+        we randomise the powerset for reasonable exploration of feature combos 
+        and only try the first `MAX_ICP_SUBSETS` (non-singleton) subsets.
+        '''
+        s = list(s)
+        lengths = list(range(len(s)+1))
+        random.shuffle(lengths)
         return chain.from_iterable(
-            combinations(s, r) for r in range(len(s) + 1)
+            combinations(s, r) for r in lengths if not random.shuffle(s)
         )
 
 
@@ -146,11 +159,11 @@ class NonlinearBaselineRegressor(BaselineRegressor):
                 lambda: self.loss(X_b, y_b, Z_b)
             )
             losses += [loss_val.data.cpu().numpy()]
-        logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
+        # logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y, Z):
         loss = self._optimizer.step(lambda: self.loss(X, y, Z))
-        logger.info(f'  batch loss {loss.item():.2f}')
+        # logger.info(f'  batch loss {loss.item():.2f}')
     
     def _fit(
             self,
@@ -185,8 +198,11 @@ class NonlinearBaselineRegressor(BaselineRegressor):
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=batch, shuffle=True)
         
+        method_name = self.__class__.__name__
+        logger.info(
+            f'Training {method_name} in {batch_mode}-batch mode with lr={lr}, epoch={epochs}, batch={batch}'
+        )
         if pbar_manager:
-            method_name = self.__class__.__name__
             pbar_epochs = pbar_manager.counter(
                 total=epochs, desc=f'{method_name}', unit='epochs', leave=False
             )
@@ -421,6 +437,15 @@ class RICE(NonlinearBaselineRegressor):
         self.model, self.alpha = model, alpha
         super(RICE, self).__init__(model=model, alpha=alpha)
     
+    def fit_f_minibatch(self, train):
+        losses = []
+        for i, (X_b, y_b, *Z_b) in enumerate(train):
+            loss_val = self._optimizer.step(
+                lambda: self.loss(X_b, y_b, Z_b)
+            )
+            losses += [loss_val.data.cpu().numpy()]
+        # logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
+    
     def _fit(
             self,
             X, y,
@@ -430,11 +455,20 @@ class RICE(NonlinearBaselineRegressor):
             pbar_manager=None,
             **kwargs
         ):
+        def flatten(x):
+            return x.reshape(*x.shape[:1], -1)
+
         I_g = ([
-            torch.tensor(da(X)[0],  dtype=torch.float32).to(DEVICE)
+            flatten(da(X)[0])
             for _ in range(num_augmentations)
         ])
+        I_g = ([
+            torch.tensor(GX, dtype=torch.float32).to(DEVICE)
+            for GX in I_g
+        ])
 
+        X = flatten(X)
+        X = torch.tensor(X, dtype=torch.float).to(DEVICE)
         N, M = X.shape
 
         self.f = self._model(M)
@@ -442,11 +476,11 @@ class RICE(NonlinearBaselineRegressor):
         self.f.train()
         self.f = self.f.to(DEVICE)
 
-        X = torch.tensor(X, dtype=torch.float).to(DEVICE)
         if isinstance(self.f[-1], torch.nn.LogSoftmax):
             y = torch.tensor(y, dtype=torch.long).to(DEVICE)
         else:
             y = torch.tensor(y, dtype=torch.float).to(DEVICE)
+        
         
         self._optimizer = torch.optim.Adam(self.f.parameters(), lr=lr)
         
@@ -454,8 +488,11 @@ class RICE(NonlinearBaselineRegressor):
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, *I_g),
                                       batch_size=batch, shuffle=True)
         
+        method_name = self.__class__.__name__
+        logger.info(
+            f'Training {method_name} in {batch_mode}-batch mode with lr={lr}, epoch={epochs}, batch={batch}'
+        )
         if pbar_manager:
-            method_name = self.__class__.__name__
             pbar_epochs = pbar_manager.counter(
                 total=epochs, desc=f'{method_name}', unit='epochs', leave=False
             )

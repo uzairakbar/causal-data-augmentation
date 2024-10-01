@@ -84,7 +84,7 @@ def run(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
