@@ -139,7 +139,7 @@ def run(
             estimator=MMREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.normal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),

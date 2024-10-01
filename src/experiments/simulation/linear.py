@@ -238,7 +238,7 @@ def run(
         n_experiments: int,
         sweep_samples: int,
         methods: List[str],
-        augmentations: Optional[List[str]],
+        augmentations: Optional[List[str]]=None,
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = MANAGER.status_bar(
@@ -314,7 +314,7 @@ def run(
             estimator=MMREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.normal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),

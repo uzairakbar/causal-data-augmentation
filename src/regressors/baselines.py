@@ -159,11 +159,9 @@ class NonlinearBaselineRegressor(BaselineRegressor):
                 lambda: self.loss(X_b, y_b, Z_b)
             )
             losses += [loss_val.data.cpu().numpy()]
-        # logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y, Z):
         loss = self._optimizer.step(lambda: self.loss(X, y, Z))
-        # logger.info(f'  batch loss {loss.item():.2f}')
     
     def _fit(
             self,
@@ -172,7 +170,6 @@ class NonlinearBaselineRegressor(BaselineRegressor):
             pbar_manager=None,
             **kwargs
         ):
-
         n, m = X.shape
         _, k = Z.shape
 
