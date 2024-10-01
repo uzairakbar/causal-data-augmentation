@@ -80,7 +80,6 @@ def run(
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
         'DA+UIV-5fold': lambda: KFold(
-            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -91,7 +90,6 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
         'DA+UIV-LOLO': lambda: LOLO(
-            metric='mse',
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -105,7 +103,6 @@ def run(
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
-            metric='mse',
             estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
@@ -117,7 +114,6 @@ def run(
             verbose=1
         ),
         'AR': lambda: KFold(
-            metric='mse',
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -129,7 +125,6 @@ def run(
             verbose=1
         ),
         'V-REx': lambda: LevelCV(
-            metric='mse',
             estimator=VREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
@@ -141,7 +136,6 @@ def run(
             verbose=1
         ),
         'MM-REx': lambda: LevelCV(
-            metric='mse',
             estimator=MMREx(model='linear'),
             param_distributions = {
                 'alpha': np.random.normal(
@@ -153,7 +147,6 @@ def run(
             verbose=1
         ),
         'RICE': lambda: CV(
-            metric='mse',
             estimator=RICE(model='linear'),
             param_distributions = {
                 'alpha': np.random.lognormal(
