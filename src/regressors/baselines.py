@@ -187,7 +187,7 @@ class NonlinearBaselineRegressor(BaselineRegressor):
         
         method_name = self.__class__.__name__
         logger.info(
-            f'Training {method_name}{self.fit_counter} in {batch_mode} mode with lr={lr}, epoch={epochs}, batch={batch}'
+            f'Training {method_name} in {batch_mode} mode with lr={lr}, epoch={epochs}, batch={batch}'
         )
         if pbar_manager:
             pbar_epochs = pbar_manager.counter(
