@@ -60,7 +60,7 @@ class LeastSquaresGradientDescent(ERM):
             )
             loss_val = self._optimizer.step(lambda: self.loss(X_b, y_b))
             losses += [loss_val.data.cpu().numpy()]
-        logger.info(f'  train loss {np.mean(losses):.2f}')
+        # logger.info(f'  train loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y):
         _ = self._optimizer.step(lambda: self.loss(X, y))
@@ -97,6 +97,9 @@ class LeastSquaresGradientDescent(ERM):
                                       batch_size=batch, shuffle=True)
         
         method_name = self.__class__.__name__
+        logger.info(
+            f'Training {method_name} in {batch_mode} mode with lr={lr}, epoch={epochs}, batch={batch}'
+        )
         pbar_epochs = pbar_manager.counter(
             total=epochs, desc=f'{method_name}', unit='epochs', leave=False
         )

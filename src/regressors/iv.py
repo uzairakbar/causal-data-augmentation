@@ -65,7 +65,7 @@ class IVGeneralizedMomentMethod(IV):
                 lambda: self.loss(X_b, y_b, Z_b, weights)
             )
             losses += [loss_val.data.cpu().numpy()]
-        logger.info(f'  train loss {np.mean(losses):.2f}')
+        # logger.info(f'  train loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y, Z, weights):
         _ = self._optimizer.step(lambda: self.loss(X, y, Z, weights))
@@ -112,8 +112,11 @@ class IVGeneralizedMomentMethod(IV):
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=batch, shuffle=True)
         
+        method_name = self.__class__.__name__
+        logger.info(
+            f'Training {method_name} in {batch_mode} mode with lr={lr}, epochs1={epochs1}, epochs2={epochs2}, batch={batch}'
+        )
         if pbar_manager:
-            method_name = self.__class__.__name__
             pbar_gmm = pbar_manager.counter(
                 total=epochs1, desc=f'{method_name}', unit='GMM steps', leave=False
             )

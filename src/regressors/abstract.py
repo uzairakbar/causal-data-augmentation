@@ -105,7 +105,7 @@ class ModelSelector(ABC, BaseSearchCV):
     @property
     def solution(self):
         return self.best_estimator_.solution
-
+    
     @staticmethod
     def r2(y, yhat, **kwargs):
         ss = lambda x: sum(x**2)

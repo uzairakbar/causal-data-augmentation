@@ -146,11 +146,11 @@ class NonlinearBaselineRegressor(BaselineRegressor):
                 lambda: self.loss(X_b, y_b, Z_b)
             )
             losses += [loss_val.data.cpu().numpy()]
-        logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
+        # logger.info(f'  mini-batch loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y, Z):
         loss = self._optimizer.step(lambda: self.loss(X, y, Z))
-        logger.info(f'  batch loss {loss.item():.2f}')
+        # logger.info(f'  batch loss {loss.item():.2f}')
     
     def _fit(
             self,
@@ -185,8 +185,11 @@ class NonlinearBaselineRegressor(BaselineRegressor):
         train = data_utils.DataLoader(data_utils.TensorDataset(X, y, Z),
                                       batch_size=batch, shuffle=True)
         
+        method_name = self.__class__.__name__
+        logger.info(
+            f'Training {method_name}{self.fit_counter} in {batch_mode} mode with lr={lr}, epoch={epochs}, batch={batch}'
+        )
         if pbar_manager:
-            method_name = self.__class__.__name__
             pbar_epochs = pbar_manager.counter(
                 total=epochs, desc=f'{method_name}', unit='epochs', leave=False
             )
