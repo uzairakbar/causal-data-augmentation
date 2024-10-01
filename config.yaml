@@ -106,7 +106,7 @@ hyperparameters:
         batch: 512
         epochs: 1_000
     gmm:
-        lr: 0.01
+        lr: 0.001
         batch: 512
         epochs1: 10         # iterations to fit GMM weights
         epochs2: 100        # iterations to fit network for given GMM weights. total training iterations are `epoch1*epoch2`.
