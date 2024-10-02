@@ -289,7 +289,7 @@ def run(
             verbose=1
         ),
         'AR': lambda: KFold(
-            estimator=AR(model='linear'),
+            estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
