@@ -262,7 +262,7 @@ def run(
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
-        'DA+UIV-LOLO': lambda: LOLO(
+        'DA+UIV-LOLO': lambda: LevelCV(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
@@ -270,6 +270,7 @@ def run(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
@@ -337,69 +338,69 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
-    # sweep over lambda parameter
-    status.update(sweep='lambda')
-    logger.info('Sweeping over lambda parameters.')
-    lambda_values, results = LambdaSweep(
-        seed=seed,
-        n_samples=n_samples,
-        n_experiments=n_experiments,
-        methods=methods,
-        sweep_samples=sweep_samples
-    ).run_experiment()
-    save(
-        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
-    )
+    # # sweep over lambda parameter
+    # status.update(sweep='lambda')
+    # logger.info('Sweeping over lambda parameters.')
+    # lambda_values, results = LambdaSweep(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     n_experiments=n_experiments,
+    #     methods=methods,
+    #     sweep_samples=sweep_samples
+    # ).run_experiment()
+    # save(
+    #     obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+    # )
+    # sweep_plot(
+    #     lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
+    # )
 
-    # sweep over gamma parameter
-    status.update(sweep='gamma')
-    logger.info('Sweeping over gamma parameters.')
-    gamma_values, results = GammaSweep(
-        seed=seed,
-        n_samples=n_samples,
-        n_experiments=n_experiments,
-        methods=methods,
-        sweep_samples=sweep_samples
-    ).run_experiment()
-    save(
-        obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
-    )
+    # # sweep over gamma parameter
+    # status.update(sweep='gamma')
+    # logger.info('Sweeping over gamma parameters.')
+    # gamma_values, results = GammaSweep(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     n_experiments=n_experiments,
+    #     methods=methods,
+    #     sweep_samples=sweep_samples
+    # ).run_experiment()
+    # save(
+    #     obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
+    # )
+    # sweep_plot(
+    #     gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
+    # )
 
-    # sweep over alpha parameter
-    status.update(sweep='alpha')
-    logger.info('Sweeping over alpha parameters.')
-    alpha_values, results = AlphaSweep(
-        seed=seed,
-        n_samples=n_samples,
-        n_experiments=n_experiments,
-        methods=methods,
-        sweep_samples=sweep_samples
-    ).run_experiment()
-    vertical_plots = ([
-        method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
-    ])
-    save(
-        obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
-        vertical_plots=vertical_plots, trivial_solution=True
-    )
+    # # sweep over alpha parameter
+    # status.update(sweep='alpha')
+    # logger.info('Sweeping over alpha parameters.')
+    # alpha_values, results = AlphaSweep(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     n_experiments=n_experiments,
+    #     methods=methods,
+    #     sweep_samples=sweep_samples
+    # ).run_experiment()
+    # vertical_plots = ([
+    #     method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
+    # ])
+    # save(
+    #     obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
+    # )
+    # sweep_plot(
+    #     alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
+    #     vertical_plots=vertical_plots, trivial_solution=True
+    # )
 
     # no sweep, just compare baselines with gamma=1 and lambda=1
     status.update(sweep='N/A')

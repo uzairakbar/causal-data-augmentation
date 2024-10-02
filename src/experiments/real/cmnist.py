@@ -194,7 +194,7 @@ def run(
                     name=method_name,
                     X=X, y=y, G=G, GX=GX,
                     hyperparameters=hyperparameters,
-                    pbar_manager=MANAGER,
+                    # pbar_manager=MANAGER,
                     da=da
                 )
                 
