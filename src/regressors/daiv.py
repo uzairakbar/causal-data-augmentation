@@ -28,8 +28,8 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         Cgg = G.T @ G
         PI_G = G @ np.linalg.pinv( Cgg ) @ G.T
         
-        K = (np.sqrt(self._alpha) * I + PI_G)       # IV + a * ERM
-        # K = (I + np.sqrt(self._alpha) * PI_G)       # ERM + a * IV
+        # K = (np.sqrt(self._alpha) * I + PI_G)       # IV + a * ERM
+        K = (I + np.sqrt(self._alpha) * PI_G)       # ERM + a * IV
         X_, y_ = K @ GX, K @ y
         
         self._W = OLS().fit(X_, y_).solution
@@ -120,8 +120,8 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 
         # IV loss := Pi @ mse
         # ERM loss := mse
-        #   => UIV loss := IV + a * ERM
-        uiv_a_loss = ((Pi + self.alpha * I) @ mse).mean()
+        #   => UIV loss := ERM + a * IV
+        uiv_a_loss = ((I + self.alpha * Pi) @ mse).mean()
         self._optimizer.zero_grad()
         uiv_a_loss.backward()
         return uiv_a_loss
