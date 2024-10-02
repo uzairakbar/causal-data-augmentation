@@ -75,7 +75,7 @@ class SweepExperiment(ABC):
     def fit(method_name: str,
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
-            param: float) -> Regressor | ModelSelector:
+            param: float, da=None) -> Regressor | ModelSelector:
         if method_name == 'DA+UIV-a':
             model = method(alpha = param)
         else:
@@ -84,7 +84,7 @@ class SweepExperiment(ABC):
         fit_model(
             model=model,
             name=method_name,
-            X=X, y=y, G=G, GX=GX
+            X=X, y=y, G=G, GX=GX, da=da
         )
         
         return model
@@ -102,9 +102,9 @@ class SweepExperiment(ABC):
                method_name: str,
                method: Callable[[Optional[str]], Regressor | ModelSelector],
                X, y, G, GX,
-               param: float) -> float:
+               param: float, da=None) -> float:
         model = self.fit(
-            method_name, method, X, y, G, GX, param
+            method_name, method, X, y, G, GX, param, da=da
         )
         error = relative_error(sem_solution, model.solution)
         return error
@@ -144,7 +144,7 @@ class SweepExperiment(ABC):
                 )
                 for method_name, method in self.methods.items():
                     results[method_name][i][j] = self.compute_result(
-                        sem_solution, method_name, method, X, y, G, GX, param
+                        sem_solution, method_name, method, X, y, G, GX, param, da=da
                     )
 
                     pbar_methods.update()

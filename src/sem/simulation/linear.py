@@ -6,7 +6,7 @@ from src.sem.abstract import StructuralEquationModel as SEM
 
 
 # specify default parameters
-COVARIATE_DIMENSION = 30
+COVARIATE_DIMENSION = 10
 CONFOUNDER_DIMENSION = COVARIATE_DIMENSION
 LABEL_DIMENSION = 1
 
