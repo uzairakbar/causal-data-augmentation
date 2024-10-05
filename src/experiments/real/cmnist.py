@@ -4,6 +4,7 @@ import scipy as sp
 from loguru import logger
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
+from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 
@@ -44,6 +45,10 @@ EXPERIMENT: str='colored_mnist'
 DEFAULT_CV_SAMPLES: int=5
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_JOBS: int=1
+POLYNOMIAL_DEGREE: int=1
+FEATURES = PolynomialFeatures(
+    POLYNOMIAL_DEGREE, include_bias=False
+)
 
 
 def run(
@@ -181,6 +186,7 @@ def run(
 
             X, y = sem(N = n_samples)
             GX, G = da(X)
+            G = FEATURES.fit_transform(G)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
