@@ -533,7 +533,7 @@ def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None,
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
+            X, y, train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
@@ -567,7 +567,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
         )
     elif 'RICE' in name:
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/(RICE_AUGMENTATIONS+1.0)
+            X, y, train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
