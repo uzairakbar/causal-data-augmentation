@@ -26,10 +26,23 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
+FS_TICK: int = 14
+FS_LABEL: int = 18
 PLOT_DPI: int=1200
 PLOT_FORMAT: Plot='pdf'
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
+RC_PARAMS: Dict[str, str | int | bool] = {
+    # Set LaTeX for rendering text
+    'text.usetex': True,
+    'font.family': 'serif',
+    # Set background and border settings
+    'axes.facecolor': 'white',
+    'axes.edgecolor': 'black',
+    'axes.linewidth': 2,
+    'xtick.color': 'black',
+    'ytick.color': 'black',
+}
 TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
@@ -98,7 +111,9 @@ def sweep_plot(
         savefig: Optional[bool]=True,
         format: Plot=PLOT_FORMAT
     ):
-    sns.set_style('darkgrid')
+    # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
+    sns.set_style('ticks', rc=RC_PARAMS)
+    sns.set_palette('deep')
     colors = sns.color_palette()[:len(y)+1]
     fig = plt.figure()
     labels = []
@@ -125,12 +140,15 @@ def sweep_plot(
         if method not in vertical_plots:
             low = np.percentile(errors, 2.5, axis=1)
             high = np.percentile(errors, 97.5, axis=1)
-            plt.fill_between(x, low, high, color=colors[i], alpha = 0.1)
+            plt.fill_between(x, low, high, color=colors[i], alpha = 0.2)
     
-    plt.xlabel(xlabel), plt.ylabel(ylabel)
+    plt.xlabel(xlabel, fontsize=FS_LABEL)
+    plt.ylabel(ylabel, fontsize=FS_LABEL)
     plt.xlim([min(x), max(x)])
     plt.xscale(xscale)
-    plt.legend(labels)
+    plt.legend(
+        labels, fontsize=FS_TICK, frameon=True, edgecolor='black', fancybox=False
+    )
     plt.tight_layout()
     plt.show()
     if savefig:
@@ -183,22 +201,32 @@ def box_plot(
             data = {None : data}
     df = prepare_data_for_plotting(data)
     
-    sns.set_style('darkgrid')
+    # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
+    sns.set_style('ticks', rc=RC_PARAMS)
     fig = plt.figure()
 
     if orient == 'v':
         xlabel, ylabel = ylabel, xlabel
-        plt.xticks(rotation=45)
 
     ax = sns.boxplot(
-        y=ylabel, x=xlabel, hue=zlabel,
+        hue=zlabel,
         data=df,
+        palette='deep',
         orient=orient,
-        showmeans=False,
-        flierprops={"marker": "d"},
-        showcaps=False,
+        showmeans=True,
+        meanprops={
+            'markerfacecolor': 'white',
+            'markeredgecolor': 'black'
+            },
+        flierprops={'marker': 'x'}
     )
     
+    plt.title(experiment, fontsize=FS_LABEL)
+    plt.ylabel(ylabel, fontsize=FS_LABEL)
+    plt.xlabel(xlabel, fontsize=FS_LABEL)
+    plt.xticks(rotation=45, fontsize=FS_TICK)
+    plt.yticks(fontsize=FS_TICK)
+
     plt.tight_layout()
     plt.show()
     
@@ -224,7 +252,9 @@ def grid_plot(
         method for method in data['abs'].keys() if 'ERM' in method or 'DA' in method or 'IV' in method
     ])
     
-    sns.set_style('darkgrid')
+    # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
+    sns.set_style('ticks', rc=RC_PARAMS)
+    sns.set_palette('deep')
     colors = sns.color_palette()[:3]
     fig, axs = plt.subplots(
         len(functions), len(methods), figsize=(3*len(methods), 3*len(functions)), sharex=True, sharey=False
@@ -239,7 +269,7 @@ def grid_plot(
                     data[function]['x_data'],
                     data[function]['y_data'],
                     color=colors[-1],
-                    alpha=0.4
+                    alpha=0.2
                 )
             else:
                 mean = data[function][method].mean(axis=1)
@@ -247,17 +277,17 @@ def grid_plot(
                 high = np.percentile(data[function][method], 97.5, axis=1)
 
                 axs[i, j].plot(x, mean, color=colors[0])
-                axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.1)
+                axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.2)
             
             label = TEX_MAPPER.get(method, method)
 
             axs[i, j].plot(x, y, color=colors[1])
             if not i:
-                axs[i, j].set_title(label)
+                axs[i, j].set_title(label, fontsize=FS_LABEL)
             if not j:
-                axs[i, j].set_ylabel(function)
+                axs[i, j].set_ylabel(function, fontsize=FS_LABEL)
             if j:
-                axs[i, j].yaxis.set_ticklabels([])
+                axs[i, j].yaxis.set_ticklabels([], fontsize=FS_TICK)
 
             y_range = max(y) - min(y)
             y_pad = (y_range/2)*1.5

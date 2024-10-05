@@ -61,13 +61,15 @@ class SweepExperiment(ABC):
             self,
             seed: int,
             n_samples: int,
+            kernel_dim: int,
             n_experiments: int,
             sweep_samples: int,
             methods: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]]
         ):
-        self.n_samples = n_samples
-        self.n_experiments = n_experiments
         self.seed = seed
+        self.n_samples = n_samples
+        self.kernel_dim = kernel_dim
+        self.n_experiments = n_experiments
         self.sweep_samples = sweep_samples
         self.methods = methods
     
@@ -75,7 +77,7 @@ class SweepExperiment(ABC):
     def fit(method_name: str,
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
-            param: float) -> Regressor | ModelSelector:
+            param: float, da=None) -> Regressor | ModelSelector:
         if method_name == 'DA+UIV-a':
             model = method(alpha = param)
         else:
@@ -84,7 +86,7 @@ class SweepExperiment(ABC):
         fit_model(
             model=model,
             name=method_name,
-            X=X, y=y, G=G, GX=GX
+            X=X, y=y, G=G, GX=GX, da=da
         )
         
         return model
@@ -102,9 +104,9 @@ class SweepExperiment(ABC):
                method_name: str,
                method: Callable[[Optional[str]], Regressor | ModelSelector],
                X, y, G, GX,
-               param: float) -> float:
+               param: float, da=None) -> float:
         model = self.fit(
-            method_name, method, X, y, G, GX, param
+            method_name, method, X, y, G, GX, param, da=da
         )
         error = relative_error(sem_solution, model.solution)
         return error
@@ -118,7 +120,7 @@ class SweepExperiment(ABC):
         all_augmenters = []
         for _ in range(self.n_experiments):
             sem = SEM()
-            da = DA(sem.W_XY)
+            da = DA(sem.W_XY, kernel_dim=self.kernel_dim)
             all_sems.append(sem)
             all_augmenters.append(da)
         
@@ -144,7 +146,7 @@ class SweepExperiment(ABC):
                 )
                 for method_name, method in self.methods.items():
                     results[method_name][i][j] = self.compute_result(
-                        sem_solution, method_name, method, X, y, G, GX, param
+                        sem_solution, method_name, method, X, y, G, GX, param, da=da
                     )
 
                     pbar_methods.update()
@@ -177,7 +179,7 @@ class GammaSweep(SweepExperiment):
 
     def param_sweep(self):
         gamma_values = np.logspace(
-            -2, 2, base=10, num=self.sweep_samples
+            -2.5, 1.5, base=10, num=self.sweep_samples
         )
         return gamma_values
 
@@ -235,6 +237,7 @@ class BaselineExperiment(SweepExperiment):
 def run(
         seed: int,
         n_samples: int,
+        kernel_dim: int,
         n_experiments: int,
         sweep_samples: int,
         methods: List[str],
@@ -255,8 +258,8 @@ def run(
         'DA+UIV-5fold': lambda: KFold(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
@@ -266,8 +269,8 @@ def run(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -338,69 +341,72 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
-    # # sweep over lambda parameter
-    # status.update(sweep='lambda')
-    # logger.info('Sweeping over lambda parameters.')
-    # lambda_values, results = LambdaSweep(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     n_experiments=n_experiments,
-    #     methods=methods,
-    #     sweep_samples=sweep_samples
-    # ).run_experiment()
-    # save(
-    #     obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
-    # )
-    # sweep_plot(
-    #     lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
-    # )
+    # sweep over lambda parameter
+    status.update(sweep='lambda')
+    logger.info('Sweeping over lambda parameters.')
+    lambda_values, results = LambdaSweep(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods,
+        sweep_samples=sweep_samples
+    ).run_experiment()
+    save(
+        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+    )
+    sweep_plot(
+        lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
+    )
 
-    # # sweep over gamma parameter
-    # status.update(sweep='gamma')
-    # logger.info('Sweeping over gamma parameters.')
-    # gamma_values, results = GammaSweep(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     n_experiments=n_experiments,
-    #     methods=methods,
-    #     sweep_samples=sweep_samples
-    # ).run_experiment()
-    # save(
-    #     obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
-    # )
-    # sweep_plot(
-    #     gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
-    # )
+    # sweep over gamma parameter
+    status.update(sweep='gamma')
+    logger.info('Sweeping over gamma parameters.')
+    gamma_values, results = GammaSweep(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods,
+        sweep_samples=sweep_samples
+    ).run_experiment()
+    save(
+        obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
+    )
+    sweep_plot(
+        gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
+    )
 
-    # # sweep over alpha parameter
-    # status.update(sweep='alpha')
-    # logger.info('Sweeping over alpha parameters.')
-    # alpha_values, results = AlphaSweep(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     n_experiments=n_experiments,
-    #     methods=methods,
-    #     sweep_samples=sweep_samples
-    # ).run_experiment()
-    # vertical_plots = ([
-    #     method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
-    # ])
-    # save(
-    #     obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
-    # )
-    # sweep_plot(
-    #     alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
-    #     vertical_plots=vertical_plots, trivial_solution=True
-    # )
+    # sweep over alpha parameter
+    status.update(sweep='alpha')
+    logger.info('Sweeping over alpha parameters.')
+    alpha_values, results = AlphaSweep(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods,
+        sweep_samples=sweep_samples
+    ).run_experiment()
+    vertical_plots = ([
+        method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
+    ])
+    save(
+        obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
+    )
+    sweep_plot(
+        alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
+        vertical_plots=vertical_plots, trivial_solution=True
+    )
 
     # no sweep, just compare baselines with gamma=1 and lambda=1
     status.update(sweep='N/A')
@@ -408,6 +414,7 @@ def run(
     _, results = BaselineExperiment(
         seed=seed,
         n_samples=n_samples,
+        kernel_dim=kernel_dim,
         n_experiments=n_experiments,
         methods=methods
     ).run_experiment()

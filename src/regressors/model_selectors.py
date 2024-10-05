@@ -77,16 +77,14 @@ class ConfounderCorrection(ModelSelector):
         self.best_estimator_ = estimator
     
     def fit(self, X, y, **kwargs):
-        _, d = X.shape
-        X_ = kwargs['GX']
-        Cxx = np.cov(X_, rowvar=False)
-        W_erm = ERM().fit(X_, y).solution
+        Cxx = np.cov(X, rowvar=False)
+        W_erm = ERM().fit(X, y).solution
         sqnorm =  (1 - self.estimate_beta(Cxx, W_erm)) * (W_erm**2).sum()
 
         self.best_estimator_.alpha = sp.optimize.minimize(
             self._sqnorm_diff,
-            [10.0],
-            bounds = [(0, None)],
+            [1e-3],
+            bounds = [(1e-5, 1e0)],
             args=(sqnorm, X, y, kwargs)
         ).x.item()
 
