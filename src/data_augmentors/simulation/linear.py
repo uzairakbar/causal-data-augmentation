@@ -7,11 +7,15 @@ from src.data_augmentors.abstract import DataAugmenter as DA
 
 
 class NullSpaceTranslation(DA):
-    def __init__(self, W_XY: NDArray):
+    def __init__(self, W_XY: NDArray, kernel_dim: int):
         null_basis = self.null_space(W_XY.T).T
 
         k_max, _ = null_basis.shape
-        sample = np.random.rand(k_max) >= 0.5
+
+        if kernel_dim <= 0:
+            sample = np.random.randn(k_max) >= 0
+        else:
+            sample = np.ones(k_max, dtype='bool')
         
         self.W_ZXtilde = null_basis[sample]
         self.param_dimension, _ = self.W_ZXtilde.shape

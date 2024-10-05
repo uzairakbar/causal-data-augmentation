@@ -28,8 +28,8 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         Cgg = G.T @ G
         PI_G = G @ np.linalg.pinv( Cgg ) @ G.T
         
-        # K = (np.sqrt(self._alpha) * I + PI_G)       # IV + a * ERM
-        K = (I + np.sqrt(self._alpha) * PI_G)       # ERM + a * IV
+        # IV + a * ERM
+        K = (PI_G + np.sqrt(self._alpha) * I)
         X_, y_ = K @ GX, K @ y
         
         self._W = OLS().fit(X_, y_).solution
