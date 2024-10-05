@@ -50,9 +50,9 @@ DEFAULT_CV_SAMPLES: int=5
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
-PLLYNOMIAL_DEGREE: int=1
+POLYNOMIAL_DEGREE: int=1
 FEATURES = PolynomialFeatures(
-    PLLYNOMIAL_DEGREE, include_bias=False
+    POLYNOMIAL_DEGREE, include_bias=False
 )
 
 
