@@ -120,8 +120,8 @@ class DAIVGeneralizedMomentMethod(IV, ERM):
 
         # IV loss := Pi @ mse
         # ERM loss := mse
-        #   => UIV loss := ERM + a * IV
-        uiv_a_loss = ((I + self.alpha * Pi) @ mse).mean()
+        #   => UIV loss := IV + a * ERM
+        uiv_a_loss = ((Pi + self.alpha * I) @ mse).mean()
         self._optimizer.zero_grad()
         uiv_a_loss.backward()
         return uiv_a_loss
