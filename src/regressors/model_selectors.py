@@ -84,7 +84,7 @@ class ConfounderCorrection(ModelSelector):
         self.best_estimator_.alpha = sp.optimize.minimize(
             self._sqnorm_diff,
             [1e-3],
-            bounds = [(1e-5, 1e0)],
+            bounds = [(1e-5, 1e-1)],
             args=(sqnorm, X, y, kwargs)
         ).x.item()
 
@@ -98,7 +98,7 @@ class ConfounderCorrection(ModelSelector):
 
     @staticmethod
     def density(linear_map, vector):
-        d = vector.shape[0]
+        d = len(vector)
         vector = vector/np.sqrt(sum(vector**2))
         vector_in = np.dot(np.linalg.inv(linear_map),vector)
         stretch_factor = np.sqrt(sum(vector_in**2))

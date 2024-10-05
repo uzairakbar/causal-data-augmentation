@@ -1,6 +1,7 @@
 import scipy
 import enlighten
 import numpy as np
+import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
 
@@ -71,8 +72,8 @@ def run(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
@@ -82,8 +83,8 @@ def run(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)

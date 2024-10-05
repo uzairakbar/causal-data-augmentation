@@ -79,8 +79,8 @@ def run(
         'DA+UIV-5fold': lambda: KFold(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
@@ -89,8 +89,8 @@ def run(
         'DA+UIV-LOLO': lambda: LOLO(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
