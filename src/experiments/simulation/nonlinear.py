@@ -31,8 +31,8 @@ from src.regressors.baselines import (
 )
 
 from src.regressors.model_selectors import (
-    LeaveOneOut as KFold,
-    LeaveOneLevelOut as LOLO,
+    LevelCV,
+    VanillaCV as CV
 )
 
 from src.experiments.utils import (
@@ -78,7 +78,7 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='2-layer'),
         'DA+ERM': lambda: ERM(model='2-layer'),
-        'DA+UIV-5fold': lambda: KFold(
+        'DA+UIV-CV': lambda: CV(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
@@ -86,10 +86,10 @@ def run(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
-        'DA+UIV-LOLO': lambda: LOLO(
+        'DA+UIV-LCV': lambda: LevelCV(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
@@ -97,10 +97,11 @@ def run(
                     1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
         'DA+IV': lambda: IV(model='2-layer'),
-        'IRM': lambda: LOLO(
+        'IRM': lambda: LevelCV(
             metric='mse',
             estimator=IRM(model='cmnist'),
             param_distributions = {
@@ -230,8 +231,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

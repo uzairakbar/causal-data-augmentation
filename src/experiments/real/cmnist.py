@@ -78,7 +78,7 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='cmnist'),
         'DA+ERM': lambda: ERM(model='cmnist'),
-        'DA+UIV-5fold': lambda: CV(
+        'DA+UIV-CV': lambda: CV(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
@@ -89,7 +89,7 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-LOLO': lambda: LevelCV(
+        'DA+UIV-LCV': lambda: LevelCV(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
@@ -265,8 +265,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

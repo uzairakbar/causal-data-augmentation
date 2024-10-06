@@ -48,11 +48,11 @@ TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV--$\alpha$',
-    'DA+UIV-5fold': r'DA+UIV--$\alpha^{\mathrm{5-fold}}$',
-    'DA+UIV-LOLO': r'DA+UIV--$\alpha^{\mathrm{LOLO}}$',
-    'DA+UIV-CC': r'DA+UIV--$\alpha^{\mathrm{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
+    'DA+UIV-a': r'DA+UIV-$\alpha$',
+    'DA+UIV-CV': r'DA+UIV-$\alpha^{\mathrm{CV}}$',
+    'DA+UIV-LCV': r'DA+UIV-$\alpha^{\mathrm{LCV}}$',
+    'DA+UIV-CC': r'DA+UIV-$\alpha^{\mathrm{CC}}$',
+    'DA+UIV-Pi': r'DA+UIV-$\Pi$',
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
@@ -123,7 +123,7 @@ def sweep_plot(
 
         label = TEX_MAPPER.get(method, method)
         if method in vertical_plots:
-            label = f'average {label.split("--")[-1]}'
+            label = f'average {label.split("-")[-1]}'
         
         labels.append(label)
 
@@ -562,7 +562,7 @@ def fit_model(
             X=GX, y=y, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'DA+UIV' in name:
-        if 'LOLO' in name:
+        if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, pbar_manager=None, **sgd_params
@@ -596,7 +596,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X=GX, y=y, **sgd_params
         )
     elif 'DA+UIV' in name:
-        if 'LOLO' in name:
+        if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, **sgd_params

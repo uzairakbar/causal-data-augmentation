@@ -36,7 +36,6 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
-    LeaveOneOut as KFold,
     ConfounderCorrection as CC
 )
 
@@ -265,7 +264,7 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-5fold': lambda: CV(
+        'DA+UIV-CV': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
@@ -276,7 +275,7 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
-        'DA+UIV-LOLO': lambda: LevelCV(
+        'DA+UIV-LCV': lambda: LevelCV(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
@@ -312,14 +311,14 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'AR': lambda: KFold(
+        'AR': lambda: CV(
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
@@ -415,7 +414,7 @@ def run(
         sweep_samples=sweep_samples
     ).run_experiment()
     vertical_plots = ([
-        method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
+        method for method in ('DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC')
     ])
     save(
         obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
@@ -475,8 +474,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))
