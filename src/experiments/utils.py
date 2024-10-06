@@ -36,6 +36,7 @@ RC_PARAMS: Dict[str, str | int | bool] = {
     # Set LaTeX for rendering text
     'text.usetex': True,
     'font.family': 'serif',
+    'font.serif': ['Computer Modern'],
     # Set background and border settings
     'axes.facecolor': 'white',
     'axes.edgecolor': 'black',
@@ -127,7 +128,7 @@ def sweep_plot(
         labels.append(label)
 
         if method in vertical_plots:
-            plt.axvline(x = mean.mean(), color=colors[i], label=label)
+            plt.axvline(x = mean.mean(), color=colors[i], label=label, linestyle='--')
         else:
             plt.plot(x, mean, color=colors[i], label=label)
     
@@ -172,12 +173,14 @@ def box_plot(
         orient: Literal['h', 'v']='h',
         savefig: Optional[bool]=True,
         format: Plot=PLOT_FORMAT,
+        annotate_best: bool=True
     ):
 
     def prepare_data_for_plotting(
             data: Dict[str, Dict[str, NDArray]]
         ) -> pd.DataFrame:
         records = []
+        minimum, maximum = float('inf'), float('-inf')
         for augmentation, methods in data.items():
             for method, values in methods.items():
                 for value in values.flatten():
@@ -186,8 +189,10 @@ def box_plot(
                         ylabel: TEX_MAPPER.get(method, method),
                         xlabel: value
                     })
+                    minimum = min(value, minimum)
+                    maximum = max(value, maximum)
         df = pd.DataFrame.from_records(records)
-        return df
+        return df, minimum, maximum
     
     # check if data keys are subset of TEX_MAPPER keys
     # i.e., check if data keys only correspond to methods
@@ -199,16 +204,29 @@ def box_plot(
         zlabel = ylabel
         if len(data) > 1:
             data = {None : data}
-    df = prepare_data_for_plotting(data)
+    df, minimum, maximum = prepare_data_for_plotting(data)
+
+    if annotate_best and single_row:
+        average_scores = df.groupby(ylabel, sort=False).mean()[xlabel]
+        if 'error' in (xlabel.lower() + ylabel.lower()):
+            best_idx = average_scores.argmin()
+        elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
+            best_idx = average_scores.argmax()
+        else:
+            raise ValueError(
+                'Specify either `error` or `accuracy` in `xlabel` or `ylabel`.'
+            )
     
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
     sns.set_style('ticks', rc=RC_PARAMS)
+    sns.set_palette('deep')
     fig = plt.figure()
 
     if orient == 'v':
         xlabel, ylabel = ylabel, xlabel
 
     ax = sns.boxplot(
+        x=xlabel, y=ylabel,
         hue=zlabel,
         data=df,
         palette='deep',
@@ -220,12 +238,26 @@ def box_plot(
             },
         flierprops={'marker': 'x'}
     )
+
+    spread = maximum - minimum
+    padding = 0.05 * spread
+    if orient == 'h':
+        plt.xlim([minimum - padding, maximum + padding])
+    else:
+        plt.ylim([minimum - padding, maximum + padding])
     
     plt.title(experiment, fontsize=FS_LABEL)
     plt.ylabel(ylabel, fontsize=FS_LABEL)
     plt.xlabel(xlabel, fontsize=FS_LABEL)
     plt.xticks(rotation=45, fontsize=FS_TICK)
     plt.yticks(fontsize=FS_TICK)
+
+    if annotate_best and single_row:
+        padding = 0.45
+        if orient == 'v':
+            plt.axvspan(best_idx-padding,best_idx+padding, color='red', alpha=0.1)
+        else:
+            plt.axhspan(best_idx-0.45,best_idx+0.45, color='red', alpha=0.1)
 
     plt.tight_layout()
     plt.show()
@@ -249,7 +281,8 @@ def grid_plot(
     ):
     functions = data.keys()
     methods = ['Data'] + ([
-        method for method in data['abs'].keys() if 'ERM' in method or 'DA' in method or 'IV' in method
+        method for method in data['abs'].keys()
+            if 'ERM' in method or 'DA' in method or 'IV' in method
     ])
     
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
@@ -257,7 +290,9 @@ def grid_plot(
     sns.set_palette('deep')
     colors = sns.color_palette()[:3]
     fig, axs = plt.subplots(
-        len(functions), len(methods), figsize=(3*len(methods), 3*len(functions)), sharex=True, sharey=False
+        len(functions), len(methods),
+        figsize=(3*len(methods), 3*len(functions)),
+        sharex=True, sharey=False
     )
     for i, function in enumerate(functions):
         for j, method in enumerate(methods):
@@ -334,8 +369,12 @@ def tex_table(
         best = {}
         second = {}
         for row in row_names:
-            columns = {col: data[row][col] for col in TEX_MAPPER.keys() if col in data[row]}
-            results[row] = [np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()]
+            columns = {
+                col: data[row][col] for col in TEX_MAPPER.keys() if col in data[row]
+            }
+            results[row] = ([
+                np.round((np.mean(v), np.std(v)), decimals) for v in columns.values()
+            ])
             if highlight == 'min':
                 ordered = sorted(results[row], key=lambda x: (x[0], x[1]))
             elif highlight == 'max':
@@ -507,7 +546,9 @@ def save(
     logger.info(f'Saved file {fname}.{format} at path {path}.')
 
 
-def fit_model(model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None):
+def fit_model(
+        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None
+    ):
     if not pbar_manager:
         return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters, da)
 
