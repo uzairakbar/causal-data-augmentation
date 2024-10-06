@@ -12,20 +12,25 @@ from src.sem.real.cmnist import ColoredDigitsSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.erm import LeastSquaresGradientDescent as ERM
+from src.regressors.erm import GradientDescentERM as ERM
 
-from src.regressors.iv import IVGeneralizedMomentMethod as IV
+from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
-from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
+from src.regressors.daiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
 
-from src.regressors.baselines import RICE as RICE
-from src.regressors.baselines import MiniMaxREx as MMREx
-from src.regressors.baselines import VarianceREx as VREx
-from src.regressors.baselines import AnchorRegression as AR
-from src.regressors.baselines import InvariantRiskMinimization as IRM
-from src.regressors.baselines import DistributionallyRobustOptimization as DRO
+from src.regressors.baselines import (
+    RICE,
+    MiniMaxREx as MMREx,
+    VarianceREx as VREx,
+    AnchorRegression as AR,
+    InvariantRiskMinimization as IRM,
+    DistributionallyRobustOptimization as DRO,
+)
 
-from src.regressors.model_selectors import LevelCV, VanillaCV as CV
+from src.regressors.model_selectors import (
+    LevelCV,
+    VanillaCV as CV,
+)
 
 
 from src.experiments.utils import (

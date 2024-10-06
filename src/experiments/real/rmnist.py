@@ -1,13 +1,14 @@
 import argparse
 import numpy as np
+from loguru import logger
 
 from src.data_augmentors.real.rmnist import RotatedDigitsDA as DA
 
 from src.sem.real.rmnist import RotatedDigitsSEM as SEM
 
-from src.regressors.erm import LeastSquaresGradientDescent as ERM
-from src.regressors.iv import IVGeneralizedMomentMethod as IV
-from src.regressors.daiv import DAIVGeneralizedMomentMethod as DAIV
+from src.regressors.erm import GradientDescentERM as ERM
+from src.regressors.iv import GeneralizedMomentMethodIV as IV
+from src.regressors.daiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
 
 # from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import VanillaCV as CV
@@ -22,9 +23,9 @@ from src.experiments.utils import (
 ALL_METHODS = {
     "ERM": lambda: ERM(model="rmnist"),
     "DA+ERM": lambda: ERM(model="rmnist"),
-    "DAIV+LOO": lambda: CV(
+    "DA+UIV-LOO": lambda: CV(
         metric="accuracy",
-        estimator=DAIV(model="rmnist"),
+        estimator=UIV_a(model="rmnist"),
         param_distributions = {"alpha": np.random.lognormal(1, 1, 10)},
         frac=0.2,
         n_jobs=-1,
@@ -56,7 +57,7 @@ def run_experiment(args):
     for (sem, da) in zip(all_sems, all_augmenters):
         for i in range(args["num_seeds"]):
             set_seed(i)
-            print(f"Angle {sem.target_rotation}, Seed {i}")
+            logger.log(f"Angle {sem.target_rotation}, Seed {i}")
         
             X, y = sem(N = args["n_samples"], train = True)
             GX, G = da(X)
@@ -70,7 +71,7 @@ def run_experiment(args):
                         model.fit(X=GX, y=y)
                     else:
                         model.fit(X=X, y=y)
-                elif "DAIV" in method_name:
+                elif "UIV" in method_name:
                     model.fit(X=X, y=y, G=G, GX=GX)
                 else:
                     model.fit(X=GX, y=y, Z=G)
@@ -87,7 +88,7 @@ def main():
     args = {
         "n_samples": 60000,
         "num_seeds": 10,
-        "methods": "ERM,DA+ERM,DAIV+LOO,DA+IV"
+        "methods": "ERM,DA+ERM,DA+UIV-LOO,DA+IV"
     }
 
     all_errors = run_experiment(args)

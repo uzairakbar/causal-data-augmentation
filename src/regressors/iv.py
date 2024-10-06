@@ -4,12 +4,11 @@ from loguru import logger
 import torch.nn.functional as F
 import torch.utils.data as data_utils
 
-from src.regressors.abstract import IVRegressor as IV
+from src.regressors.abstract import RegressorIV as IV
 
 from src.regressors.erm import (
-    LeastSquaresClosedForm as LSCF,
-    LeastSquaresGradientDescent as LSGD,
     LeastSquaresCvxpy as LSGD,
+    LeastSquaresClosedForm as LSCF,
 )
 
 from src.regressors.utils import MODELS, Model, device
@@ -24,11 +23,11 @@ ERM = {
 }
 
 
-class IVTwoStageLeastSquares(IV):
+class TwoStageLeastSquaresIV(IV):
     def __init__(self, s1='cf', s2='gd', **kwargs):
         self.s1 = s1
         self.s2 = s2
-        super(IVTwoStageLeastSquares, self).__init__(**kwargs)
+        super(TwoStageLeastSquaresIV, self).__init__(**kwargs)
     
     def _fit(self, X, y, Z, **kwargs):
 
@@ -44,11 +43,11 @@ class IVTwoStageLeastSquares(IV):
         return X @ self._W
 
 
-class IVGeneralizedMomentMethod(IV):
+class GeneralizedMomentMethodIV(IV):
     all_models = MODELS
 
     def __init__(self, model: Model='linear'):
-        super(IVGeneralizedMomentMethod, self).__init__()
+        super(GeneralizedMomentMethodIV, self).__init__()
         if model in self.all_models:
             self._model = self.all_models[model]
         else:

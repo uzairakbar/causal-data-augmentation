@@ -10,26 +10,30 @@ from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
+
 from src.regressors.erm import LeastSquaresClosedForm as ERM
-from src.regressors.iv import IVGeneralizedMomentMethod as IV
-# from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
-# from src.regressors.daiv import DAIVLeastSquaresGradientDescent as UIV_a_gd
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
-from src.regressors.iv import IVTwoStageLeastSquares as IV
 
-from src.regressors.baselines import RICE as RICE
-from src.regressors.baselines import MiniMaxREx as MMREx
-from src.regressors.baselines import VarianceREx as VREx
-from src.regressors.baselines import LinearAnchorRegression as AR
-from src.regressors.baselines import InvariantRiskMinimization as IRM
-from src.regressors.baselines import InvariantCausalPrediction as ICP
-from src.regressors.baselines import DistributionallyRobustOptimization as DRO
+from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.model_selectors import LevelCV
-from src.regressors.model_selectors import VanillaCV as CV
-from src.regressors.model_selectors import LeaveOneOut as KFold
-from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
-from src.regressors.model_selectors import ConfounderCorrection as CC
+from src.regressors.daiv import LeastSquaresClosedFormUnfaithfulIV as UIV_a
+
+from src.regressors.baselines import (
+    RICE,
+    MiniMaxREx as MMREx,
+    VarianceREx as VREx,
+    LinearAnchorRegression as AR,
+    InvariantRiskMinimization as IRM,
+    InvariantCausalPrediction as ICP,
+    DistributionallyRobustOptimization as DRO,
+)
+
+from src.regressors.model_selectors import (
+    LevelCV,
+    VanillaCV as CV,
+    LeaveOneOut as KFold,
+    LeaveOneLevelOut as LOLO,
+    ConfounderCorrection as CC,
+)
 
 from src.experiments.utils import (
     save,
@@ -76,32 +80,43 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-5fold': lambda: KFold(
+        'DA+UIV-5fold': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            # cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-LOLO': lambda: LOLO(
+        'DA+UIV-LOLO': lambda: LevelCV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        # 'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+        'DA+UIV-CC': lambda: CC(
+            estimator=UIV_a(),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -133,8 +148,8 @@ def run(
         'MM-REx': lambda: LevelCV(
             estimator=MMREx(model='linear'),
             param_distributions = {
-                'alpha': np.random.normal(
-                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),

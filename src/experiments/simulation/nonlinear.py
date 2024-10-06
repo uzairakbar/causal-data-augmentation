@@ -4,6 +4,7 @@ import numpy as np
 import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
+from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.simulation.nonlinear import NonlinearSimulationDA as DA
 
@@ -11,23 +12,28 @@ from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.iv import IVGeneralizedMomentMethod as IV
+from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
-from src.regressors.erm import LeastSquaresGradientDescent as ERM
+from src.regressors.erm import GradientDescentERM as ERM
 
-from src.regressors.daiv import DAIVGeneralizedMomentMethod as UIV_a
-from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
+from src.regressors.daiv import (
+    GeneralizedMomentMethodUnfaithfulIV as UIV_a,
+    ConstrainedLeastSquaresUnfaithfulIV as UIV,
+)
 
-from src.regressors.baselines import RICE as RICE
-from src.regressors.baselines import MiniMaxREx as MMREx
-from src.regressors.baselines import VarianceREx as VREx
-from src.regressors.baselines import AnchorRegression as AR
-from src.regressors.baselines import InvariantRiskMinimization as IRM
-from src.regressors.baselines import DistributionallyRobustOptimization as DRO
+from src.regressors.baselines import (
+    RICE,
+    MiniMaxREx as MMREx,
+    VarianceREx as VREx,
+    AnchorRegression as AR,
+    InvariantRiskMinimization as IRM,
+    DistributionallyRobustOptimization as DRO,
+)
 
-from src.regressors.model_selectors import LeaveOneOut as KFold
-from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
-
+from src.regressors.model_selectors import (
+    LeaveOneOut as KFold,
+    LeaveOneLevelOut as LOLO,
+)
 
 from src.experiments.utils import (
     save,
@@ -46,6 +52,10 @@ DEFAULT_CV_SAMPLES: int=5
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
+POLYNOMIAL_DEGREE: int=1
+FEATURES = PolynomialFeatures(
+    POLYNOMIAL_DEGREE, include_bias=False
+)
 
 
 def run(
@@ -137,6 +147,7 @@ def run(
         
             X, y = sem(N = n_samples)
             GX, G = da(X)
+            G = FEATURES.fit_transform(G)
 
             X_test, _ = sem(N = n_samples)
             y_test = sem.f(X_test)

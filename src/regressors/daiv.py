@@ -6,11 +6,11 @@ import torch.nn.functional as F
 
 from src.regressors.utils import Model, device
 
-from src.regressors.abstract import DAIVRegressor
-from src.regressors.erm import LeastSquaresClosedForm as OLS
+from src.regressors.abstract import RegressorUnfaithfulIV as UIV
 
-from src.regressors.iv import IVGeneralizedMomentMethod as IV
-from src.regressors.erm import LeastSquaresGradientDescent as ERM
+from src.regressors.erm import GradientDescentERM as ERM
+from src.regressors.erm import LeastSquaresClosedForm as OLS
+from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
 
 DEVICE: str=device()
@@ -18,9 +18,9 @@ MAX_BATCH: int=2_500
 LOG_FREQUENCY: int=100
 
 
-class DAIVLeastSquaresClosedForm(DAIVRegressor):
+class LeastSquaresClosedFormUnfaithfulIV(UIV):
     def __init__(self, alpha = 1.0):
-        super(DAIVLeastSquaresClosedForm, self).__init__(alpha)
+        super(LeastSquaresClosedFormUnfaithfulIV, self).__init__(alpha)
         
     def _fit(self, X, y, G=None, GX=None, **kwargs):
         N = len(GX)
@@ -40,9 +40,9 @@ class DAIVLeastSquaresClosedForm(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVProjectedLeastSquares(DAIVRegressor):
+class ProjectedLeastSquaresUnfaithfulIV(UIV):
     def __init__(self, alpha = None):
-        super(DAIVProjectedLeastSquares, self).__init__(alpha)
+        super(ProjectedLeastSquaresUnfaithfulIV, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None):
         h_erm = OLS().fit(GX, y).solution
@@ -69,9 +69,9 @@ class DAIVProjectedLeastSquares(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVConstrainedLeastSquares(DAIVRegressor):
+class ConstrainedLeastSquaresUnfaithfulIV(UIV):
     def __init__(self, alpha = None):
-        super(DAIVConstrainedLeastSquares, self).__init__(alpha)
+        super(ConstrainedLeastSquaresUnfaithfulIV, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None):
         h_erm = OLS().fit(GX, y).solution
@@ -97,18 +97,18 @@ class DAIVConstrainedLeastSquares(DAIVRegressor):
         return X @ self._W
 
 
-class DAIVGeneralizedMomentMethod(IV, ERM):
+class GeneralizedMomentMethodUnfaithfulIV(IV, ERM):
     def __init__(self,
                  model: Model='linear',
                  alpha=0.1):
         self.alpha = alpha
         self.model = model  # TODO: refactor code
-        super(DAIVGeneralizedMomentMethod,
+        super(GeneralizedMomentMethodUnfaithfulIV,
                      self).__init__(model=model)
     
     def fit(self, X, y, G, GX, **kwargs):
-        return super(DAIVGeneralizedMomentMethod,
-                     self).fit(X=GX, y=y, Z=G, **kwargs)
+        return super(GeneralizedMomentMethodUnfaithfulIV,
+                        self).fit(X=GX, y=y, Z=G, **kwargs)
     
     def loss(self,
              X, y, G):

@@ -1,3 +1,4 @@
+import copy
 import enlighten
 import numpy as np
 import scipy as sp
@@ -14,25 +15,30 @@ from src.regressors.abstract import Regressor, ModelSelector
 
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 
-from src.regressors.iv import IVTwoStageLeastSquares as IV
+from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.daiv import DAIVConstrainedLeastSquares as UIV
-from src.regressors.daiv import DAIVLeastSquaresClosedForm as UIV_a
-from src.regressors.daiv import DAIVProjectedLeastSquares as UIV_Pi
+from src.regressors.daiv import (
+    ConstrainedLeastSquaresUnfaithfulIV as UIV,
+    LeastSquaresClosedFormUnfaithfulIV as UIV_a,
+    ProjectedLeastSquaresUnfaithfulIV as UIV_Pi,
+)
 
-from src.regressors.baselines import RICE as RICE
-from src.regressors.baselines import MiniMaxREx as MMREx
-from src.regressors.baselines import VarianceREx as VREx
-from src.regressors.baselines import LinearAnchorRegression as AR
-from src.regressors.baselines import InvariantRiskMinimization as IRM
-from src.regressors.baselines import InvariantCausalPrediction as ICP
-from src.regressors.baselines import DistributionallyRobustOptimization as DRO
+from src.regressors.baselines import (
+    RICE,
+    MiniMaxREx as MMREx,
+    VarianceREx as VREx,
+    LinearAnchorRegression as AR,
+    InvariantRiskMinimization as IRM,
+    InvariantCausalPrediction as ICP,
+    DistributionallyRobustOptimization as DRO,
+)
 
-from src.regressors.model_selectors import LevelCV
-from src.regressors.model_selectors import VanillaCV as CV
-from src.regressors.model_selectors import LeaveOneOut as KFold
-from src.regressors.model_selectors import LeaveOneLevelOut as LOLO
-from src.regressors.model_selectors import ConfounderCorrection as CC
+from src.regressors.model_selectors import (
+    LevelCV,
+    VanillaCV as CV,
+    LeaveOneOut as KFold,
+    ConfounderCorrection as CC
+)
 
 from src.experiments.utils import (
     save,
@@ -77,7 +83,8 @@ class SweepExperiment(ABC):
     def fit(method_name: str,
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
-            param: float, da=None) -> Regressor | ModelSelector:
+            param: float,
+            da: Optional[DA]=None) -> Regressor | ModelSelector:
         if method_name == 'DA+UIV-a':
             model = method(alpha = param)
         else:
@@ -104,7 +111,8 @@ class SweepExperiment(ABC):
                method_name: str,
                method: Callable[[Optional[str]], Regressor | ModelSelector],
                X, y, G, GX,
-               param: float, da=None) -> float:
+               param: float,
+               da: Optional[DA]=None) -> float:
         model = self.fit(
             method_name, method, X, y, G, GX, param, da=da
         )
@@ -187,9 +195,10 @@ class GammaSweep(SweepExperiment):
 class AlphaSweep(SweepExperiment):
     def __init__(self, **kwargs):
         super(AlphaSweep, self).__init__(**kwargs)
-        self.methods['DA+UIV-a'] = (
-            lambda alpha: UIV_a(alpha = alpha)
-        )
+        self.methods = {
+            **copy.deepcopy(self.methods),
+            'DA+UIV-a': lambda alpha: UIV_a(alpha = alpha)
+        }
 
     def generate_dataset(self, sem: SEM, da: DA, param: float):
         X, y = sem(N = self.n_samples)
@@ -207,7 +216,8 @@ class AlphaSweep(SweepExperiment):
                method_name: str,
                method: Callable[[Optional[str]], Regressor | ModelSelector],
                X, y, G, GX,
-               param: float) -> float:
+               param: float,
+               da: Optional[DA]=None) -> float:
         model = self.fit(
             method_name, method, X, y, G, GX, param
         )
@@ -255,14 +265,15 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-5fold': lambda: KFold(
+        'DA+UIV-5fold': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            # cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
         ),
         'DA+UIV-LOLO': lambda: LevelCV(
@@ -270,14 +281,23 @@ def run(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+        # 'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+        'DA+UIV-CC': lambda: CC(
+            estimator=UIV_a(),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
         'DA+IV': lambda: IV(),
@@ -427,8 +447,7 @@ def run(
 
     errors_bootstrapped = bootstrap(results)
     box_plot(
-        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT,
-        orient='v', savefig=True
+        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
     )
     
     table = tex_table(
