@@ -35,19 +35,19 @@ class EmpiricalRiskMinimizer(Regressor):
     pass
 
 
-class IVRegressor(Regressor):
+class RegressorIV(Regressor):
     def fit(self, X, y, Z, **kwargs):
-        return super(IVRegressor, self).fit(X=X, y=y, Z=Z, **kwargs)
+        return super(RegressorIV, self).fit(X=X, y=y, Z=Z, **kwargs)
 
     @abstractmethod
     def _fit(self, X, y, Z, **kwargs):
         pass
 
 
-class DAIVRegressor(Regressor):
+class RegressorUnfaithfulIV(Regressor):
     def __init__(self, alpha=1.0):
         self._alpha = alpha
-        super(DAIVRegressor, self).__init__()
+        super(RegressorUnfaithfulIV, self).__init__()
     
     @property
     def alpha(self):
@@ -62,7 +62,7 @@ class DAIVRegressor(Regressor):
         GX = GX.reshape(*GX.shape[:1], -1)
         X = X.reshape(*X.shape[:1], -1)
         # return self._fit(X, y, G, GX)
-        return super(DAIVRegressor, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
+        return super(RegressorUnfaithfulIV, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
     
     @abstractmethod
     def _fit(self, X, y, G, GX, **kwargs):
@@ -97,10 +97,12 @@ class ModelSelector(ABC, BaseSearchCV):
         elif metric == 'accuracy':
             scoring = make_scorer(self.accuracy)
         elif metric == 'mse':
-            scoring = make_scorer(self.negative_mse)
+            scoring = make_scorer(self.mse, greater_is_better=False)
+        elif metric == 'cc':
+            return super(ModelSelector, self).__init__(**kwargs)
         else:
             raise ValueError('Wrong value for validation metric.')
-        super(ModelSelector, self).__init__(**kwargs, scoring=scoring)
+        return super(ModelSelector, self).__init__(**kwargs, scoring=scoring)
     
     @property
     def alpha(self):
@@ -123,8 +125,8 @@ class ModelSelector(ABC, BaseSearchCV):
         return (y == yhat).mean()
     
     @staticmethod
-    def negative_mse(y, yhat, **kwargs):
-        return -1.0 * (
+    def mse(y, yhat, **kwargs):
+        return (
             (y - yhat)**2
         ).mean()
 

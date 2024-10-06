@@ -72,29 +72,26 @@ class LeaveOneLevelOut(ModelSelector, RandomizedSearchCV):
                                                  **kwargs)
 
 
-class ConfounderCorrection(ModelSelector):
-    def __init__(self, estimator, **kwargs):
-        self.best_estimator_ = estimator
+class ConfounderCorrection(ModelSelector, RandomizedSearchCV):
+    def __init__(self, **kwargs):
+        super(ConfounderCorrection, self).__init__(
+            **kwargs, cv=VanillaSplitter(frac=0),
+            metric='cc', scoring=self.cc_metric,
+        )
     
     def fit(self, X, y, **kwargs):
-        Cxx = np.cov(X, rowvar=False)
-        W_erm = ERM().fit(X, y).solution
-        sqnorm =  (1 - self.estimate_beta(Cxx, W_erm)) * (W_erm**2).sum()
 
-        self.best_estimator_.alpha = sp.optimize.minimize(
-            self._sqnorm_diff,
-            [1e-3],
-            bounds = [(1e-5, 1e-1)],
-            args=(sqnorm, X, y, kwargs)
-        ).x.item()
+        GX = kwargs['GX']
+        Cxx = np.cov(GX, rowvar=False)
+        W_erm = ERM().fit(GX, y).solution
+        self.sqnorm =  (1 - self.estimate_beta(Cxx, W_erm)) * (W_erm**2).sum()
 
-        self.best_estimator_.fit(X, y, **kwargs)
-        return self
+        return super(ConfounderCorrection, self).fit(X, y, **kwargs)
+    
 
-    def _sqnorm_diff(self, alpha, sqnorm, X, y, kwargs):
-        self.best_estimator_.alpha = alpha.item()
-        norm = np.sqrt((self.best_estimator_.fit(X, y, **kwargs).solution**2).sum())
-        return (norm - np.sqrt(sqnorm))**2
+    def cc_metric(self, estimator, X, y_true, **kwargs):
+        norm = np.sqrt((estimator.solution**2).sum())
+        return -1.0 * (norm - np.sqrt(self.sqnorm))**2
 
     @staticmethod
     def density(linear_map, vector):
@@ -132,8 +129,7 @@ class ConfounderCorrection(ModelSelector):
     
     @classmethod
     def loglikelihood(cls, theta, cov, vector):
-        d = vector.shape[0]
+        d = len(vector)
         matrix_squared = np.identity(d) + theta*np.linalg.inv(cov)
         matrix = sp.linalg.sqrtm(matrix_squared)
         return - np.log(cls.density(matrix,vector))
-

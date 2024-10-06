@@ -40,7 +40,7 @@ class LeastSquaresCvxpy(ERM):
         return X @ self._W
 
 
-class LeastSquaresGradientDescent(ERM):
+class GradientDescentERM(ERM):
     _models = MODELS
 
     def __init__(self, model: Model='linear'):
@@ -60,7 +60,6 @@ class LeastSquaresGradientDescent(ERM):
             )
             loss_val = self._optimizer.step(lambda: self.loss(X_b, y_b))
             losses += [loss_val.data.cpu().numpy()]
-        # logger.info(f'  train loss {np.mean(losses):.2f}')
 
     def fit_f_batch(self, X, y):
         _ = self._optimizer.step(lambda: self.loss(X, y))
@@ -107,7 +106,6 @@ class LeastSquaresGradientDescent(ERM):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y)
             else:
-                # logger.info(f'g epoch {epoch + 1}/{epochs}')
                 self.fit_f_minibatch(train)
             
             if pbar_manager: pbar_epochs.update()
