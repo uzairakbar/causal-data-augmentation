@@ -158,7 +158,7 @@ def sweep_plot(
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
     sns.set_style('ticks', rc=RC_PARAMS)
     sns.set_palette('deep')
-    colors = sns.color_palette()[:len(y)+1]
+    colors = sns.color_palette()
     fig = plt.figure()
     all_labels = []
     plot_handles = []
@@ -173,7 +173,9 @@ def sweep_plot(
             legend_items[legend_items.index(method)] = label
 
         if method in vertical_plots:
-            handle = plt.axvline(x = mean.mean(), color=colors[i], label=label, linestyle='--')
+            handle = plt.axvline(
+                x=mean.mean(), color=colors[i], label=label, linestyle='--'
+            )
         else:
             handle = plt.plot(x, mean, color=colors[i], label=label)[0]
         
@@ -185,7 +187,9 @@ def sweep_plot(
         if method in legend_items:
             legend_items[legend_items.index(method)] = label
         
-        handle = plt.axhline(y = 0.5**0.5, color = colors[-1], label=label)
+        handle = plt.axhline(
+            y = 0.5**0.5, color=colors[-1], label=label
+        )
         plot_handles.append(handle)
         
     for i, (method, errors) in enumerate(y.items()):
