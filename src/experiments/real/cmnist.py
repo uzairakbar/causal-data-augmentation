@@ -257,7 +257,7 @@ def run(
 
 if __name__ == '__main__':
     CLI = ArgumentParser(
-        description='Optical device dataset experiment.'
+        description='Colored-MNIST experiment.'
     )
     CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
