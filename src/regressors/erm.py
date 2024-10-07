@@ -32,7 +32,11 @@ class LeastSquaresCvxpy(ERM):
         prob = cp.Problem(
             cp.Minimize(cost)
         )
-        result = prob.solve(solver=cp.CLARABEL)
+        try:
+            result = prob.solve(solver=cp.CLARABEL)
+        except:
+            logger.warning(f'CLARABLE solver failed, falling back to ECOS.')
+            result = prob.solve(solver=cp.ECOS)
         self._W = h.value
         return self
     
