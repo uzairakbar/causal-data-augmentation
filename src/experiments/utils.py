@@ -30,6 +30,7 @@ Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 FS_TICK: int = 14
 FS_LABEL: int = 18
 PLOT_DPI: int=1200
+PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
@@ -411,10 +412,18 @@ def grid_plot(
     sns.set_style('ticks', rc=RC_PARAMS)
     sns.set_palette('deep')
     colors = sns.color_palette()[:3]
+
+    ylabel_size = 0.5
+    xlabel_size = 0.667 * ylabel_size
+    delta = (PAGE_WIDTH - ylabel_size)/len(methods)
     fig, axs = plt.subplots(
         len(functions), len(methods),
-        figsize=(3*len(methods), 3*len(functions)),
-        sharex=True, sharey=False
+        figsize=(
+            delta*len(methods) + ylabel_size,
+            delta*len(functions) + xlabel_size
+        ),
+        sharex=True, sharey=False,
+        constrained_layout=True
     )
     for i, function in enumerate(functions):
         for j, method in enumerate(methods):
@@ -426,7 +435,7 @@ def grid_plot(
                     data[function]['x_data'],
                     data[function]['y_data'],
                     color=colors[-1],
-                    alpha=0.2
+                    alpha=0.1
                 )
             else:
                 mean = data[function][method].mean(axis=1)
@@ -448,9 +457,13 @@ def grid_plot(
 
             y_range = max(y) - min(y)
             y_pad = (y_range/2)*1.5
-            axs[i, j].set_xlim([min(x) - 0.333, max(x) + 0.333])
+            axs[i, j].set_xlim([min(x), max(x)])
             axs[i, j].set_ylim([min(y) - y_pad, max(y) + y_pad])
-    plt.tight_layout(pad = 0.333)
+            # square boxes
+            axs[i, j].set_aspect(
+                np.diff(axs[i, j].get_xlim())/np.diff(axs[i, j].get_ylim())
+            )
+    fig.subplots_adjust(bottom=0, top=1, hspace=0)
     plt.show()
     if savefig:
         save(

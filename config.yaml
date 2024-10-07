@@ -24,21 +24,20 @@ linear_simulation:
     augmentations:
         - translate
 
-# nonlinear_simulation:
-#     seed: 42
-#     n_samples: 1_000
-#     n_experiments: 10
-#     methods:
-#         - ERM
-#         - DA+ERM
-#         - DA+UIV-CV
-#         - DA+UIV-LCV
-#         - DA+IV
-#         - IRM
-#     augmentations:
-#         - abs
-#         - sin
-#         - step
+nonlinear_simulation:
+    seed: 42
+    n_samples: 1_000
+    n_experiments: 10
+    methods:
+        - ERM
+        - DA+ERM
+        - DA+UIV-CV
+        - DA+UIV-LCV
+        - DA+IV
+    augmentations:
+        - abs
+        - sin
+        - step
 
 optical_device:
     seed: 42

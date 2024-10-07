@@ -84,6 +84,8 @@ class LevelSplitter(BaseCrossValidator):
         n_levels = len(levels)
 
         n_test_levels = round(n_levels*self.frac)
+        if n_test_levels == 0:
+            n_test_levels = int(np.ceil(n_levels*self.frac))
 
         p = level_count/sum(level_count)
         p_inverse = (1.0 - p)/(len(p) - 1.0)

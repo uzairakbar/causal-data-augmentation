@@ -17,7 +17,7 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.daiv import (
+from src.regressors.uiv import (
     ConstrainedLeastSquaresUnfaithfulIV as UIV,
     LeastSquaresClosedFormUnfaithfulIV as UIV_a,
     ProjectedLeastSquaresUnfaithfulIV as UIV_Pi,
@@ -363,47 +363,47 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
-    # # sweep over lambda parameter
-    # status.update(sweep='lambda')
-    # logger.info('Sweeping over lambda parameters.')
-    # lambda_values, results = LambdaSweep(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     kernel_dim=kernel_dim,
-    #     n_experiments=n_experiments,
-    #     methods=methods,
-    #     sweep_samples=sweep_samples
-    # ).run_experiment()
-    # save(
-    #     obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
-    # )
-    # sweep_plot(
-    #     lambda_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['lambda']
-    # )
+    # sweep over lambda parameter
+    status.update(sweep='lambda')
+    logger.info('Sweeping over lambda parameters.')
+    lambda_values, results = LambdaSweep(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods,
+        sweep_samples=sweep_samples
+    ).run_experiment()
+    save(
+        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+    )
+    sweep_plot(
+        lambda_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['lambda']
+    )
 
-    # # sweep over gamma parameter
-    # status.update(sweep='gamma')
-    # logger.info('Sweeping over gamma parameters.')
-    # gamma_values, results = GammaSweep(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     kernel_dim=kernel_dim,
-    #     n_experiments=n_experiments,
-    #     methods=methods,
-    #     sweep_samples=sweep_samples
-    # ).run_experiment()
-    # save(
-    #     obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
-    # )
-    # sweep_plot(
-    #     gamma_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['gamma']
-    # )
+    # sweep over gamma parameter
+    status.update(sweep='gamma')
+    logger.info('Sweeping over gamma parameters.')
+    gamma_values, results = GammaSweep(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods,
+        sweep_samples=sweep_samples
+    ).run_experiment()
+    save(
+        obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
+    )
+    sweep_plot(
+        gamma_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['gamma']
+    )
 
     # sweep over alpha parameter
     status.update(sweep='alpha')
@@ -426,36 +426,36 @@ def run(
         alpha_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['alpha']
     )
 
-    # # no sweep, just compare baselines with gamma=1 and lambda=1
-    # status.update(sweep='N/A')
-    # logger.info('Linear experiemnt with gamma=1 and lambda=1.')
-    # _, results = BaselineExperiment(
-    #     seed=seed,
-    #     n_samples=n_samples,
-    #     kernel_dim=kernel_dim,
-    #     n_experiments=n_experiments,
-    #     methods=methods
-    # ).run_experiment()
-    # save(
-    #     obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
-    # )
-    # save(
-    #     obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    # )
+    # no sweep, just compare baselines with gamma=1 and lambda=1
+    status.update(sweep='N/A')
+    logger.info('Linear experiemnt with gamma=1 and lambda=1.')
+    _, results = BaselineExperiment(
+        seed=seed,
+        n_samples=n_samples,
+        kernel_dim=kernel_dim,
+        n_experiments=n_experiments,
+        methods=methods
+    ).run_experiment()
+    save(
+        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+    )
+    save(
+        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    )
 
-    # errors_bootstrapped = bootstrap(results)
-    # box_plot(
-    #     errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-    #     **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    # )
+    errors_bootstrapped = bootstrap(results)
+    box_plot(
+        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+        **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
     
-    # table = tex_table(
-    #     errors_bootstrapped, label=EXPERIMENT,
-    #     caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
-    # )
-    # save(
-    #     obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    # )
+    table = tex_table(
+        errors_bootstrapped, label=EXPERIMENT,
+        caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
+    )
+    save(
+        obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
 
 
 if __name__ == '__main__':

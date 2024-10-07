@@ -16,7 +16,7 @@ from src.regressors.erm import GradientDescentERM as ERM
 
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
-from src.regressors.daiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
+from src.regressors.uiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
 
 from src.regressors.baselines import (
     RICE,
@@ -257,7 +257,7 @@ def run(
 
 if __name__ == '__main__':
     CLI = ArgumentParser(
-        description='Optical device dataset experiment.'
+        description='Colored-MNIST experiment.'
     )
     CLI.add_argument(
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'

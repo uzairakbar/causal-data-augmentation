@@ -12,14 +12,11 @@ from src.sem.simulation.nonlinear import NonlinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.iv import GeneralizedMomentMethodIV as IV
-
 from src.regressors.erm import GradientDescentERM as ERM
 
-from src.regressors.daiv import (
-    GeneralizedMomentMethodUnfaithfulIV as UIV_a,
-    ConstrainedLeastSquaresUnfaithfulIV as UIV,
-)
+from src.regressors.iv import GeneralizedMomentMethodIV as IV
+
+from src.regressors.uiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
 
 from src.regressors.baselines import (
     RICE,
@@ -32,7 +29,7 @@ from src.regressors.baselines import (
 
 from src.regressors.model_selectors import (
     LevelCV,
-    VanillaCV as CV
+    VanillaCV as CV,
 )
 
 from src.experiments.utils import (
@@ -50,7 +47,6 @@ MANAGER = enlighten.get_manager()
 EXPERIMENT: str='nonlinear_simulation'
 DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
-DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
 POLYNOMIAL_DEGREE: int=1
 FEATURES = PolynomialFeatures(
@@ -63,6 +59,7 @@ def run(
         n_samples: int,
         n_experiments: int,
         methods: List[str],
+        augmentations: Optional[List[str]]=[None],
         hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
     ):
     status = MANAGER.status_bar(
@@ -75,6 +72,7 @@ def run(
     if seed >= 0: set_seed(seed)
     
     cv = getattr(hyperparameters, 'cv', None)
+    cv = getattr(hyperparameters, 'cv', None)
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='2-layer'),
         'DA+ERM': lambda: ERM(model='2-layer'),
@@ -83,37 +81,89 @@ def run(
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
         'DA+UIV-LCV': lambda: LevelCV(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
-        ),
-        'DA+IV': lambda: IV(model='2-layer'),
-        'IRM': lambda: LevelCV(
-            metric='mse',
-            estimator=IRM(model='cmnist'),
-            param_distributions = {
-                'alpha': scipy.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-        )
+            verbose=1
+        ),
+        'DA+IV': lambda: IV(model='2-layer'),
+        'IRM': lambda: LevelCV(
+            metric='mse',
+            estimator=IRM(model='2-layer'),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'AR': lambda: CV(
+            metric='mse',
+            estimator=AR(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'V-REx': lambda: LevelCV(
+            metric='mse',
+            estimator=VREx(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'MM-REx': lambda: LevelCV(
+            metric='mse',
+            estimator=MMREx(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.normal(
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'RICE': lambda: CV(
+            metric='mse',
+            estimator=RICE(model='2-layer'),
+            param_distributions = {
+                'alpha': np.random.lognormal(
+                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
+        ),
+        'DRO': lambda: DRO(model='2-layer'),
     }
-    methods: ModelBuilder = {m: all_methods[m] for m in methods}
+    methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
     all_sems = []
     all_augmenters = []
@@ -168,7 +218,6 @@ def run(
                 total=len(methods), desc=f'Experiment {i}', unit='methods', leave=False
             )
             for method_name, method in methods.items():
-
                 model = method()
                 fit_model(
                     model=model,
@@ -189,9 +238,9 @@ def run(
                     mse(y_test, y_test_hat)
                 )
 
-                pbar_methods.update()
+                pbar_methods.update(), status.update()
             pbar_methods.close()
-            pbar_sem.update()
+            pbar_sem.update(), status.update()
         pbar_sem.close()
     
     save(
@@ -204,8 +253,8 @@ def run(
     )
     
     table = tex_table(
-        all_errors,
-        caption='Test MSE $\\pm$ one standard deviation across $10$ runs.'
+        all_errors,label=EXPERIMENT,
+        caption=f'Test MSE $\\pm$ one standard deviation across {n_experiments} runs.'
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
@@ -214,6 +263,8 @@ def run(
     grid_plot(
         all_functions, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
     )
+
+    status.close()
 
 
 if __name__ == '__main__':
