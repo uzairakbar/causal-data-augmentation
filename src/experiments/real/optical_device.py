@@ -30,19 +30,18 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
-    LeaveOneOut as KFold,
-    LeaveOneLevelOut as LOLO,
     ConfounderCorrection as CC,
 )
 
 from src.experiments.utils import (
     save,
     set_seed,
-    relative_error,
-    bootstrap,
     box_plot,
+    bootstrap,
     tex_table,
-    fit_model
+    fit_model,
+    relative_error,
+    ANNOTATE_BOX_PLOT,
 )
 
 
@@ -50,7 +49,7 @@ ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 
 MANAGER = enlighten.get_manager()
 EXPERIMENT: str='optical_device'
-DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
@@ -80,18 +79,7 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-5fold': lambda: CV(
-            estimator=UIV_a(),
-            param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            # cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-        ),
-        'DA+UIV-LOLO': lambda: LevelCV(
+        'DA+UIV-CV': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
@@ -101,7 +89,16 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        # 'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
+        'DA+UIV-LCV': lambda: LevelCV(
+            estimator=UIV_a(),
+            param_distributions = {
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
         'DA+UIV-CC': lambda: CC(
             estimator=UIV_a(),
             param_distributions = {
@@ -123,14 +120,14 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'AR': lambda: KFold(
+        'AR': lambda: CV(
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
@@ -148,8 +145,8 @@ def run(
         'MM-REx': lambda: LevelCV(
             estimator=MMREx(model='linear'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.normal(
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -247,7 +244,9 @@ def run(
     
     errors_bootstrapped = bootstrap(all_errors)
     box_plot(
-        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+        errors_bootstrapped,
+        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+        **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     table = tex_table(
@@ -273,8 +272,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

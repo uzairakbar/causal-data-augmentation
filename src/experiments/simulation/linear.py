@@ -36,19 +36,20 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
-    LeaveOneOut as KFold,
     ConfounderCorrection as CC
 )
 
 from src.experiments.utils import (
     save,
     set_seed,
+    box_plot,
     bootstrap,
+    tex_table,
+    fit_model,
     sweep_plot,
     relative_error,
-    fit_model,
-    box_plot,
-    tex_table
+    ANNOTATE_BOX_PLOT,
+    ANNOTATE_SWEEP_PLOT,
 )
 
 
@@ -56,7 +57,7 @@ ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 
 MANAGER = enlighten.get_manager()
 EXPERIMENT: str='linear_simulation'
-DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
@@ -265,18 +266,18 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-5fold': lambda: CV(
+        'DA+UIV-CV': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            # cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS)
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
-        'DA+UIV-LOLO': lambda: LevelCV(
+        'DA+UIV-LCV': lambda: LevelCV(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
@@ -297,6 +298,7 @@ def run(
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
         'DA+UIV-Pi': lambda: UIV_Pi(),
         'DA+UIV': lambda: UIV(),
@@ -305,21 +307,21 @@ def run(
             estimator=IRM(model='linear'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'AR': lambda: KFold(
+        'AR': lambda: CV(
             estimator=AR(),
             param_distributions = {
                 'alpha': np.random.lognormal(
                     1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
-            cv=getattr(cv, 'folds', DEFAULT_CV_FOLDS),
+            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
@@ -361,47 +363,47 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
-    # sweep over lambda parameter
-    status.update(sweep='lambda')
-    logger.info('Sweeping over lambda parameters.')
-    lambda_values, results = LambdaSweep(
-        seed=seed,
-        n_samples=n_samples,
-        kernel_dim=kernel_dim,
-        n_experiments=n_experiments,
-        methods=methods,
-        sweep_samples=sweep_samples
-    ).run_experiment()
-    save(
-        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        lambda_values, bootstrap(results), xlabel=r'$\lambda$', xscale='linear'
-    )
+    # # sweep over lambda parameter
+    # status.update(sweep='lambda')
+    # logger.info('Sweeping over lambda parameters.')
+    # lambda_values, results = LambdaSweep(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     kernel_dim=kernel_dim,
+    #     n_experiments=n_experiments,
+    #     methods=methods,
+    #     sweep_samples=sweep_samples
+    # ).run_experiment()
+    # save(
+    #     obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+    # )
+    # sweep_plot(
+    #     lambda_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['lambda']
+    # )
 
-    # sweep over gamma parameter
-    status.update(sweep='gamma')
-    logger.info('Sweeping over gamma parameters.')
-    gamma_values, results = GammaSweep(
-        seed=seed,
-        n_samples=n_samples,
-        kernel_dim=kernel_dim,
-        n_experiments=n_experiments,
-        methods=methods,
-        sweep_samples=sweep_samples
-    ).run_experiment()
-    save(
-        obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        gamma_values, bootstrap(results), xlabel=r'$\gamma$', xscale='log'
-    )
+    # # sweep over gamma parameter
+    # status.update(sweep='gamma')
+    # logger.info('Sweeping over gamma parameters.')
+    # gamma_values, results = GammaSweep(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     kernel_dim=kernel_dim,
+    #     n_experiments=n_experiments,
+    #     methods=methods,
+    #     sweep_samples=sweep_samples
+    # ).run_experiment()
+    # save(
+    #     obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
+    # )
+    # sweep_plot(
+    #     gamma_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['gamma']
+    # )
 
     # sweep over alpha parameter
     status.update(sweep='alpha')
@@ -414,9 +416,6 @@ def run(
         methods=methods,
         sweep_samples=sweep_samples
     ).run_experiment()
-    vertical_plots = ([
-        method for method in ('DA+UIV-5fold', 'DA+UIV-LOLO', 'DA+UIV-CC')
-    ])
     save(
         obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
     )
@@ -424,39 +423,39 @@ def run(
         obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
     )
     sweep_plot(
-        alpha_values, bootstrap(results), xlabel=r'$\alpha$', xscale='log',
-        vertical_plots=vertical_plots, trivial_solution=True
+        alpha_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['alpha']
     )
 
-    # no sweep, just compare baselines with gamma=1 and lambda=1
-    status.update(sweep='N/A')
-    logger.info('Linear experiemnt with gamma=1 and lambda=1.')
-    _, results = BaselineExperiment(
-        seed=seed,
-        n_samples=n_samples,
-        kernel_dim=kernel_dim,
-        n_experiments=n_experiments,
-        methods=methods
-    ).run_experiment()
-    save(
-        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
+    # # no sweep, just compare baselines with gamma=1 and lambda=1
+    # status.update(sweep='N/A')
+    # logger.info('Linear experiemnt with gamma=1 and lambda=1.')
+    # _, results = BaselineExperiment(
+    #     seed=seed,
+    #     n_samples=n_samples,
+    #     kernel_dim=kernel_dim,
+    #     n_experiments=n_experiments,
+    #     methods=methods
+    # ).run_experiment()
+    # save(
+    #     obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+    # )
+    # save(
+    #     obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    # )
 
-    errors_bootstrapped = bootstrap(results)
-    box_plot(
-        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
-    )
+    # errors_bootstrapped = bootstrap(results)
+    # box_plot(
+    #     errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+    #     **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    # )
     
-    table = tex_table(
-        errors_bootstrapped, label=EXPERIMENT,
-        caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
-    )
-    save(
-        obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
+    # table = tex_table(
+    #     errors_bootstrapped, label=EXPERIMENT,
+    #     caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
+    # )
+    # save(
+    #     obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    # )
 
 
 if __name__ == '__main__':
@@ -475,8 +474,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Tuple
+from loguru import logger
 from numpy.typing import NDArray
 from typing import Dict, Literal, List, Optional
 
@@ -12,10 +13,20 @@ class NullSpaceTranslation(DA):
 
         k_max, _ = null_basis.shape
 
-        if kernel_dim <= 0:
-            sample = np.random.randn(k_max) >= 0
+        assert k_max >= kernel_dim, \
+            f'`kernel_dim`={kernel_dim} cannot be greater than `k_max`={k_max}.'
+        
+        if kernel_dim == 0:
+            logger.warning(
+                '`kernel_dim`=0 means no DA -- could lead to unintended behaviour and singular matrices'
+            )
+
+        if kernel_dim < 0:
+            sample = np.random.randn(k_max) > 0
         else:
-            sample = np.ones(k_max, dtype='bool')
+            sample = np.zeros(k_max, dtype='bool')
+            sample[:kernel_dim] = True
+            np.random.shuffle(sample)
         
         self.W_ZXtilde = null_basis[sample]
         self.param_dimension, _ = self.W_ZXtilde.shape

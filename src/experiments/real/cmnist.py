@@ -36,10 +36,11 @@ from src.regressors.model_selectors import (
 from src.experiments.utils import (
     save,
     set_seed,
-    bootstrap,
     box_plot,
+    bootstrap,
     tex_table,
-    fit_model
+    fit_model,
+    ANNOTATE_BOX_PLOT,
 )
 
 
@@ -47,7 +48,7 @@ ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 
 MANAGER = enlighten.get_manager()
 EXPERIMENT: str='colored_mnist'
-DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_JOBS: int=1
 POLYNOMIAL_DEGREE: int=1
@@ -78,27 +79,29 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='cmnist'),
         'DA+ERM': lambda: ERM(model='cmnist'),
-        'DA+UIV-5fold': lambda: CV(
+        'DA+UIV-CV': lambda: CV(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
-        'DA+UIV-LOLO': lambda: LevelCV(
+        'DA+UIV-LCV': lambda: LevelCV(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+            verbose=1
         ),
         'DA+IV': lambda: IV(model='cmnist'),
         'IRM': lambda: LevelCV(
@@ -106,7 +109,7 @@ def run(
             estimator=IRM(model='cmnist'),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1e-1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -165,7 +168,7 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
 
-    all_errors = {
+    all_accuracies = {
         augmentation: {
             name: np.zeros(num_seeds) for name in methods
         } for augmentation in augmentations
@@ -211,12 +214,12 @@ def run(
                 
                 y_test_hat = model.predict(X_test)
                 score = accuracy(y_test, y_test_hat)
-                all_errors[augmentation][method_name][i] = score
+                all_accuracies[augmentation][method_name][i] = score
 
                 logger.info(f'Test accuracy for {method_name}: \t {score}.')
 
                 save(
-                    obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+                    obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
                 )
                 
                 pbar_methods.update(), status.update()
@@ -227,10 +230,10 @@ def run(
     pbar_augmentation.close()
 
     save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
     )
     save(
         obj=np.arange(seed, seed+num_seeds),
@@ -238,12 +241,13 @@ def run(
     )
     
     box_plot(
-        all_errors, xlabel='Accuracy',
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+        all_accuracies, xlabel='Accuracy',
+        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+        **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     table = tex_table(
-        all_errors, label=EXPERIMENT,
+        all_accuracies, label=EXPERIMENT,
         caption=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
     )
     save(
@@ -265,8 +269,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-5fold', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-5fold DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

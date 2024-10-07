@@ -8,8 +8,8 @@ linear_simulation:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-5fold
-        - DA+UIV-LOLO
+        - DA+UIV-CV
+        - DA+UIV-LCV
         - DA+UIV-CC
         - DA+UIV-Pi
         - DA+UIV
@@ -31,8 +31,8 @@ linear_simulation:
 #     methods:
 #         - ERM
 #         - DA+ERM
-#         - DA+UIV-5fold
-#         - DA+UIV-LOLO
+#         - DA+UIV-CV
+#         - DA+UIV-LCV
 #         - DA+IV
 #         - IRM
 #     augmentations:
@@ -46,7 +46,8 @@ optical_device:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-5fold
+        - DA+UIV-CV
+        - DA+UIV-LCV
         - DA+UIV-CC
         - DA+IV
         - IRM
@@ -65,12 +66,12 @@ optical_device:
 colored_mnist:
     seed: 42
     num_seeds: 10
-    n_samples: -1
+    n_samples: 60_000
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-5fold
-        - DA+UIV-LOLO
+        - DA+UIV-CV
+        - DA+UIV-LCV
         - DA+IV
         - IRM
         - AR
@@ -84,12 +85,12 @@ colored_mnist:
 # rotated_mnist:
 #     seed: 42
 #     num_seeds: 10
-#     n_samples: -1
+#     n_samples: 60_000
 #     methods:
 #         - ERM
 #         - DA+ERM
-#         - DA+UIV-5fold
-#         - DA+UIV-LOLO
+#         - DA+UIV-CV
+#         - DA+UIV-LCV
 #         - DA+IV
 #         - IRM
 #         - AR
@@ -104,11 +105,11 @@ colored_mnist:
 
 hyperparameters:
     sgd:
-        lr: 0.01
+        lr: 0.001
         batch: 512
-        epochs: 10
+        epochs: 1_000
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
         samples: 10         # number of samples for random search
-        n_jobs: -1          # number of jobs to run in parallel for hyperparam search
+        n_jobs: -1           # number of jobs to run in parallel for hyperparam search

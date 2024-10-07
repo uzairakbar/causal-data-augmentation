@@ -1,5 +1,6 @@
 import os
 import json
+import copy
 import torch
 import random
 import pickle
@@ -11,7 +12,7 @@ from loguru import logger
 import matplotlib.pyplot as plt
 from numpy.typing import NDArray
 from sklearn.model_selection import train_test_split
-from typing import Any, Literal, List, Dict, Optional
+from typing import Any, Literal, List, Dict, Optional, Tuple
 from sklearn.preprocessing import StandardScaler, KBinsDiscretizer
 
 from src.sem.simulation.linear import COVARIATE_DIMENSION
@@ -48,11 +49,11 @@ TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV--$\alpha$',
-    'DA+UIV-5fold': r'DA+UIV--$\alpha^{\mathrm{5-fold}}$',
-    'DA+UIV-LOLO': r'DA+UIV--$\alpha^{\mathrm{LOLO}}$',
-    'DA+UIV-CC': r'DA+UIV--$\alpha^{\mathrm{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
+    'DA+UIV-a': r'DA+UIV-$\alpha$',
+    'DA+UIV-CV': r'DA+UIV-$\alpha^{\mathrm{CV}}$',
+    'DA+UIV-LCV': r'DA+UIV-$\alpha^{\mathrm{LCV}}$',
+    'DA+UIV-CC': r'DA+UIV-$\alpha^{\mathrm{CC}}$',
+    'DA+UIV-Pi': r'DA+UIV-$\Pi$',
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
@@ -62,6 +63,41 @@ TEX_MAPPER: Dict[str, str] = {
     'RICE': r'RICE',
     'V-REx': r'V-REx',
     'MM-REx': r'MM-REx',
+}
+ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
+    'linear_simulation': {
+        'title': 'Simulation Data',
+    },
+    'optical_device': {
+        'title': 'Optical Device Data',
+        'y_color': 'w',
+    },
+    'colored_mnist': {
+        'title': 'Colored MNIST Data',
+        'dummies': ['DA+UIV-CC', 'ICP'],
+        'y_color': 'w',
+    }
+}
+ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
+    'lambda': {
+        'xlabel': r'$\lambda$',
+        'xscale': 'linear',
+    },
+    'alpha': {
+        'xlabel': r'$\alpha$',
+        'xscale': 'log',
+        'vertical_plots': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC'],
+        'trivial_solution': True,
+        'legend_items': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC', 'DA+UIV-a'],
+        'y_color': 'w',
+        # 'legend_loc': (0.645, 0.425),
+    },
+    'gamma': {
+        'xlabel': r'$\gamma$',
+        'xscale': 'log',
+        'y_color': 'w',
+        'hide_legend': True,
+    }
 }
 
 
@@ -110,32 +146,46 @@ def sweep_plot(
         vertical_plots: Optional[List]=[],
         trivial_solution: Optional[bool]=True,
         savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT
+        format: Optional[Plot]=PLOT_FORMAT,
+        legend_items: Optional[List]=[],
+        legend_loc: Optional[str | Tuple[float, float]]='best',
+        y_color: Optional[bool]='k',
+        hide_legend: Optional[bool]=False
     ):
+    legend_items = [item for item in legend_items if item in y]
+
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
     sns.set_style('ticks', rc=RC_PARAMS)
     sns.set_palette('deep')
     colors = sns.color_palette()[:len(y)+1]
     fig = plt.figure()
-    labels = []
+    all_labels = []
+    plot_handles = []
     for i, (method, errors) in enumerate(y.items()):
         mean = errors.mean(axis = 1)
 
         label = TEX_MAPPER.get(method, method)
         if method in vertical_plots:
-            label = f'average {label.split("--")[-1]}'
-        
-        labels.append(label)
+            label = f'average {label.split("-")[-1]}'
+        all_labels.append(label)
+        if method in legend_items:
+            legend_items[legend_items.index(method)] = label
 
         if method in vertical_plots:
-            plt.axvline(x = mean.mean(), color=colors[i], label=label, linestyle='--')
+            handle = plt.axvline(x = mean.mean(), color=colors[i], label=label, linestyle='--')
         else:
-            plt.plot(x, mean, color=colors[i], label=label)
+            handle = plt.plot(x, mean, color=colors[i], label=label)[0]
+        
+        plot_handles.append(handle)
     
     if trivial_solution:
         label = f'$\\mathbf{{0}}_{{{COVARIATE_DIMENSION}}}$'
-        labels.append(label)
-        plt.axhline(y = 0.5**0.5, color = colors[-1], label=label)
+        all_labels.append(label)
+        if method in legend_items:
+            legend_items[legend_items.index(method)] = label
+        
+        handle = plt.axhline(y = 0.5**0.5, color = colors[-1], label=label)
+        plot_handles.append(handle)
         
     for i, (method, errors) in enumerate(y.items()):
         if method not in vertical_plots:
@@ -144,12 +194,27 @@ def sweep_plot(
             plt.fill_between(x, low, high, color=colors[i], alpha = 0.2)
     
     plt.xlabel(xlabel, fontsize=FS_LABEL)
-    plt.ylabel(ylabel, fontsize=FS_LABEL)
+    plt.ylabel(ylabel, fontsize=FS_LABEL, color=y_color)
+    plt.yticks(fontsize=FS_TICK, color=y_color)
+    plt.xticks(fontsize=FS_TICK)
     plt.xlim([min(x), max(x)])
+    maximum = 0.5**0.5
+    padding = 0.05 * maximum
+    plt.ylim([0.0 - padding, maximum + padding])
     plt.xscale(xscale)
-    plt.legend(
-        labels, fontsize=FS_TICK, frameon=True, edgecolor='black', fancybox=False
-    )
+
+    # Legend all items if None are specified
+    if legend_items:
+        labels = legend_items
+    else:
+        labels = all_labels
+    handles = [plot_handles[all_labels.index(item)] for item in labels]
+
+    if not hide_legend:
+        plt.legend(
+            handles=handles, labels=labels, fontsize=FS_TICK,
+            loc=legend_loc, frameon=True, edgecolor='black', fancybox=False
+        )
     plt.tight_layout()
     plt.show()
     if savefig:
@@ -163,19 +228,45 @@ def sweep_plot(
         )
 
 
+def populate_dummy_data(
+        data: Dict[str, Dict[str, NDArray]], dummies: List[str],
+        scaler: Optional[float]=0.0
+    ):
+    dummies = [item for item in dummies if item in TEX_MAPPER]
+    if dummies:
+        data = copy.deepcopy(data)
+        data_shape = list(list(data.values())[0].values())[0].shape
+        dummy_data = {
+            dummy: scaler * np.ones(data_shape) for dummy in dummies
+        }
+        data_with_dummies = {key: {} for key in data}
+        for key in data:
+            for method in TEX_MAPPER:
+                if method in data[key]:
+                    data_with_dummies[key][method] = data[key][method]
+                elif method in dummies:
+                    data_with_dummies[key][method] = dummy_data[method]
+        return data_with_dummies
+    else:
+        return data
+
+
 def box_plot(
         data: Dict[str, NDArray],
         fname: str,
         experiment: Experiment,
+        title: Optional[str]='',
         xlabel: Optional[str]='Relative Error',
         ylabel: Optional[str]='Method',
         zlabel: Optional[str]='Augmentation',
-        orient: Literal['h', 'v']='h',
+        orient: Optional[Literal['h', 'v']]='h',
         savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT,
-        annotate_best: bool=True
+        format: Optional[Plot]=PLOT_FORMAT,
+        annotate_best: Optional[bool]=True,
+        dummies: Optional[List[str]]=[],
+        y_color: Optional[bool]='k',
+        hilight_ours: Optional[bool]=True,
     ):
-
     def prepare_data_for_plotting(
             data: Dict[str, Dict[str, NDArray]]
         ) -> pd.DataFrame:
@@ -189,8 +280,9 @@ def box_plot(
                         ylabel: TEX_MAPPER.get(method, method),
                         xlabel: value
                     })
-                    minimum = min(value, minimum)
-                    maximum = max(value, maximum)
+                    if method not in dummies:
+                        minimum = min(value, minimum)
+                        maximum = max(value, maximum)
         df = pd.DataFrame.from_records(records)
         return df, minimum, maximum
     
@@ -204,6 +296,16 @@ def box_plot(
         zlabel = ylabel
         if len(data) > 1:
             data = {None : data}
+    
+    if 'error' in (xlabel.lower() + ylabel.lower()):
+        data = populate_dummy_data(data, dummies, scaler=2.0)
+    elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
+        data = populate_dummy_data(data, dummies, scaler=-1.0)
+    else:
+        raise ValueError(
+            'Specify either `error` or `accuracy` in `xlabel` or `ylabel`.'
+        )
+    
     df, minimum, maximum = prepare_data_for_plotting(data)
 
     if annotate_best and single_row:
@@ -246,18 +348,38 @@ def box_plot(
     else:
         plt.ylim([minimum - padding, maximum + padding])
     
-    plt.title(experiment, fontsize=FS_LABEL)
-    plt.ylabel(ylabel, fontsize=FS_LABEL)
+    if title:
+        plt.title(title, fontsize=FS_LABEL)
+    plt.ylabel('', fontsize=FS_LABEL, color=y_color)
     plt.xlabel(xlabel, fontsize=FS_LABEL)
     plt.xticks(rotation=45, fontsize=FS_TICK)
-    plt.yticks(fontsize=FS_TICK)
+    plt.yticks(fontsize=FS_TICK, color=y_color)
+
+    if dummies and single_row:
+        method_ordered_list = list(list(data.values())[0].keys())
+        for dummy in dummies:
+            dummy_idx = method_ordered_list.index(dummy)
+            if orient == 'h':
+                plt.axhline(dummy_idx, color='r', linestyle='--', alpha=0.333)
+            else:
+                plt.axhline(dummy_idx, color='r', linestyle='--', alpha=0.333)
 
     if annotate_best and single_row:
         padding = 0.45
         if orient == 'v':
-            plt.axvspan(best_idx-padding,best_idx+padding, color='red', alpha=0.1)
+            plt.axvspan(best_idx-padding,best_idx+padding, color='r', alpha=0.1)
         else:
-            plt.axhspan(best_idx-0.45,best_idx+0.45, color='red', alpha=0.1)
+            plt.axhspan(best_idx-0.45,best_idx+0.45, color='r', alpha=0.1)
+    
+    if hilight_ours:
+        if orient == 'h':
+            for tick in ax.get_yticklabels():
+                if 'UIV' in tick.get_text():
+                    tick.set_fontweight('bold')
+        else:
+            for tick in ax.get_xticklabels():
+                if 'UIV' in tick.get_text():
+                    tick.set_fontweight('bold')
 
     plt.tight_layout()
     plt.show()
@@ -562,7 +684,7 @@ def fit_model(
             X=GX, y=y, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'DA+UIV' in name:
-        if 'LOLO' in name:
+        if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, pbar_manager=None, **sgd_params
@@ -596,7 +718,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X=GX, y=y, **sgd_params
         )
     elif 'DA+UIV' in name:
-        if 'LOLO' in name:
+        if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, **sgd_params
