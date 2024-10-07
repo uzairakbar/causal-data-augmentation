@@ -15,7 +15,7 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.daiv import LeastSquaresClosedFormUnfaithfulIV as UIV_a
+from src.regressors.uiv import LeastSquaresClosedFormUnfaithfulIV as UIV_a
 
 from src.regressors.baselines import (
     RICE,

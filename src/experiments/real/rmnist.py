@@ -8,9 +8,8 @@ from src.sem.real.rmnist import RotatedDigitsSEM as SEM
 
 from src.regressors.erm import GradientDescentERM as ERM
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
-from src.regressors.daiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
+from src.regressors.uiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
 
-# from src.regressors.model_selectors import LeaveOneOut as LOO
 from src.regressors.model_selectors import VanillaCV as CV
 
 from src.experiments.utils import (

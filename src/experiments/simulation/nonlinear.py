@@ -16,7 +16,7 @@ from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
 from src.regressors.erm import GradientDescentERM as ERM
 
-from src.regressors.daiv import (
+from src.regressors.uiv import (
     GeneralizedMomentMethodUnfaithfulIV as UIV_a,
     ConstrainedLeastSquaresUnfaithfulIV as UIV,
 )
