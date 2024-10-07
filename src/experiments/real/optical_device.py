@@ -36,11 +36,12 @@ from src.regressors.model_selectors import (
 from src.experiments.utils import (
     save,
     set_seed,
-    relative_error,
-    bootstrap,
     box_plot,
+    bootstrap,
     tex_table,
-    fit_model
+    fit_model,
+    relative_error,
+    ANNOTATE_BOX_PLOT,
 )
 
 
@@ -48,7 +49,7 @@ ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 
 MANAGER = enlighten.get_manager()
 EXPERIMENT: str='optical_device'
-DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
@@ -98,7 +99,6 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        # 'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+UIV-CC': lambda: CC(
             estimator=UIV_a(),
             param_distributions = {
@@ -145,8 +145,8 @@ def run(
         'MM-REx': lambda: LevelCV(
             estimator=MMREx(model='linear'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.normal(
+                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -244,7 +244,9 @@ def run(
     
     errors_bootstrapped = bootstrap(all_errors)
     box_plot(
-        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True
+        errors_bootstrapped,
+        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+        **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     table = tex_table(

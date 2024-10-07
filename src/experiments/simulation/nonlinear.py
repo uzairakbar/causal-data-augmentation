@@ -48,7 +48,7 @@ ModelBuilder = Callable[[Optional[float]], Regressor | ModelSelector]
 
 MANAGER = enlighten.get_manager()
 EXPERIMENT: str='nonlinear_simulation'
-DEFAULT_CV_SAMPLES: int=5
+DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
