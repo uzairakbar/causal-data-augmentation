@@ -10,6 +10,7 @@ import pandas as pd
 import seaborn as sns
 from loguru import logger
 import matplotlib.pyplot as plt
+import matplotlib.ticker as tck
 from numpy.typing import NDArray
 from sklearn.model_selection import train_test_split
 from typing import Any, Literal, List, Dict, Optional, Tuple
@@ -417,17 +418,11 @@ def grid_plot(
     sns.set_palette('deep')
     colors = sns.color_palette()[:3]
 
-    ylabel_size = 0.5
-    xlabel_size = 0.667 * ylabel_size
-    delta = (PAGE_WIDTH - ylabel_size)/len(methods)
     fig, axs = plt.subplots(
         len(functions), len(methods),
-        figsize=(
-            delta*len(methods) + ylabel_size,
-            delta*len(functions) + xlabel_size
-        ),
+        figsize=(PAGE_WIDTH, PAGE_WIDTH/3),
         sharex=True, sharey=False,
-        constrained_layout=True
+        # constrained_layout=True
     )
     for i, function in enumerate(functions):
         for j, method in enumerate(methods):
@@ -439,7 +434,7 @@ def grid_plot(
                     data[function]['x_data'],
                     data[function]['y_data'],
                     color=colors[-1],
-                    alpha=0.1
+                    alpha=0.2
                 )
             else:
                 mean = data[function][method].mean(axis=1)
@@ -457,17 +452,23 @@ def grid_plot(
             if not j:
                 axs[i, j].set_ylabel(function, fontsize=FS_LABEL)
             if j:
-                axs[i, j].yaxis.set_ticklabels([], fontsize=FS_TICK)
+                axs[i, j].yaxis.set_ticklabels([])
 
             y_range = max(y) - min(y)
             y_pad = (y_range/2)*1.5
             axs[i, j].set_xlim([min(x), max(x)])
             axs[i, j].set_ylim([min(y) - y_pad, max(y) + y_pad])
+            axs[i, j].xaxis.set_major_locator(tck.MaxNLocator(integer=True))
             # square boxes
             axs[i, j].set_aspect(
-                np.diff(axs[i, j].get_xlim())/np.diff(axs[i, j].get_ylim())
+                np.diff(axs[i, j].get_xlim())/np.diff(axs[i, j].get_ylim()),
+                adjustable='datalim'
+                # adjustable='box'
             )
-    fig.subplots_adjust(bottom=0, top=1, hspace=0)
+    fig.subplots_adjust(
+        bottom=0, top=1, hspace=0,left=0, right=1, wspace=0,
+    )
+    fig.tight_layout(pad=0.0, h_pad=0, w_pad=0.0)
     plt.show()
     if savefig:
         save(
