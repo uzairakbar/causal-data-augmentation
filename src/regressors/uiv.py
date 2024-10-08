@@ -45,7 +45,7 @@ class ProjectedLeastSquaresUnfaithfulIV(UIV):
     def __init__(self, alpha = None):
         super(ProjectedLeastSquaresUnfaithfulIV, self).__init__(alpha)
 
-    def _fit(self, X, y, G=None, GX=None):
+    def _fit(self, X, y, G=None, GX=None, **kwargs):
         h_erm = OLS().fit(GX, y).solution
 
         s1 = OLS().fit(G, GX).solution
@@ -78,7 +78,7 @@ class ConstrainedLeastSquaresUnfaithfulIV(UIV):
     def __init__(self, alpha = None):
         super(ConstrainedLeastSquaresUnfaithfulIV, self).__init__(alpha)
 
-    def _fit(self, X, y, G=None, GX=None):
+    def _fit(self, X, y, G=None, GX=None, **kwargs):
         h_erm = OLS().fit(GX, y).solution
 
         s1 = OLS().fit(G, GX).solution
