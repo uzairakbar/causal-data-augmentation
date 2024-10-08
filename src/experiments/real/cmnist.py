@@ -244,13 +244,26 @@ def run(
         fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
         **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
+    box_plot(
+        all_accuracies, xlabel='Accuracy',
+        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
+        bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
     
+    caption = (
+        f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
+    )
     table = tex_table(
-        all_accuracies, label=EXPERIMENT, highlight='max',
-        caption=f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
+        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
+    table = tex_table(
+        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption, bootstrapped=True
+    )
+    save(
+        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
     )
 
 

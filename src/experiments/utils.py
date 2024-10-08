@@ -152,8 +152,12 @@ def sweep_plot(
         legend_items: Optional[List]=[],
         legend_loc: Optional[str | Tuple[float, float]]='best',
         y_color: Optional[bool]='k',
-        hide_legend: Optional[bool]=False
+        hide_legend: Optional[bool]=False,
+        bootstrapped: Optional[bool]=False,
     ):
+    if bootstrapped:
+        y = bootstrap(y)
+    
     legend_items = [item for item in legend_items if item in y]
 
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
@@ -225,6 +229,8 @@ def sweep_plot(
     plt.show()
     if savefig:
         fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
+        if bootstrapped:
+            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -272,7 +278,11 @@ def box_plot(
         dummies: Optional[List[str]]=[],
         y_color: Optional[bool]='k',
         hilight_ours: Optional[bool]=True,
+        bootstrapped: Optional[bool]=False,
     ):
+    if bootstrapped:
+        data = bootstrap(data)
+    
     def prepare_data_for_plotting(
             data: Dict[str, Dict[str, NDArray]]
         ) -> pd.DataFrame:
@@ -391,6 +401,8 @@ def box_plot(
     plt.show()
     
     if savefig:
+        if bootstrapped:
+            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -486,8 +498,11 @@ def tex_table(
         label: str,
         caption: str,
         highlight: Literal['min', 'max']='min',
-        decimals: int=3
+        decimals: int=3,
+        bootstrapped: Optional[bool]=False,
     ):
+    if bootstrapped:
+        data = bootstrap(data)
     # check if data keys are subset of TEX_MAPPER keys
     # i.e., check if data keys only correspond to methods
     # if yes, then we need to construct a single row table

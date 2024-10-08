@@ -42,7 +42,6 @@ from src.experiments.utils import (
     save,
     set_seed,
     box_plot,
-    bootstrap,
     tex_table,
     fit_model,
     sweep_plot,
@@ -379,7 +378,11 @@ def run(
         obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
     )
     sweep_plot(
-        lambda_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['lambda']
+        lambda_values, results,
+        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['lambda']
+    )
+    sweep_plot(
+        lambda_values, results, **ANNOTATE_SWEEP_PLOT['lambda']
     )
 
     # sweep over gamma parameter
@@ -400,7 +403,11 @@ def run(
         obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
     )
     sweep_plot(
-        gamma_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['gamma']
+        gamma_values, results,
+        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['gamma']
+    )
+    sweep_plot(
+        gamma_values, results, **ANNOTATE_SWEEP_PLOT['gamma']
     )
 
     # sweep over alpha parameter
@@ -421,7 +428,11 @@ def run(
         obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
     )
     sweep_plot(
-        alpha_values, bootstrap(results), **ANNOTATE_SWEEP_PLOT['alpha']
+        alpha_values, results,
+        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['alpha']
+    )
+    sweep_plot(
+        alpha_values, results, **ANNOTATE_SWEEP_PLOT['alpha']
     )
 
     # no sweep, just compare baselines with gamma=1 and lambda=1
@@ -440,19 +451,29 @@ def run(
     save(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
     )
-
-    errors_bootstrapped = bootstrap(results)
     box_plot(
-        errors_bootstrapped, fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        results, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
+    box_plot(
+        results, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
+    caption = f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
     table = tex_table(
-        errors_bootstrapped, label=EXPERIMENT,
-        caption=f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.'
+        results, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
+    table_bootstrapped = tex_table(
+        results, label=EXPERIMENT, caption=caption, bootstrapped=True
+    )
+    save(
+        obj=table_bootstrapped,
+        fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
+        format='tex'
     )
 
 
