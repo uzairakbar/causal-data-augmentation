@@ -104,9 +104,9 @@ colored_mnist:
 
 hyperparameters:
     sgd:
-        lr: 0.001
+        lr: 0.01
         batch: 256
-        epochs: 32
+        epochs: 16
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction

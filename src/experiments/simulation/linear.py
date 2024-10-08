@@ -69,7 +69,8 @@ class SweepExperiment(ABC):
             kernel_dim: int,
             n_experiments: int,
             sweep_samples: int,
-            methods: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]]
+            methods: Dict[str, Callable[[Optional[float]], Regressor | ModelSelector]],
+            hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
         ):
         self.seed = seed
         self.n_samples = n_samples
@@ -77,13 +78,17 @@ class SweepExperiment(ABC):
         self.n_experiments = n_experiments
         self.sweep_samples = sweep_samples
         self.methods = methods
+        self.hyperparameters = hyperparameters
     
     @staticmethod
-    def fit(method_name: str,
+    def fit(
+            method_name: str,
             method: Callable[[Optional[str]], Regressor | ModelSelector],
             X, y, G, GX,
             param: float,
-            da: Optional[DA]=None) -> Regressor | ModelSelector:
+            da: Optional[DA]=None,
+            hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
+        ) -> Regressor | ModelSelector:
         if method_name == 'DA+UIV-a':
             model = method(alpha = param)
         else:
@@ -92,7 +97,9 @@ class SweepExperiment(ABC):
         fit_model(
             model=model,
             name=method_name,
-            X=X, y=y, G=G, GX=GX, da=da
+            X=X, y=y, G=G, GX=GX,
+            hyperparameters=hyperparameters,
+            da=da
         )
         
         return model
@@ -113,7 +120,8 @@ class SweepExperiment(ABC):
                param: float,
                da: Optional[DA]=None) -> float:
         model = self.fit(
-            method_name, method, X, y, G, GX, param, da=da
+            method_name, method, X, y, G, GX, param, da=da,
+            hyperparameters=self.hyperparameters
         )
         error = relative_error(sem_solution, model.solution)
         return error
@@ -369,7 +377,8 @@ def run(
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
         methods=methods,
-        sweep_samples=sweep_samples
+        sweep_samples=sweep_samples,
+        hyperparameters=hyperparameters
     ).run_experiment()
     save(
         obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
@@ -394,7 +403,8 @@ def run(
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
         methods=methods,
-        sweep_samples=sweep_samples
+        sweep_samples=sweep_samples,
+        hyperparameters=hyperparameters
     ).run_experiment()
     save(
         obj=gamma_values, fname='gamma_values', experiment=EXPERIMENT, format='pkl'
@@ -419,7 +429,8 @@ def run(
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
         methods=methods,
-        sweep_samples=sweep_samples
+        sweep_samples=sweep_samples,
+        hyperparameters=hyperparameters
     ).run_experiment()
     save(
         obj=alpha_values, fname='alpha_values', experiment=EXPERIMENT, format='pkl'
@@ -443,7 +454,8 @@ def run(
         n_samples=n_samples,
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
-        methods=methods
+        methods=methods,
+        hyperparameters=hyperparameters
     ).run_experiment()
     save(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
@@ -453,11 +465,11 @@ def run(
     )
     box_plot(
         results, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     box_plot(
         results, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
