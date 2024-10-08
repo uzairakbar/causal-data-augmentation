@@ -1,6 +1,5 @@
 import enlighten
 import numpy as np
-import scipy as sp
 from loguru import logger
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
@@ -83,8 +82,8 @@ def run(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -95,8 +94,8 @@ def run(
             metric='accuracy',
             estimator=UIV_a(model='cmnist'),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -108,8 +107,8 @@ def run(
             metric='accuracy',
             estimator=IRM(model='cmnist'),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -120,8 +119,8 @@ def run(
             metric='accuracy',
             estimator=AR(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -132,8 +131,8 @@ def run(
             metric='accuracy',
             estimator=VREx(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -144,8 +143,8 @@ def run(
             metric='accuracy',
             estimator=MMREx(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.normal(
-                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -156,8 +155,8 @@ def run(
             metric='accuracy',
             estimator=RICE(model='cmnist'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),

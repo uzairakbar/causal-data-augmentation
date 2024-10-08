@@ -1,7 +1,6 @@
 import scipy
 import enlighten
 import numpy as np
-import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
 from sklearn.preprocessing import PolynomialFeatures
@@ -80,8 +79,8 @@ def run(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -92,8 +91,8 @@ def run(
             metric='mse',
             estimator=UIV_a(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -105,8 +104,8 @@ def run(
             metric='mse',
             estimator=IRM(model='2-layer'),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -117,8 +116,8 @@ def run(
             metric='mse',
             estimator=AR(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -129,8 +128,8 @@ def run(
             metric='mse',
             estimator=VREx(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -141,8 +140,8 @@ def run(
             metric='mse',
             estimator=MMREx(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.normal(
-                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -153,8 +152,8 @@ def run(
             metric='mse',
             estimator=RICE(model='2-layer'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
