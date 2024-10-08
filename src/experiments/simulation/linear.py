@@ -226,7 +226,8 @@ class AlphaSweep(SweepExperiment):
                param: float,
                da: Optional[DA]=None) -> float:
         model = self.fit(
-            method_name, method, X, y, G, GX, param
+            method_name, method, X, y, G, GX, param, da=da,
+            hyperparameters=self.hyperparameters
         )
         error = relative_error(sem_solution, model.solution)
         if ('DA+UIV-' in method_name) and (method_name != 'DA+UIV-a'):
