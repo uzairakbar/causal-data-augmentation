@@ -36,7 +36,6 @@ from src.experiments.utils import (
     save,
     set_seed,
     box_plot,
-    bootstrap,
     tex_table,
     fit_model,
     relative_error,
@@ -241,19 +240,29 @@ def run(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
     )
     
-    errors_bootstrapped = bootstrap(all_errors)
     box_plot(
-        errors_bootstrapped,
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
+    box_plot(
+        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
+    caption = 'RSE $\pm$ one standard deviation across the optical device datasets.'
     table = tex_table(
-        errors_bootstrapped, label=EXPERIMENT,
-        caption='RSE $\pm$ one standard deviation across the optical device datasets.'
+        all_errors, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
+    )
+    table_bootstrapped = tex_table(
+        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=True
+    )
+    save(
+        obj=table_bootstrapped,
+        fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
+        format='tex'
     )
 
 
