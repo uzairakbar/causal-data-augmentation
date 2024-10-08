@@ -157,7 +157,7 @@ def sweep_plot(
     legend_items = [item for item in legend_items if item in y]
 
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
-    sns.set_style('ticks', rc=RC_PARAMS)
+    plt.rcParams.update(RC_PARAMS)
     sns.set_palette('deep')
     colors = sns.color_palette()
     fig = plt.figure()
@@ -326,7 +326,7 @@ def box_plot(
             )
     
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
-    sns.set_style('ticks', rc=RC_PARAMS)
+    plt.rcParams.update(RC_PARAMS)
     sns.set_palette('deep')
     fig = plt.figure()
 
@@ -414,7 +414,7 @@ def grid_plot(
     ])
     
     # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
-    sns.set_style('ticks', rc=RC_PARAMS)
+    plt.rcParams.update(RC_PARAMS)
     sns.set_palette('deep')
     colors = sns.color_palette()[:3]
 
