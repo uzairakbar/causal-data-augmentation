@@ -1,7 +1,6 @@
 import copy
 import enlighten
 import numpy as np
-import scipy as sp
 from loguru import logger
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
@@ -269,8 +268,8 @@ def run(
         'DA+UIV-CV': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -281,20 +280,19 @@ def run(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        # 'DA+UIV-CC': lambda: CC(estimator=UIV_a()),
         'DA+UIV-CC': lambda: CC(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
@@ -306,8 +304,8 @@ def run(
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
             param_distributions = {
-                'alpha': sp.stats.loguniform.rvs(
-                    1e-5, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -317,8 +315,8 @@ def run(
         'AR': lambda: CV(
             estimator=AR(),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -328,8 +326,8 @@ def run(
         'V-REx': lambda: LevelCV(
             estimator=VREx(model='linear'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -339,8 +337,8 @@ def run(
         'MM-REx': lambda: LevelCV(
             estimator=MMREx(model='linear'),
             param_distributions = {
-                'alpha': np.random.normal(
-                    0, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -350,8 +348,8 @@ def run(
         'RICE': lambda: CV(
             estimator=RICE(model='linear'),
             param_distributions = {
-                'alpha': np.random.lognormal(
-                    1, 1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),

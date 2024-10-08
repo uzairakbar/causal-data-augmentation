@@ -15,7 +15,7 @@ from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
 
 DEVICE: str=device()
-MAX_BATCH: int=2_500
+MAX_BATCH: int=256
 LOG_FREQUENCY: int=100
 
 

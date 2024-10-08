@@ -106,7 +106,7 @@ hyperparameters:
     sgd:
         lr: 0.001
         batch: 256
-        epochs: 512
+        epochs: 32
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction

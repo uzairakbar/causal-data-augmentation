@@ -17,7 +17,7 @@ from src.regressors.utils import MODELS, Model, device
 
 
 DEVICE: str=device()
-MAX_BATCH: int=2_500
+MAX_BATCH: int=256
 LOG_FREQUENCY: int=100
 MAX_ICP_SUBSETS: int=1_024
 

@@ -11,7 +11,7 @@ from src.regressors.abstract import EmpiricalRiskMinimizer as ERM
 
 
 DEVICE: str=device()
-MAX_BATCH: int=2_500
+MAX_BATCH: int=256
 LOG_FREQUENCY: int=100
 
 
