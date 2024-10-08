@@ -1,10 +1,15 @@
 # Causal data augmentation
 
 ## Setup
-### Clone
+### Dependencies
 Clone this repository.
 ```bash
 git clone https://github.com/uzairakbar/causal-data-augmentation.git
+```
+Install latex.
+```bash
+brew install texmaker
+brew install mactex
 ```
 
 ### Python `venv`
