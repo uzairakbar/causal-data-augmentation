@@ -248,6 +248,15 @@ def run(
         all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
+
+    box_plot(
+        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
+    box_plot(
+        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
+        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
     
     caption = 'RSE $\pm$ one standard deviation across the optical device datasets.'
     table = tex_table(
