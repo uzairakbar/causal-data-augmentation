@@ -40,6 +40,7 @@ RC_PARAMS: Dict[str, str | int | bool] = {
     'text.usetex': True,
     'font.family': 'serif',
     'font.serif': ['Computer Modern'],
+    'text.latex.preamble': r'\usepackage{amsmath}',
     # Set background and border settings
     'axes.facecolor': 'white',
     'axes.edgecolor': 'black',
@@ -52,10 +53,10 @@ TEX_MAPPER: Dict[str, str] = {
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
     'DA+UIV-a': r'DA+UIV-$\alpha$',
-    'DA+UIV-CV': r'DA+UIV-$\alpha^{\mathrm{CV}}$',
-    'DA+UIV-LCV': r'DA+UIV-$\alpha^{\mathrm{LCV}}$',
-    'DA+UIV-CC': r'DA+UIV-$\alpha^{\mathrm{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV-$\Pi$',
+    'DA+UIV-CV': r'DA+UIV--$\alpha^{\text{CV}}$',
+    'DA+UIV-LCV': r'DA+UIV--$\alpha^{\text{LCV}}$',
+    'DA+UIV-CC': r'DA+UIV--$\alpha^{\text{CC}}$',
+    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
@@ -153,6 +154,7 @@ def sweep_plot(
         legend_loc: Optional[str | Tuple[float, float]]='best',
         y_color: Optional[bool]='k',
         hide_legend: Optional[bool]=False,
+        hilight_ours: Optional[bool]=True,
         bootstrapped: Optional[bool]=False,
     ):
     if bootstrapped:
@@ -178,7 +180,7 @@ def sweep_plot(
 
         label = TEX_MAPPER.get(method, method)
         if method in vertical_plots:
-            label = f'average {label.split("-")[-1]}'
+            label = f'average {label.split("--")[-1]}'
         all_labels.append(label)
         if method in legend_items:
             legend_items[legend_items.index(method)] = label
@@ -193,7 +195,7 @@ def sweep_plot(
         plot_handles.append(handle)
     
     if trivial_solution:
-        label = f'$\\mathbf{{0}}_{{{COVARIATE_DIMENSION}}}$'
+        label = fr'$0_{{{COVARIATE_DIMENSION}}}$'
         all_labels.append(label)
         if method in legend_items:
             legend_items[legend_items.index(method)] = label
@@ -232,11 +234,23 @@ def sweep_plot(
         labels = all_labels
     handles = [plot_handles[all_labels.index(item)] for item in labels]
 
+    if hilight_ours:
+        for label, i in enumerate(labels):
+            if label == TEX_MAPPER['DA+UIV-a']:
+                continue
+            elif 'UIV' in label or 'average' in label:
+                bold = label
+                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
+                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = fr'\textbf{{{bold}}}'
+                labels[i] = bold                
+
     if not hide_legend:
         plt.legend(
             handles=handles, labels=labels, fontsize=FS_TICK,
             loc=legend_loc, frameon=True, edgecolor='black', fancybox=False
         )
+
     plt.tight_layout()
     plt.show()
     if savefig:
@@ -399,15 +413,30 @@ def box_plot(
         else:
             plt.axhspan(best_idx-0.45,best_idx+0.45, color='r', alpha=0.1)
     
+    def bold_tick(tick):
+        tick.set_fontweight('bold')
+        bold = tick.get_text()
+        bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
+        bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+        bold = fr'\textbf{{{bold}}}'
+        tick.set_text(bold)
+        return tick
+
     if hilight_ours:
         if orient == 'h':
+            new_ticks = []
             for tick in ax.get_yticklabels():
                 if 'UIV' in tick.get_text():
-                    tick.set_fontweight('bold')
+                    tick = bold_tick(tick)
+                new_ticks.append(tick)
+            ax.set_yticklabels(new_ticks)
         else:
+            new_ticks = []
             for tick in ax.get_xticklabels():
                 if 'UIV' in tick.get_text():
-                    tick.set_fontweight('bold')
+                    tick = bold_tick(tick)
+                new_ticks.append(tick)
+            ax.set_xticklabels(new_ticks)
 
     plt.tight_layout()
     plt.show()
@@ -429,7 +458,8 @@ def grid_plot(
         fname: str,
         experiment: Experiment,
         savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT
+        format: Plot=PLOT_FORMAT,
+        hilight_ours: Optional[bool]=True,
     ):
     functions = data.keys()
     methods = ['Data'] + ([
@@ -469,6 +499,13 @@ def grid_plot(
                 axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.2)
             
             label = TEX_MAPPER.get(method, method)
+
+            if hilight_ours and 'UIV' in label:
+                bold = label
+                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
+                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = fr'\textbf{{{bold}}}'
+                label = bold
 
             axs[i, j].plot(x, y, color=colors[1])
             if not i:
@@ -511,6 +548,7 @@ def tex_table(
         caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3,
+        hilight_ours: Optional[bool]=True,
         bootstrapped: Optional[bool]=False,
     ):
     if bootstrapped:
@@ -554,6 +592,18 @@ def tex_table(
 
     num_columns = len(column_names) + int(not single_row)
     columns_preamble = ' '.join(['c']*num_columns)
+
+    if hilight_ours:
+        bold_column_names = []
+        for name in column_names:
+            if 'UIV' in name:
+                bold = name
+                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
+                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = fr'\textbf{{{bold}}}'
+                name = bold
+            bold_column_names = name
+        column_names = bold_column_names
 
     columns = ' & '.join(column_names)
     if not single_row:
