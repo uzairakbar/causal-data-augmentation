@@ -168,6 +168,12 @@ def sweep_plot(
     all_labels = []
     plot_handles = []
     for i, (method, errors) in enumerate(y.items()):
+
+        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        #     continue
+        # if 'CV' in method or 'LCV' in method or 'CC' in method:
+        #     continue
+        
         mean = errors.mean(axis = 1)
 
         label = TEX_MAPPER.get(method, method)
@@ -198,6 +204,12 @@ def sweep_plot(
         plot_handles.append(handle)
         
     for i, (method, errors) in enumerate(y.items()):
+
+        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        #     continue
+        # if 'CV' in method or 'LCV' in method or 'CC' in method:
+        #     continue
+        
         if method not in vertical_plots:
             low = np.percentile(errors, 2.5, axis=1)
             high = np.percentile(errors, 97.5, axis=1)
