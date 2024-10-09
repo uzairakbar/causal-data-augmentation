@@ -713,6 +713,31 @@ def save(
     logger.info(f'Saved file {fname}.{format} at path {path}.')
 
 
+def load(path: str):
+    if not os.path.exists(path):
+        raise ValueError(f'Path {path} does not exist.')
+    
+    format = path.split('.')[-1]
+    assert format == 'pkl' or format == 'json', \
+        f'Incorrect format {format} of file, can only accept pkl or json.'
+    
+    try:
+        if format == 'pkl':
+            with open(path, 'rb') as file:
+                data = pickle.load(file)
+        elif format == 'json':
+            with open(path, 'r') as file:
+                data = json.load(file)
+        else:
+            raise NotImplementedError(f'Load not implemented for {format} file.')
+    except Exception as e:
+        logger.error(f'Could not load data from file {path}.')
+        raise e
+    
+    logger.info(f'Loaded data from file {path}.')
+    return data
+
+
 def fit_model(
         model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None
     ):
