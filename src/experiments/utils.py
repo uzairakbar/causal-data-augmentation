@@ -28,8 +28,8 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
-FS_TICK: int = 14
-FS_LABEL: int = 18
+FS_TICK: int = 18
+FS_LABEL: int = 24
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
@@ -52,7 +52,7 @@ TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV-$\alpha$',
+    'DA+UIV-a': r'DA+UIV--$\alpha$',
     'DA+UIV-CV': r'DA+UIV--$\alpha^{\text{CV}}$',
     'DA+UIV-LCV': r'DA+UIV--$\alpha^{\text{LCV}}$',
     'DA+UIV-CC': r'DA+UIV--$\alpha^{\text{CC}}$',
@@ -85,6 +85,7 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
     'lambda': {
         'xlabel': r'$\lambda$',
         'xscale': 'linear',
+        'hide_legend': True,
     },
     'alpha': {
         'xlabel': r'$\alpha$',
@@ -99,7 +100,6 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
         'xlabel': r'$\gamma$',
         'xscale': 'log',
         'y_color': 'w',
-        'hide_legend': True,
     }
 }
 
