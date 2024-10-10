@@ -235,7 +235,7 @@ def sweep_plot(
     handles = [plot_handles[all_labels.index(item)] for item in labels]
 
     if hilight_ours:
-        for label, i in enumerate(labels):
+        for i, label in enumerate(labels):
             if label == TEX_MAPPER['DA+UIV-a']:
                 continue
             elif 'UIV' in label or 'average' in label:
@@ -394,7 +394,7 @@ def box_plot(
         plt.title(title, fontsize=FS_LABEL)
     plt.ylabel('', fontsize=FS_LABEL, color=y_color)
     plt.xlabel(xlabel, fontsize=FS_LABEL)
-    plt.xticks(rotation=45, fontsize=FS_TICK)
+    plt.xticks(fontsize=FS_TICK)
     plt.yticks(fontsize=FS_TICK, color=y_color)
 
     if dummies and single_row:
