@@ -602,7 +602,7 @@ def tex_table(
                 bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
                 bold = fr'\textbf{{{bold}}}'
                 name = bold
-            bold_column_names = name
+            bold_column_names.append(name)
         column_names = bold_column_names
 
     columns = ' & '.join(column_names)
