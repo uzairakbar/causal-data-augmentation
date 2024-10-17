@@ -28,20 +28,22 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
-FS_TICK: int = 18
-FS_LABEL: int = 24
+FS_TICK: int = 16
+FS_LABEL: int = 20
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
+HILIGHT_OURS: bool=False
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
-    # Set LaTeX for rendering text
-    'text.usetex': True,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.latex.preamble': r'\usepackage{amsmath}',
-    # Set background and border settings
+    # # Set LaTeX for rendering text.
+    # # Uncomment this only if you have installed latex dependencies.
+    # 'text.usetex': True,
+    # 'font.family': 'serif',
+    # 'font.serif': ['Computer Modern'],
+    # 'text.latex.preamble': r'\usepackage{amsmath}',
+    # # Set background and border settings
     'axes.facecolor': 'white',
     'axes.edgecolor': 'black',
     'axes.linewidth': 2,
@@ -52,15 +54,14 @@ TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV--$\alpha$',
-    'DA+UIV-CV': r'DA+UIV--$\alpha^{\text{CV}}$',
-    'DA+UIV-LCV': r'DA+UIV--$\alpha^{\text{LCV}}$',
-    'DA+UIV-CC': r'DA+UIV--$\alpha^{\text{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
+    'DA+UIV-a': r'DA+UIV-$\alpha$',
+    'DA+UIV-CV': r'DA+UIV-$\alpha^{\text{CV}}$',
+    'DA+UIV-LCV': r'DA+UIV-$\alpha^{\text{LCV}}$',
+    'DA+UIV-CC': r'DA+UIV-$\alpha^{\text{CC}}$',
+    'DA+UIV-Pi': r'DA+UIV-$\Pi$',
     'DA+UIV': r'DA+UIV',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
-    'AR': r'AR',
     'ICP': r'ICP',
     'DRO': r'DRO',
     'RICE': r'RICE',
@@ -73,12 +74,12 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     },
     'optical_device': {
         'title': 'Optical Device Data',
-        'y_color': 'w',
+        # 'y_color': 'w',
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
         'dummies': ['DA+UIV-CC', 'ICP'],
-        'y_color': 'w',
+        # 'y_color': 'w',
     }
 }
 ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
@@ -93,13 +94,13 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
         'vertical_plots': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC'],
         'trivial_solution': True,
         'legend_items': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC', 'DA+UIV-a'],
-        'y_color': 'w',
+        # 'y_color': 'w',
         # 'legend_loc': (0.645, 0.425),
     },
     'gamma': {
         'xlabel': r'$\gamma$',
         'xscale': 'log',
-        'y_color': 'w',
+        # 'y_color': 'w',
     }
 }
 
@@ -154,8 +155,8 @@ def sweep_plot(
         legend_loc: Optional[str | Tuple[float, float]]='best',
         y_color: Optional[bool]='k',
         hide_legend: Optional[bool]=False,
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         y = bootstrap(y)
@@ -255,8 +256,6 @@ def sweep_plot(
     plt.show()
     if savefig:
         fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
-        if bootstrapped:
-            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -303,8 +302,8 @@ def box_plot(
         annotate_best: Optional[bool]=True,
         dummies: Optional[List[str]]=[],
         y_color: Optional[bool]='k',
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         data = bootstrap(data)
@@ -442,8 +441,6 @@ def box_plot(
     plt.show()
     
     if savefig:
-        if bootstrapped:
-            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -453,103 +450,14 @@ def box_plot(
         )
 
 
-def grid_plot(
-        data: Dict,
-        fname: str,
-        experiment: Experiment,
-        savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT,
-        hilight_ours: Optional[bool]=True,
-    ):
-    functions = data.keys()
-    methods = ['Data'] + ([
-        method for method in data['abs'].keys()
-            if 'ERM' in method or 'DA' in method or 'IV' in method
-    ])
-    
-    # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
-    plt.rcParams.update(RC_PARAMS)
-    sns.set_palette('deep')
-    colors = sns.color_palette()[:3]
-
-    fig, axs = plt.subplots(
-        len(functions), len(methods),
-        figsize=(PAGE_WIDTH, PAGE_WIDTH/3),
-        sharex=True, sharey=False,
-        # constrained_layout=True
-    )
-    for i, function in enumerate(functions):
-        for j, method in enumerate(methods):
-            x = data[function]['x']
-            y = data[function]['y']
-            
-            if method == 'Data':
-                axs[i, j].scatter(
-                    data[function]['x_data'],
-                    data[function]['y_data'],
-                    color=colors[-1],
-                    alpha=0.2
-                )
-            else:
-                mean = data[function][method].mean(axis=1)
-                low = np.percentile(data[function][method], 2.5, axis=1)
-                high = np.percentile(data[function][method], 97.5, axis=1)
-
-                axs[i, j].plot(x, mean, color=colors[0])
-                axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.2)
-            
-            label = TEX_MAPPER.get(method, method)
-
-            if hilight_ours and 'UIV' in label:
-                bold = label
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
-                bold = fr'\textbf{{{bold}}}'
-                label = bold
-
-            axs[i, j].plot(x, y, color=colors[1])
-            if not i:
-                axs[i, j].set_title(label, fontsize=FS_LABEL)
-            if not j:
-                axs[i, j].set_ylabel(function, fontsize=FS_LABEL)
-            if j:
-                axs[i, j].yaxis.set_ticklabels([])
-
-            y_range = max(y) - min(y)
-            y_pad = (y_range/2)*1.5
-            axs[i, j].set_xlim([min(x), max(x)])
-            axs[i, j].set_ylim([min(y) - y_pad, max(y) + y_pad])
-            axs[i, j].xaxis.set_major_locator(tck.MaxNLocator(integer=True))
-            # square boxes
-            axs[i, j].set_aspect(
-                np.diff(axs[i, j].get_xlim())/np.diff(axs[i, j].get_ylim()),
-                adjustable='datalim'
-                # adjustable='box'
-            )
-    fig.subplots_adjust(
-        bottom=0, top=1, hspace=0,left=0, right=1, wspace=0,
-    )
-    fig.tight_layout(pad=0.0, h_pad=0, w_pad=0.0)
-    plt.show()
-    if savefig:
-        save(
-            obj=fig,
-            fname=fname,
-            experiment=experiment,
-            format=format,
-            dpi=PLOT_DPI,
-            bbox_inches='tight'
-        )
-
-
 def tex_table(
         data: Dict,
         label: str,
         caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3,
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         data = bootstrap(data)
@@ -809,7 +717,7 @@ def fit_model(
         model.fit(
             X=X, y=y, G=G, GX=GX, pbar_manager=None, **sgd_params
         )
-    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
             X=GX, y=y, Z=G, pbar_manager=pbar_manager, **sgd_params
@@ -843,7 +751,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
         model.fit(
             X=X, y=y, G=G, GX=GX, **sgd_params
         )
-    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
             X=GX, y=y, Z=G, **sgd_params

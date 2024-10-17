@@ -21,7 +21,6 @@ from src.regressors.baselines import (
     RICE,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
-    AnchorRegression as AR,
     InvariantRiskMinimization as IRM,
     DistributionallyRobustOptimization as DRO,
 )
@@ -106,18 +105,6 @@ def run(
         'IRM': lambda: LevelCV(
             metric='accuracy',
             estimator=IRM(model='cmnist'),
-            param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=1
-        ),
-        'AR': lambda: CV(
-            metric='accuracy',
-            estimator=AR(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -216,10 +203,6 @@ def run(
                 all_accuracies[augmentation][method_name][i] = score
 
                 logger.info(f'Test accuracy for {method_name}: \t {score}.')
-
-                save(
-                    obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-                )
                 
                 pbar_methods.update(), status.update()
             pbar_methods.close()
@@ -232,9 +215,6 @@ def run(
         obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     save(
-        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
-    save(
         obj=np.arange(seed, seed+num_seeds),
         fname='seeds', experiment=EXPERIMENT, format='json'
     )
@@ -243,11 +223,6 @@ def run(
         all_accuracies, xlabel='Test Accuracy',
         fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
         **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        all_accuracies, xlabel='Test Accuracy',
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = (
@@ -258,12 +233,6 @@ def run(
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
-    table = tex_table(
-        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption, bootstrapped=True
-    )
-    save(
-        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
     )
 
 

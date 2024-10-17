@@ -20,7 +20,6 @@ from src.regressors.baselines import (
     RICE,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
-    LinearAnchorRegression as AR,
     InvariantRiskMinimization as IRM,
     InvariantCausalPrediction as ICP,
     DistributionallyRobustOptimization as DRO,
@@ -109,17 +108,6 @@ def run(
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
-            param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=1
-        ),
-        'AR': lambda: CV(
-            estimator=AR(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -221,10 +209,6 @@ def run(
                 error = relative_error(sem_solution, method_solution)
 
                 all_errors[augmentation][method_name][i] = error
-
-                save(
-                    obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-                )
                 
                 pbar_methods.update(), status.update()
             pbar_methods.close()
@@ -236,26 +220,10 @@ def run(
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
     
     box_plot(
         all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-
-    box_plot(
-        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = 'RSE $\pm$ one standard deviation across the optical device datasets.'
@@ -264,14 +232,6 @@ def run(
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
-    table_bootstrapped = tex_table(
-        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=True
-    )
-    save(
-        obj=table_bootstrapped,
-        fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        format='tex'
     )
 
 

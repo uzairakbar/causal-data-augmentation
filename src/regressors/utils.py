@@ -10,6 +10,7 @@ from sklearn.model_selection import BaseCrossValidator
 Model = Literal['linear', '2-layer', 'cmnist', 'rmnist']
 
 
+CPU_ONLY: bool = True
 MODELS: Dict[Model, Callable[[int], nn.Sequential]] = {
     'linear': lambda input_dim: nn.Sequential(
         nn.Linear(input_dim, 1, bias=False)
@@ -109,5 +110,7 @@ def device():
         device = 'mps'
     else:
         device = 'cpu'
-    logger.info(f'Using {device}.')
+    if CPU_ONLY:
+        device = 'cpu'
+    logger.info(f'Using {device} device.')
     return torch.device(device)

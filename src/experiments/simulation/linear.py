@@ -1,6 +1,7 @@
 import copy
 import enlighten
 import numpy as np
+import scipy as sp
 from loguru import logger
 from abc import ABC, abstractmethod
 from argparse import ArgumentParser
@@ -26,7 +27,6 @@ from src.regressors.baselines import (
     RICE,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
-    LinearAnchorRegression as AR,
     InvariantRiskMinimization as IRM,
     InvariantCausalPrediction as ICP,
     DistributionallyRobustOptimization as DRO,
@@ -276,8 +276,8 @@ def run(
         'DA+UIV-CV': lambda: CV(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -288,8 +288,8 @@ def run(
             metric='mse',
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -299,8 +299,8 @@ def run(
         'DA+UIV-CC': lambda: CC(
             estimator=UIV_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
@@ -311,17 +311,6 @@ def run(
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
-            param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=1
-        ),
-        'AR': lambda: CV(
-            estimator=AR(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -368,6 +357,11 @@ def run(
         'DRO': lambda: DRO(model='linear')
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
+    sweep_methods: Dict[str, ModelBuilder] = {
+        m: all_methods[m] for m in methods if m in (
+            'ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+UIV-CC', 'DA+IV'
+        )
+    }
     
     # sweep over lambda parameter
     status.update(sweep='lambda')
@@ -377,7 +371,7 @@ def run(
         n_samples=n_samples,
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
-        methods=methods,
+        methods=sweep_methods,
         sweep_samples=sweep_samples,
         hyperparameters=hyperparameters
     ).run_experiment()
@@ -386,10 +380,6 @@ def run(
     )
     save(
         obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        lambda_values, results,
-        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['lambda']
     )
     sweep_plot(
         lambda_values, results, **ANNOTATE_SWEEP_PLOT['lambda']
@@ -403,7 +393,7 @@ def run(
         n_samples=n_samples,
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
-        methods=methods,
+        methods=sweep_methods,
         sweep_samples=sweep_samples,
         hyperparameters=hyperparameters
     ).run_experiment()
@@ -412,10 +402,6 @@ def run(
     )
     save(
         obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        gamma_values, results,
-        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['gamma']
     )
     sweep_plot(
         gamma_values, results, **ANNOTATE_SWEEP_PLOT['gamma']
@@ -429,7 +415,7 @@ def run(
         n_samples=n_samples,
         kernel_dim=kernel_dim,
         n_experiments=n_experiments,
-        methods=methods,
+        methods=sweep_methods,
         sweep_samples=sweep_samples,
         hyperparameters=hyperparameters
     ).run_experiment()
@@ -438,10 +424,6 @@ def run(
     )
     save(
         obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
-    )
-    sweep_plot(
-        alpha_values, results,
-        bootstrapped=True, **ANNOTATE_SWEEP_PLOT['alpha']
     )
     sweep_plot(
         alpha_values, results, **ANNOTATE_SWEEP_PLOT['alpha']
@@ -461,16 +443,9 @@ def run(
     save(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
     box_plot(
         results, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        results, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
@@ -479,14 +454,6 @@ def run(
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
-    table_bootstrapped = tex_table(
-        results, label=EXPERIMENT, caption=caption, bootstrapped=True
-    )
-    save(
-        obj=table_bootstrapped,
-        fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        format='tex'
     )
 
 

@@ -2,26 +2,18 @@
 
 ## Setup
 ### Dependencies
-Clone this repository.
-```bash
-git clone https://github.com/uzairakbar/causal-data-augmentation.git
-```
-Install latex.
-```bash
-brew install texmaker
-brew install mactex
-```
+This code was tested on **MacOS** (Apple silicon) and **Linux**. We recommend running this code using `conda`, however we have also provided Docker and python `venv` setup scripts as alternatives.
 
 ### Python `venv`
 Setup the python virtual environemnt (requires python `3.10.14`).
 ```bash
-python -m venv .env
-source .env/bin/activate
+environment=causal-data-augmentation
+python -m venv "$environment"
+source "$environment"/bin/activate
 pip install -r requirements.txt
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 ```
-
-Then run the main script `.env/bin/python src/main.py`.
+Then run the main script `causal-data-augmentation/bin/python src/main.py`.
 
 ### Conda environment
 Install dependencies with `conda` and fallback to `pip` if needed.
@@ -55,8 +47,12 @@ docker rm "$container"
 docker image rm -f "$image"
 ```
 
-## Versioning
-This project is versioned with #submissions/revisions, #experiments updated (per revision) and #commits to `main`.
-```
-<#Submissions>.<#UpdatedExperiments>.<#MainCommits>
-```
+## Experiment configuration
+Use the `./config.yaml` file to specify the experiment parameters. The provided (default) configuration was used to generate the figures of the paper.
+
+Comment out (or remove) the experiemnts from `./config.yaml` that you are not interested in, and then run the `./src/main.py` script to run the remaining experiments.
+
+The generated figures and artifacts are saved in the `./artifacts/` directory after the experiments finish execution.
+
+## CPU vs. GPU backend
+We recommend running the `linear_simulation` and `optical_device` experiments on the CPU. To use a GPU or MPS backend, however, change the `CPU_ONLY` variable specified in `./src/regressors/utils.py` to `False`.

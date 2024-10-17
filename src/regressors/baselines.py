@@ -22,33 +22,6 @@ LOG_FREQUENCY: int=100
 MAX_ICP_SUBSETS: int=1_024
 
 
-class LinearAnchorRegression(BaselineRegressor):
-    def __init__(self, alpha: float=1.0):
-        super(LinearAnchorRegression, self).__init__(alpha=alpha)
-        
-    def _fit(
-            self,
-            X, y, Z,
-            **kwargs
-        ):
-        N = len(X)
-        I = np.eye(N)
-        Cgg = Z.T @ Z
-        PI_Z = Z @ np.linalg.pinv( Cgg ) @ Z.T
-        
-        K = (I + (np.sqrt(self._alpha) - 1) * PI_Z)
-        X_, y_ = K @ X, K @ y
-        
-        self._W = LinearRegression(
-            fit_intercept=False
-        ).fit(X_, y_).coef_.reshape(-1, 1)
-
-        return self
-    
-    def _predict(self, X):
-        return X @ self._W
-
-
 class InvariantCausalPrediction(BaselineRegressor):
     def __init__(self, model='linear', alpha: float=0.05):
         super(InvariantCausalPrediction, self).__init__(alpha)
@@ -89,15 +62,16 @@ class InvariantCausalPrediction(BaselineRegressor):
 
                 p_values.append(self._mean_var_test(res_in, res_out))
             
-            # Jonas uses `min(p_values) * len(environments) - 1`
-            p_value = min(p_values) * len(environments)
+            if p_values:
+                # Jonas uses `min(p_values) * len(environments) - 1`
+                p_value = min(p_values) * len(environments)
 
-            if p_value > self._alpha:
-                accepted_subsets.append(set(subset))
-                logger.info(f'Accepted subset: {subset}')
-            
-            if i >= MAX_ICP_SUBSETS:
-                break
+                if p_value > self._alpha:
+                    accepted_subsets.append(set(subset))
+                    logger.info(f'Accepted subset: {subset}')
+                
+                if i >= MAX_ICP_SUBSETS:
+                    break
         
         if len(accepted_subsets):
             accepted_features = list(set.intersection(*accepted_subsets))
@@ -316,28 +290,6 @@ class InvariantRiskMinimization(NonlinearBaselineRegressor):
         loss = R(phi(X), y)
 
         return loss + alpha * penalty
-
-
-class AnchorRegression(NonlinearBaselineRegressor):
-    def __init__(self, model: Model='linear', alpha: float=1.0, **kwargs):
-        self.model, self.alpha = model, alpha
-        super(AnchorRegression, self).__init__(model=model, alpha=alpha)
-    
-    @classmethod
-    def _loss(cls,
-              X, y, Z, f,
-              alpha):
-        N, M = X.shape
-        I = torch.eye(N).to(DEVICE)
-        Pi = Z @ torch.linalg.pinv( Z.t() @ Z ) @ Z.t()
-
-        mse = F.mse_loss(f(X), y, reduction='none')
-        backdoor_adjustment = (I - Pi) @ mse
-        iv_regression = Pi @ mse
-        
-        loss = (backdoor_adjustment + alpha * iv_regression).mean()
-
-        return loss
 
 
 class VarianceREx(NonlinearBaselineRegressor):

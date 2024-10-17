@@ -11,33 +11,15 @@ linear_simulation:
         - DA+UIV-CV
         - DA+UIV-LCV
         - DA+UIV-CC
-        - DA+UIV-Pi
-        - DA+UIV
         - DA+IV
         - IRM
         - ICP
-        - AR
         - DRO
         - RICE
         - V-REx
         - MM-REx
     augmentations:
         - translate
-
-nonlinear_simulation:
-    seed: 42
-    n_samples: 1_000
-    n_experiments: 10
-    methods:
-        - ERM
-        - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+IV
-    augmentations:
-        - abs
-        - sin
-        - step
 
 optical_device:
     seed: 42
@@ -51,16 +33,12 @@ optical_device:
         - DA+IV
         - IRM
         - ICP
-        - AR
         - DRO
         - RICE
         - V-REx
         - MM-REx
     augmentations:
-        - rotation > hflip > vflip
-        - random-permutation
         - gaussian-noise
-        - all
 
 colored_mnist:
     seed: 42
@@ -73,34 +51,12 @@ colored_mnist:
         - DA+UIV-LCV
         - DA+IV
         - IRM
-        - AR
         - DRO
         - RICE
         - V-REx
         - MM-REx
     augmentations:
         - jitter > translate
-
-# rotated_mnist:
-#     seed: 42
-#     num_seeds: 10
-#     n_samples: 60_000
-#     methods:
-#         - ERM
-#         - DA+ERM
-#         - DA+UIV-CV
-#         - DA+UIV-LCV
-#         - DA+IV
-#         - IRM
-#         - AR
-#         - DRO
-#         - RICE
-#         - V-REx
-#         - MM-REx
-#     augmentations:
-#         - rotation
-#         - flip
-#         - gan
 
 hyperparameters:
     sgd:
