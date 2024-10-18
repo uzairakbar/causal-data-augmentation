@@ -160,7 +160,7 @@ def run(
         } for augmentation in augmentations
     }
 
-    accuracy = lambda y, yhat: (y == yhat).mean()
+    accuracy = lambda y, yhat: 100*(y == yhat).mean()
     sem_test = SEM(train=False)
     X_test, y_test = sem_test(N = -1)
 
