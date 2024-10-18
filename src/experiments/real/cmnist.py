@@ -220,7 +220,7 @@ def run(
     )
     
     box_plot(
-        all_accuracies, xlabel='Test Accuracy',
+        all_accuracies, xlabel='Test Accuracy (%)',
         fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
         **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
