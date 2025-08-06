@@ -17,10 +17,10 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.uiv import (
-    ConstrainedLeastSquaresUnfaithfulIV as UIV,
-    LeastSquaresClosedFormUnfaithfulIV as UIV_a,
-    ProjectedLeastSquaresUnfaithfulIV as UIV_Pi,
+from src.regressors.ivl import (
+    ConstrainedLeastSquaresIVlike as IVL,
+    LeastSquaresClosedFormIVlike as IVL_a,
+    ProjectedLeastSquaresIVlike as IVL_Pi,
 )
 
 from src.regressors.baselines import (
@@ -89,7 +89,7 @@ class SweepExperiment(ABC):
             da: Optional[DA]=None,
             hyperparameters: Optional[Dict[str, Dict[str, float]]]=None
         ) -> Regressor | ModelSelector:
-        if method_name == 'DA+UIV-a':
+        if method_name == 'DA+IVL-a':
             model = method(alpha = param)
         else:
             model = method()
@@ -204,7 +204,7 @@ class AlphaSweep(SweepExperiment):
         super(AlphaSweep, self).__init__(**kwargs)
         self.methods = {
             **copy.deepcopy(self.methods),
-            'DA+UIV-a': lambda alpha: UIV_a(alpha = alpha)
+            'DA+IVL-a': lambda alpha: IVL_a(alpha = alpha)
         }
 
     def generate_dataset(self, sem: SEM, da: DA, param: float):
@@ -230,7 +230,7 @@ class AlphaSweep(SweepExperiment):
             hyperparameters=self.hyperparameters
         )
         error = relative_error(sem_solution, model.solution)
-        if ('DA+UIV-' in method_name) and (method_name != 'DA+UIV-a'):
+        if ('DA+IVL-' in method_name) and (method_name != 'DA+IVL-a'):
             return model.alpha
         else:
             return error
@@ -273,8 +273,8 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-CV': lambda: CV(
-            estimator=UIV_a(),
+        'DA+IVL-CV': lambda: CV(
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -284,9 +284,9 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-LCV': lambda: LevelCV(
+        'DA+IVL-LCV': lambda: LevelCV(
             metric='mse',
-            estimator=UIV_a(),
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -296,8 +296,8 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-CC': lambda: CC(
-            estimator=UIV_a(),
+        'DA+IVL-CC': lambda: CC(
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
                     1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -306,8 +306,8 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-Pi': lambda: UIV_Pi(),
-        'DA+UIV': lambda: UIV(),
+        'DA+IVL-Pi': lambda: IVL_Pi(),
+        'DA+IVL': lambda: IVL(),
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
@@ -359,7 +359,7 @@ def run(
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     sweep_methods: Dict[str, ModelBuilder] = {
         m: all_methods[m] for m in methods if m in (
-            'ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+UIV-CC', 'DA+IV'
+            'ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IVL-CC', 'DA+IV'
         )
     }
     
@@ -473,8 +473,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+IVL-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

@@ -14,7 +14,7 @@ from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.uiv import LeastSquaresClosedFormUnfaithfulIV as UIV_a
+from src.regressors.ivl import LeastSquaresClosedFormIVlike as IVL_a
 
 from src.regressors.baselines import (
     RICE,
@@ -76,8 +76,8 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-CV': lambda: CV(
-            estimator=UIV_a(),
+        'DA+IVL-CV': lambda: CV(
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -86,8 +86,8 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-LCV': lambda: LevelCV(
-            estimator=UIV_a(),
+        'DA+IVL-LCV': lambda: LevelCV(
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -96,8 +96,8 @@ def run(
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-CC': lambda: CC(
-            estimator=UIV_a(),
+        'DA+IVL-CC': lambda: CC(
+            estimator=IVL_a(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -249,8 +249,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+IVL-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

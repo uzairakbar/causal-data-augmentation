@@ -54,12 +54,12 @@ TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV-$\alpha$',
-    'DA+UIV-CV': r'DA+UIV-$\alpha^{\text{CV}}$',
-    'DA+UIV-LCV': r'DA+UIV-$\alpha^{\text{LCV}}$',
-    'DA+UIV-CC': r'DA+UIV-$\alpha^{\text{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV-$\Pi$',
-    'DA+UIV': r'DA+UIV',
+    'DA+IVL-a': r'DA+IVL-$\alpha$',
+    'DA+IVL-CV': r'DA+IVL-$\alpha^{\text{CV}}$',
+    'DA+IVL-LCV': r'DA+IVL-$\alpha^{\text{LCV}}$',
+    'DA+IVL-CC': r'DA+IVL-$\alpha^{\text{CC}}$',
+    'DA+IVL-Pi': r'DA+IVL-$\Pi$',
+    'DA+IVL': r'DA+IVL',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
     'ICP': r'ICP',
@@ -78,7 +78,7 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
-        'dummies': ['DA+UIV-CC', 'ICP'],
+        'dummies': ['DA+IVL-CC', 'ICP'],
         # 'y_color': 'w',
     }
 }
@@ -91,9 +91,9 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
     'alpha': {
         'xlabel': r'$\alpha$',
         'xscale': 'log',
-        'vertical_plots': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC'],
+        'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
         'trivial_solution': True,
-        'legend_items': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC', 'DA+UIV-a'],
+        'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
         # 'y_color': 'w',
         # 'legend_loc': (0.645, 0.425),
     },
@@ -172,7 +172,7 @@ def sweep_plot(
     plot_handles = []
     for i, (method, errors) in enumerate(y.items()):
 
-        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
         #     continue
         # if 'CV' in method or 'LCV' in method or 'CC' in method:
         #     continue
@@ -208,7 +208,7 @@ def sweep_plot(
         
     for i, (method, errors) in enumerate(y.items()):
 
-        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
         #     continue
         # if 'CV' in method or 'LCV' in method or 'CC' in method:
         #     continue
@@ -237,9 +237,9 @@ def sweep_plot(
 
     if hilight_ours:
         for i, label in enumerate(labels):
-            if label == TEX_MAPPER['DA+UIV-a']:
+            if label == TEX_MAPPER['DA+IVL-a']:
                 continue
-            elif 'UIV' in label or 'average' in label:
+            elif 'IVL' in label or 'average' in label:
                 bold = label
                 bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
                 bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
@@ -425,14 +425,14 @@ def box_plot(
         if orient == 'h':
             new_ticks = []
             for tick in ax.get_yticklabels():
-                if 'UIV' in tick.get_text():
+                if 'IVL' in tick.get_text():
                     tick = bold_tick(tick)
                 new_ticks.append(tick)
             ax.set_yticklabels(new_ticks)
         else:
             new_ticks = []
             for tick in ax.get_xticklabels():
-                if 'UIV' in tick.get_text():
+                if 'IVL' in tick.get_text():
                     tick = bold_tick(tick)
                 new_ticks.append(tick)
             ax.set_xticklabels(new_ticks)
@@ -504,7 +504,7 @@ def tex_table(
     if hilight_ours:
         bold_column_names = []
         for name in column_names:
-            if 'UIV' in name:
+            if 'IVL' in name:
                 bold = name
                 bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
                 bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
@@ -711,7 +711,7 @@ def fit_model(
         model.fit(
             X=GX, y=y, pbar_manager=pbar_manager, **sgd_params
         )
-    elif 'DA+UIV' in name:
+    elif 'DA+IVL' in name:
         if 'LCV' in name:
             G = discretize(G)
         model.fit(
@@ -745,7 +745,7 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
         model.fit(
             X=GX, y=y, **sgd_params
         )
-    elif 'DA+UIV' in name:
+    elif 'DA+IVL' in name:
         if 'LCV' in name:
             G = discretize(G)
         model.fit(

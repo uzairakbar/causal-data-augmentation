@@ -44,10 +44,10 @@ class RegressorIV(Regressor):
         pass
 
 
-class RegressorUnfaithfulIV(Regressor):
+class RegressorIVlike(Regressor):
     def __init__(self, alpha=1.0):
         self._alpha = alpha
-        super(RegressorUnfaithfulIV, self).__init__()
+        super(RegressorIVlike, self).__init__()
     
     @property
     def alpha(self):
@@ -62,7 +62,7 @@ class RegressorUnfaithfulIV(Regressor):
         GX = GX.reshape(*GX.shape[:1], -1)
         X = X.reshape(*X.shape[:1], -1)
         # return self._fit(X, y, G, GX)
-        return super(RegressorUnfaithfulIV, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
+        return super(RegressorIVlike, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
     
     @abstractmethod
     def _fit(self, X, y, G, GX, **kwargs):

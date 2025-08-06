@@ -15,7 +15,7 @@ from src.regressors.erm import GradientDescentERM as ERM
 
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
-from src.regressors.uiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
+from src.regressors.ivl import GeneralizedMomentMethodIVlike as IVL_a
 
 from src.regressors.baselines import (
     RICE,
@@ -77,9 +77,9 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='cmnist'),
         'DA+ERM': lambda: ERM(model='cmnist'),
-        'DA+UIV-CV': lambda: CV(
+        'DA+IVL-CV': lambda: CV(
             metric='accuracy',
-            estimator=UIV_a(model='cmnist'),
+            estimator=IVL_a(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -89,9 +89,9 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-LCV': lambda: LevelCV(
+        'DA+IVL-LCV': lambda: LevelCV(
             metric='accuracy',
-            estimator=UIV_a(model='cmnist'),
+            estimator=IVL_a(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -250,8 +250,8 @@ if __name__ == '__main__':
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+IVL-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))
