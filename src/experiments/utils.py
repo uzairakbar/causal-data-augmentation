@@ -28,8 +28,8 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
-FS_TICK: int = 16
-FS_LABEL: int = 20
+FS_TICK: int = 18
+FS_LABEL: int = 24
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
@@ -44,21 +44,21 @@ RC_PARAMS: Dict[str, str | int | bool] = {
     # 'font.serif': ['Computer Modern'],
     # 'text.latex.preamble': r'\usepackage{amsmath}',
     # # Set background and border settings
-    'axes.facecolor': 'white',
-    'axes.edgecolor': 'black',
-    'axes.linewidth': 2,
-    'xtick.color': 'black',
-    'ytick.color': 'black',
+    # 'axes.facecolor': 'white',
+    # 'axes.edgecolor': 'black',
+    # 'axes.linewidth': 2,
+    # 'xtick.color': 'black',
+    # 'ytick.color': 'black',
 }
 TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+IVL-a': r'DA+IVL-$\alpha$',
-    'DA+IVL-CV': r'DA+IVL-$\alpha^{\text{CV}}$',
-    'DA+IVL-LCV': r'DA+IVL-$\alpha^{\text{LCV}}$',
-    'DA+IVL-CC': r'DA+IVL-$\alpha^{\text{CC}}$',
-    'DA+IVL-Pi': r'DA+IVL-$\Pi$',
+    'DA+IVL-a': r'DA+IVL$_\alpha$',
+    'DA+IVL-CV': r'DA+IVL$_\alpha^{_\text{CV}}$',
+    'DA+IVL-LCV': r'DA+IVL$_\alpha^{_\text{LCV}}$',
+    'DA+IVL-CC': r'DA+IVL$_\alpha^{_\text{CC}}$',
+    'DA+IVL-Pi': r'DA+IVL$_\Pi$',
     'DA+IVL': r'DA+IVL',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
@@ -244,8 +244,8 @@ def sweep_plot(
                 continue
             elif 'IVL' in label or 'average' in label:
                 bold = label
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+                bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
                 bold = fr'\textbf{{{bold}}}'
                 labels[i] = bold                
 
@@ -418,8 +418,8 @@ def box_plot(
     def bold_tick(tick):
         tick.set_fontweight('bold')
         bold = tick.get_text()
-        bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-        bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+        bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+        bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
         bold = fr'\textbf{{{bold}}}'
         tick.set_text(bold)
         return tick
@@ -509,8 +509,8 @@ def tex_table(
         for name in column_names:
             if 'IVL' in name:
                 bold = name
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+                bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
                 bold = fr'\textbf{{{bold}}}'
                 name = bold
             bold_column_names.append(name)
