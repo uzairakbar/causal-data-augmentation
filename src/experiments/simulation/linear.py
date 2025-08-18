@@ -179,17 +179,17 @@ class SweepExperiment(ABC):
         return param_values, results
 
 
-class LambdaSweep(SweepExperiment):
+class KappaSweep(SweepExperiment):
     def generate_dataset(self, sem: SEM, da: DA, param: float):
-        X, y = sem(N = self.n_samples, lamda = param)
+        X, y = sem(N = self.n_samples, kappa = param)
         GX, G = da(X)
         return X, y, G, GX
 
     def param_sweep(self):
-        lambda_values = np.linspace(
+        kappa_values = np.linspace(
             0, 1, num=self.sweep_samples
         )
-        return lambda_values
+        return kappa_values
 
 
 class GammaSweep(SweepExperiment):
@@ -396,10 +396,10 @@ def run(
         )
     }
     
-    # sweep over lambda parameter
-    status.update(sweep='lambda')
-    logger.info('Sweeping over lambda parameters.')
-    lambda_values, results = LambdaSweep(
+    # sweep over kappa parameter
+    status.update(sweep='kappa')
+    logger.info('Sweeping over kappa parameters.')
+    kappa_values, results = KappaSweep(
         seed=seed,
         n_samples=n_samples,
         kernel_dim=kernel_dim,
@@ -409,13 +409,13 @@ def run(
         hyperparameters=hyperparameters
     ).run_experiment()
     save(
-        obj=lambda_values, fname='lambda_values', experiment=EXPERIMENT, format='pkl'
+        obj=kappa_values, fname='kappa_values', experiment=EXPERIMENT, format='pkl'
     )
     save(
-        obj=results, fname='lambda_results', experiment=EXPERIMENT, format='pkl'
+        obj=results, fname='kappa_results', experiment=EXPERIMENT, format='pkl'
     )
     sweep_plot(
-        lambda_values, results, **ANNOTATE_SWEEP_PLOT['lambda']
+        kappa_values, results, **ANNOTATE_SWEEP_PLOT['kappa']
     )
 
     # sweep over gamma parameter
@@ -462,9 +462,9 @@ def run(
         alpha_values, results, **ANNOTATE_SWEEP_PLOT['alpha']
     )
 
-    # no sweep, just compare baselines with gamma=1 and lambda=1
+    # no sweep, just compare baselines with gamma=1 and kappa=1
     status.update(sweep='N/A')
-    logger.info('Linear experiemnt with gamma=1 and lambda=1.')
+    logger.info('Linear experiemnt with gamma=1 and kappa=1.')
     _, results = BaselineExperiment(
         seed=seed,
         n_samples=n_samples,
@@ -500,7 +500,7 @@ if __name__ == '__main__':
     )
     CLI.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
     CLI.add_argument(
-        '--sweep_samples', type=int, default=10, help='Sweep resolution across lambda, alpha and gamma.'
+        '--sweep_samples', type=int, default=10, help='Sweep resolution across kappa, alpha and gamma.'
     )
     CLI.add_argument(
         '--methods',

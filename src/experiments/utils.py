@@ -86,8 +86,8 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     }
 }
 ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
-    'lambda': {
-        'xlabel': r'$\lambda$',
+    'kappa': {
+        'xlabel': r'$\kappa$',
         'xscale': 'linear',
         'hide_legend': True,
     },

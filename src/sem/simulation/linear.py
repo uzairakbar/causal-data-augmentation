@@ -29,7 +29,7 @@ class LinearSimulationSEM(SEM):
         super(LinearSimulationSEM, self).__init__()
     
     def sample(
-            self, N: int= 1, lamda: float=1.0, intervention: bool=False, **kwargs
+            self, N: int= 1, kappa: float=1.0, intervention: bool=False, **kwargs
         ) -> Tuple[NDArray, NDArray]:
         C = np.random.randn(N, self.confounder_dimension)
 
@@ -40,5 +40,5 @@ class LinearSimulationSEM(SEM):
             X = C @ self.W_CX + N_X
 
         N_Y = np.random.randn(N, self.label_dimension)*0.1
-        Y = X @ self.W_XY + lamda * C @ self.W_CY + N_Y
+        Y = X @ self.W_XY + kappa * C @ self.W_CY + N_Y
         return X, Y
