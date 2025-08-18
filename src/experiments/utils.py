@@ -122,11 +122,21 @@ def discretize(
     return G
 
 
-def relative_error(W, What) -> float:
+def estimation_error(
+        estimand,       # ground-truth target f or f(x)
+        estimate,       # hypothesis h or h(x)
+        normalize=True,
+    ) -> float:
     sq_norm = lambda x: (x**2).sum()
-    sq_error = sq_norm(What - W)
-    relative_sq_error = sq_error / (sq_error + sq_norm(W))
-    return relative_sq_error**0.5
+
+    sq_error = sq_norm(
+        estimate - estimand
+    )
+    if normalize:
+        sq_error = (
+            sq_error / (sq_error + sq_norm(estimand))
+        )
+    return sq_error
 
 
 def set_seed(seed: int=42):
@@ -148,7 +158,7 @@ def set_seed(seed: int=42):
 def sweep_plot(
         x, y,
         xlabel: str,
-        ylabel: Optional[str]='Retalive Error',
+        ylabel: Optional[str]='nCER',
         xscale: Optional[Literal['linear', 'log']]='linear',
         vertical_plots: Optional[List]=[],
         trivial_solution: Optional[bool]=True,
@@ -205,7 +215,7 @@ def sweep_plot(
             legend_items[legend_items.index(method)] = label
         
         handle = plt.axhline(
-            y = 0.5**0.5, color=colors[-1], label=label
+            y = 0.5, color=colors[-1], label=label
         )
         plot_handles.append(handle)
         
@@ -226,7 +236,7 @@ def sweep_plot(
     plt.yticks(fontsize=FS_TICK, color=y_color)
     plt.xticks(fontsize=FS_TICK)
     plt.xlim([min(x), max(x)])
-    maximum = 0.5**0.5
+    maximum = 0.5
     padding = 0.05 * maximum
     plt.ylim([0.0 - padding, maximum + padding])
     plt.xscale(xscale)
@@ -296,7 +306,7 @@ def box_plot(
         fname: str,
         experiment: Experiment,
         title: Optional[str]='',
-        xlabel: Optional[str]='Relative Error',
+        xlabel: Optional[str]='nCER',
         ylabel: Optional[str]='Method',
         zlabel: Optional[str]='Augmentation',
         orient: Optional[Literal['h', 'v']]='h',
@@ -341,7 +351,11 @@ def box_plot(
         if len(data) > 1:
             data = {None : data}
     
-    if 'error' in (xlabel.lower() + ylabel.lower()):
+    if (
+        'cer' in (xlabel.lower() + ylabel.lower())
+        or
+        'error' in (xlabel.lower() + ylabel.lower())
+    ):
         data = populate_dummy_data(data, dummies, scaler=2.0)
     elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
         data = populate_dummy_data(data, dummies, scaler=-1.0)
@@ -354,7 +368,11 @@ def box_plot(
 
     if annotate_best and single_row:
         average_scores = df.groupby(ylabel, sort=False).mean()[xlabel]
-        if 'error' in (xlabel.lower() + ylabel.lower()):
+        if (
+            'cer' in (xlabel.lower() + ylabel.lower())
+            or
+            'error' in (xlabel.lower() + ylabel.lower())
+        ):
             best_idx = average_scores.argmin()
         elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
             best_idx = average_scores.argmax()

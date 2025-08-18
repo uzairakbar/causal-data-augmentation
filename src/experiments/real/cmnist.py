@@ -37,6 +37,7 @@ from src.experiments.utils import (
     box_plot,
     tex_table,
     fit_model,
+    estimation_error,
     ANNOTATE_BOX_PLOT,
 )
 
@@ -153,15 +154,14 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
 
-    all_accuracies = {
+    all_errors = {
         augmentation: {
             name: np.zeros(num_seeds) for name in methods
         } for augmentation in augmentations
     }
 
-    accuracy = lambda y, yhat: 100*(y == yhat).mean()
     sem_test = SEM(train=False)
-    X_test, y_test = sem_test(N = -1)
+    X_test, ate_test = sem_test(N = -1)
 
     pbar_augmentation = MANAGER.counter(
         total=len(augmentations), desc='Augmentations', unit='augmentations'
@@ -197,11 +197,13 @@ def run(
                     da=da
                 )
                 
-                y_test_hat = model.predict(X_test)
-                score = accuracy(y_test, y_test_hat)
-                all_accuracies[augmentation][method_name][i] = score
+                ate_test_hat = model.predict(X_test)
+                error = estimation_error(
+                    ate_test, ate_test_hat
+                )
+                all_errors[augmentation][method_name][i] = error
 
-                logger.info(f'Test accuracy for {method_name}: \t {score}.')
+                logger.info(f'Test error for {method_name}: \t {error}.')
                 
                 pbar_methods.update(), status.update()
             pbar_methods.close()
@@ -211,7 +213,7 @@ def run(
     pbar_augmentation.close()
 
     save(
-        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     save(
         obj=np.arange(seed, seed+num_seeds),
@@ -219,16 +221,15 @@ def run(
     )
     
     box_plot(
-        all_accuracies, xlabel='Test Accuracy (%)',
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = (
-        f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
+        f'nCER $\pm$ standard error for the CMNIST experiment across {num_seeds} seeds.'
     )
     table = tex_table(
-        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption
+        all_errors, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

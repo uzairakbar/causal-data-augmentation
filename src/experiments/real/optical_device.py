@@ -44,7 +44,7 @@ from src.experiments.utils import (
     box_plot,
     tex_table,
     fit_model,
-    relative_error,
+    estimation_error,
     ANNOTATE_BOX_PLOT,
 )
 
@@ -240,7 +240,7 @@ def run(
                 
                 method_solution = model.solution
                 
-                error = relative_error(sem_solution, method_solution)
+                error = estimation_error(sem_solution, method_solution)
 
                 all_errors[augmentation][method_name][i] = error
                 
@@ -260,7 +260,7 @@ def run(
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
-    caption = 'RSE $\pm$ one standard deviation across the optical device datasets.'
+    caption = 'nCER $\pm$ standard error across the optical device datasets.'
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
     )

@@ -51,7 +51,7 @@ from src.experiments.utils import (
     tex_table,
     fit_model,
     sweep_plot,
-    relative_error,
+    estimation_error,
     ANNOTATE_BOX_PLOT,
     ANNOTATE_SWEEP_PLOT,
 )
@@ -129,7 +129,7 @@ class SweepExperiment(ABC):
             method_name, method, X, y, G, GX, param, da=da,
             hyperparameters=self.hyperparameters
         )
-        error = relative_error(sem_solution, model.solution)
+        error = estimation_error(sem_solution, model.solution)
         return error
 
     def run_experiment(self):
@@ -235,7 +235,7 @@ class AlphaSweep(SweepExperiment):
             method_name, method, X, y, G, GX, param, da=da,
             hyperparameters=self.hyperparameters
         )
-        error = relative_error(sem_solution, model.solution)
+        error = estimation_error(sem_solution, model.solution)
         if ('DA+IVL-' in method_name) and (method_name != 'DA+IVL-a'):
             return model.alpha
         else:

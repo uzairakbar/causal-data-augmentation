@@ -78,7 +78,13 @@ class ColoredDigitsSEM(SEM):
         
         # Apply the color to the image by zeroing out the other color channel
         X = colour_image(image_grey=N_X, color=C)
-        return (
-            (X.float() / 255.).numpy(),
-            y[:, None].numpy()
-        )
+        if self.train:
+            return (
+                (X.float() / 255.).numpy(), # treatment
+                y[:, None].numpy(),         # outcome
+            )
+        else:
+            return (
+                (X.float() / 255.).numpy(), # treatment
+                fX[:, None].numpy(),        # ATE
+            )
