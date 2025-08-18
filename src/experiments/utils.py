@@ -386,6 +386,13 @@ def box_plot(
     sns.set_palette('deep')
     fig = plt.figure()
 
+    num_categories = df[zlabel].nunique()
+    cmap = plt.get_cmap("tab20")
+    palette = ([
+        sns.color_palette("deep")[i % 10] if i < 10 
+        else cmap(i) for i in range(num_categories)
+    ])
+
     if orient == 'v':
         xlabel, ylabel = ylabel, xlabel
 
@@ -393,7 +400,7 @@ def box_plot(
         x=xlabel, y=ylabel,
         hue=zlabel,
         data=df,
-        palette='deep',
+        palette=palette,
         orient=orient,
         showmeans=True,
         meanprops={
