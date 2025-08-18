@@ -113,7 +113,6 @@ class LinearSimulationDA(DA):
         G_list: List[NDArray] = []
         for i, augmentation in enumerate(self._augmentations):
             GX, G = augmentation(GX)
-            print(f'{augmentation.augmentation} {G.shape}')
             G_list.append(G)
         G: NDArray = np.hstack(G_list)
         

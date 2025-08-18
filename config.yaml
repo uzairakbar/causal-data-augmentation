@@ -8,9 +8,9 @@ linear_simulation:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+UIV-CC
+        - DA+IVL-CV
+        - DA+IVL-LCV
+        - DA+IVL-CC
         - DA+IV
         - IRM
         - ICP
@@ -18,6 +18,9 @@ linear_simulation:
         - RICE
         - V-REx
         - MM-REx
+        - L1Janzing
+        - L2Janzing
+        - Kania&Wit
     augmentations:
         - translate
 
@@ -27,9 +30,9 @@ optical_device:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+UIV-CC
+        - DA+IVL-CV
+        - DA+IVL-LCV
+        - DA+IVL-CC
         - DA+IV
         - IRM
         - ICP
@@ -37,6 +40,9 @@ optical_device:
         - RICE
         - V-REx
         - MM-REx
+        - L1Janzing
+        - L2Janzing
+        - Kania&Wit
     augmentations:
         - gaussian-noise
 
@@ -47,8 +53,8 @@ colored_mnist:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
+        - DA+IVL-CV
+        - DA+IVL-LCV
         - DA+IV
         - IRM
         - DRO

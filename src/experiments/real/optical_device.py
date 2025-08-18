@@ -1,5 +1,6 @@
 import enlighten
 import numpy as np
+import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
 from sklearn.preprocessing import PolynomialFeatures
@@ -10,7 +11,11 @@ from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.erm import LeastSquaresClosedForm as ERM
+from src.regressors.erm import (
+    LeastSquaresClosedForm as ERM,
+    RidgeRegression,
+    LassoRegression,
+)
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
@@ -18,6 +23,7 @@ from src.regressors.ivl import LeastSquaresClosedFormIVlike as IVL_a
 
 from src.regressors.baselines import (
     RICE,
+    KaniaWit,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
     InvariantRiskMinimization as IRM,
@@ -28,6 +34,7 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
+    RiskDifference as RD,
     ConfounderCorrection as CC,
 )
 
@@ -79,8 +86,8 @@ def run(
         'DA+IVL-CV': lambda: CV(
             estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -89,8 +96,8 @@ def run(
         'DA+IVL-LCV': lambda: LevelCV(
             estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -99,8 +106,8 @@ def run(
         'DA+IVL-CC': lambda: CC(
             estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
@@ -152,6 +159,33 @@ def run(
         ),
         'ICP': lambda: ICP(),
         'DRO': lambda: DRO(model='linear'),
+        'L1Janzing': lambda: CC(
+            estimator=LassoRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'L2Janzing': lambda: CC(
+            estimator=RidgeRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'Kania&Wit': lambda: RD(
+            estimator=KaniaWit(),
+            param_distributions={
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        )
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
@@ -243,7 +277,7 @@ if __name__ == '__main__':
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
     CLI.add_argument(
-        '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
+        '--n_samples', type=int, default=1_000, help='Number of samples per experiment.'
     )
     CLI.add_argument(
         '--methods',

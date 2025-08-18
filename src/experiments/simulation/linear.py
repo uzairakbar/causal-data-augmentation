@@ -13,7 +13,11 @@ from src.sem.simulation.linear import LinearSimulationSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.erm import LeastSquaresClosedForm as ERM
+from src.regressors.erm import (
+    LeastSquaresClosedForm as ERM,
+    RidgeRegression,
+    LassoRegression,
+)
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
@@ -25,6 +29,7 @@ from src.regressors.ivl import (
 
 from src.regressors.baselines import (
     RICE,
+    KaniaWit,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
     InvariantRiskMinimization as IRM,
@@ -35,7 +40,8 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
-    ConfounderCorrection as CC
+    RiskDifference as RD,
+    ConfounderCorrection as CC,
 )
 
 from src.experiments.utils import (
@@ -354,7 +360,34 @@ def run(
             verbose=1
         ),
         'ICP': lambda: ICP(),
-        'DRO': lambda: DRO(model='linear')
+        'DRO': lambda: DRO(model='linear'),
+        'L1Janzing': lambda: CC(
+            estimator=LassoRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'L2Janzing': lambda: CC(
+            estimator=RidgeRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'Kania&Wit': lambda: RD(
+            estimator=KaniaWit(),
+            param_distributions={
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        )
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     sweep_methods: Dict[str, ModelBuilder] = {
@@ -463,7 +496,7 @@ if __name__ == '__main__':
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
     CLI.add_argument(
-        '--n_samples', type=int, default=2000, help='Number of samples per experiment.'
+        '--n_samples', type=int, default=2_500, help='Number of samples per experiment.'
     )
     CLI.add_argument('--n_experiments', type=int, default=10, help='Number of experiments.')
     CLI.add_argument(

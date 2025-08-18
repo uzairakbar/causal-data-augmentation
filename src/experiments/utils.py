@@ -67,6 +67,9 @@ TEX_MAPPER: Dict[str, str] = {
     'RICE': r'RICE',
     'V-REx': r'V-REx',
     'MM-REx': r'MM-REx',
+    'L1Janzing': r'$\ell_1$ Janzing `19',
+    'L2Janzing': r'$\ell_2$ Janzing `19',
+    'Kania&Wit': r'Kania, Wit `23',
 }
 ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     'linear_simulation': {
@@ -78,7 +81,7 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
-        'dummies': ['DA+IVL-CC', 'ICP'],
+        'dummies': ['DA+IVL-CC', 'ICP', 'L1Janzing', 'L2Janzing', 'Kania&Wit'],
         # 'y_color': 'w',
     }
 }
@@ -737,7 +740,7 @@ def fit_model(
 
 def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
     sgd_params = getattr(hyperparameters, 'sgd', dict())
-    if name == 'ERM':
+    if name in ('ERM', 'L1Janzing', 'L2Janzing'):
         model.fit(
             X=X, y=y, **sgd_params
         )
@@ -764,6 +767,10 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X=X_rice, y=y_rice,
             da=da, num_augmentations=RICE_AUGMENTATIONS,
             **sgd_params
+        )
+    elif 'Kania&Wit' in name:
+        model.fit(
+            X=X, y=y, X_A=GX, y_A=y, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

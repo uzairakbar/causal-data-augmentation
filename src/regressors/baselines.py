@@ -23,7 +23,7 @@ MAX_ICP_SUBSETS: int=1_024
 
 
 class InvariantCausalPrediction(BaselineRegressor):
-    def __init__(self, model='linear', alpha: float=0.05):
+    def __init__(self, model='linear', alpha: float=0.1):
         super(InvariantCausalPrediction, self).__init__(alpha)
         
     def _fit(
@@ -113,6 +113,57 @@ class InvariantCausalPrediction(BaselineRegressor):
         return chain.from_iterable(
             combinations(s, r) for r in lengths if not random.shuffle(s)
         )
+
+
+class KaniaWit(BaselineRegressor):
+    # __init__, predict, get_params, set_params are all correct.
+    
+    def _fit(self, X, y, **kwargs):
+        if 'groups' in kwargs:
+            groups = kwargs['groups']
+            X_0, y_0 = X[groups == 0], y[groups == 0]
+            X_A, y_A = X[groups == 1], y[groups == 1]
+        elif 'X_A' in kwargs:
+            X_0, y_0, X_A, y_A = X, y, kwargs['X_A'], kwargs['y_A']
+        else:
+            raise ValueError(
+                'KaniaWit needs `groups` (from CV) or `X_A`/`y_A` (for direct fit).'
+            )
+
+        N_0, M = (
+            X_0.shape if X_0.shape[0] > 0 else (
+                0, (X.shape[1] if 'X_A' not in kwargs else X_A.shape[1])
+            )
+        )
+        if X_0.shape[0] == 0 or X_A.shape[0] == 0:
+            self._W = np.zeros((M, 1))
+            return self
+        
+        N_A = X_A.shape[0]
+        
+        y_0 = y_0.reshape(-1, 1)
+        y_A = y_A.reshape(-1, 1)
+        
+        Cov_0 = (X_0.T @ X_0) / N_0
+        Cov_A = (X_A.T @ X_A) / N_A
+        G_Delta = Cov_A - Cov_0
+        
+        Corr_0 = (X_0.T @ y_0) / N_0
+        Corr_A = (X_A.T @ y_A) / N_A
+        Z_Delta = Corr_A - Corr_0
+        
+        G_pooled = Cov_A + Cov_0
+        Z_pooled = Corr_A + Corr_0
+        
+        G_alpha = self.alpha * G_Delta + G_pooled
+        Z_alpha = self.alpha * Z_Delta + Z_pooled
+        
+        self._W = np.linalg.pinv(G_alpha) @ Z_alpha
+        
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
 
 
 class NonlinearBaselineRegressor(BaselineRegressor):

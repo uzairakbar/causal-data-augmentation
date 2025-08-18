@@ -35,7 +35,6 @@ from src.experiments.utils import (
     save,
     set_seed,
     box_plot,
-    bootstrap,
     tex_table,
     fit_model,
     ANNOTATE_BOX_PLOT,
@@ -244,7 +243,7 @@ if __name__ == '__main__':
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
     CLI.add_argument(
-        '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
+        '--n_samples', type=int, default=1_000, help='Number of samples per experiment.'
     )
     CLI.add_argument(
         '--methods',

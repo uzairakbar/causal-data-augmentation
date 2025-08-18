@@ -1,13 +1,19 @@
+import warnings
 import numpy as np
 import scipy as sp
+from sklearn.base import clone
 from sklearn.model_selection import (
+    KFold,
+    ParameterSampler,
     LeaveOneGroupOut,
     RandomizedSearchCV,
 )
 
 from src.regressors.abstract import ModelSelector
 from src.regressors.erm import LeastSquaresClosedForm as ERM
-from src.regressors.utils import VanillaSplitter, LevelSplitter
+from src.regressors.utils import (
+    VanillaSplitter, LevelSplitter, RiskDifferenceScorer
+)
 
 
 class VanillaCV(ModelSelector, RandomizedSearchCV):
@@ -80,8 +86,8 @@ class ConfounderCorrection(ModelSelector, RandomizedSearchCV):
         )
     
     def fit(self, X, y, **kwargs):
-
-        GX = kwargs['GX']
+        
+        GX = kwargs.get('GX', X)
         Cxx = np.cov(GX, rowvar=False)
         W_erm = ERM().fit(GX, y).solution
         self.sqnorm =  (1 - self.estimate_beta(Cxx, W_erm)) * (W_erm**2).sum()
@@ -133,3 +139,100 @@ class ConfounderCorrection(ModelSelector, RandomizedSearchCV):
         matrix_squared = np.identity(d) + theta*np.linalg.inv(cov)
         matrix = sp.linalg.sqrtm(matrix_squared)
         return - np.log(cls.density(matrix,vector))
+
+
+class RiskDifference(ModelSelector, RandomizedSearchCV):
+    def __init__(
+            self, 
+            estimator, 
+            param_distributions, 
+            n_iter=10, 
+            cv=5, 
+            n_jobs=None, 
+            **kwargs
+        ):
+        # make sure n_iter logic is correct
+        if isinstance(
+            param_distributions[next(iter(param_distributions))], 
+            (list, np.ndarray)
+        ):
+            n_iter = len(
+                param_distributions[next(iter(param_distributions))]
+            )
+
+        super(RiskDifference, self).__init__(
+            estimator=estimator,
+            param_distributions=param_distributions,
+            n_iter=n_iter,
+            scoring=RiskDifferenceScorer(),
+            cv=cv,
+            n_jobs=n_jobs,
+            **kwargs
+        )
+
+    def fit(self, X, y, X_A, y_A, **kwargs):
+        groups = np.array(
+            [0] * len(X) + [1] * len(X_A)
+        )
+        X_combined = np.vstack([X, X_A])
+        y_combined = np.vstack(
+            [y.reshape(-1, 1), y_A.reshape(-1, 1)]
+        ).flatten()
+        
+        self.best_estimator_ = None
+        self.best_score_ = -np.inf
+        self.best_params_ = None
+        self.cv_results_ = {'params': [], 'mean_test_score': []}
+
+        splitter = KFold(
+            n_splits=self.cv, shuffle=True, random_state=self.random_state
+        )
+        param_sampler = list(
+            ParameterSampler(
+                self.param_distributions,
+                n_iter=self.n_iter,
+                random_state=self.random_state
+            )
+        )
+
+        # manual search over params because sklearn does not support 
+        # custom params for CV scoring callable/function
+        for params in param_sampler:
+            scores = []
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    'ignore',
+                    message='The groups parameter is ignored by KFold',
+                    category=UserWarning
+                )
+                for train_idx, test_idx in splitter.split(X_combined, y_combined, groups):
+                    estimator = clone(self.estimator).set_params(**params)
+                    
+                    X_train, y_train = X_combined[train_idx], y_combined[train_idx]
+                    groups_train = groups[train_idx]
+                    
+                    X_test, y_test = X_combined[test_idx], y_combined[test_idx]
+                    groups_test = groups[test_idx]
+
+                    # fit the estimator
+                    estimator._fit(X_train, y_train, groups=groups_train)
+
+                    # score the estimator
+                    score = self.scoring(
+                        estimator, X_test, y_test, groups_test=groups_test
+                    )
+                    scores.append(score)
+            
+            mean_score = np.mean(scores)
+            self.cv_results_['params'].append(params)
+            self.cv_results_['mean_test_score'].append(mean_score)
+
+            if mean_score > self.best_score_:
+                self.best_score_ = mean_score
+                self.best_params_ = params
+
+        # refit the best estimator
+        self.best_estimator_ = clone(self.estimator).set_params(**self.best_params_)
+        self.best_estimator_._fit(X, y, X_A=X_A, y_A=y_A)
+        
+        return self

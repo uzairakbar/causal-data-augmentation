@@ -9,8 +9,10 @@ from src.regressors.utils import Model, device
 
 from src.regressors.abstract import RegressorIVlike as IVL
 
-from src.regressors.erm import GradientDescentERM as ERM
-from src.regressors.erm import LeastSquaresClosedForm as OLS
+from src.regressors.erm import (
+    GradientDescentERM as ERM,
+    LeastSquaresClosedForm as OLS,
+)
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
 

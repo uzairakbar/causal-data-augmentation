@@ -91,17 +91,20 @@ class BaselineRegressor(Regressor):
 
 
 class ModelSelector(ABC, BaseSearchCV):
-    def __init__(self, metric='r2', **kwargs):
-        if metric == 'r2':
-            scoring = make_scorer(self.r2)
-        elif metric == 'accuracy':
-            scoring = make_scorer(self.accuracy)
-        elif metric == 'mse':
-            scoring = make_scorer(self.mse, greater_is_better=False)
-        elif metric == 'cc':
-            return super(ModelSelector, self).__init__(**kwargs)
-        else:
-            raise ValueError('Wrong value for validation metric.')
+    def __init__(self, metric='r2', scoring=None, **kwargs):
+        if scoring is None:
+            if metric == 'r2':
+                scoring = make_scorer(self.r2)
+            elif metric == 'accuracy':
+                scoring = make_scorer(self.accuracy)
+            elif metric == 'mse':
+                scoring = make_scorer(self.mse, greater_is_better=False)
+            elif metric == 'cc':
+                return super(ModelSelector, self).__init__(**kwargs)
+            elif metric == 'risk_difference':
+                return super(ModelSelector, self).__init__(**kwargs)
+            else:
+                raise ValueError('Wrong value for validation metric.')
         return super(ModelSelector, self).__init__(**kwargs, scoring=scoring)
     
     @property
