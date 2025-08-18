@@ -1,11 +1,19 @@
 import os
 import fsspec
 import numpy as np
+from loguru import logger
 from typing import Dict, Tuple
 from numpy.typing import NDArray
 
+from src.sem.utils import (
+    select_best_degree,
+    fit_ground_truth_f,
+)
 from src.sem.abstract import StructuralEquationModel as SEM
 from src.regressors.erm import LeastSquaresClosedForm as ERM
+
+
+MAX_PLOYNOMIAL_DEGREE: int=5
 
 
 class OpticalDeviceSEM(SEM):
@@ -38,28 +46,51 @@ class OpticalDeviceSEM(SEM):
     _DATASET: Dict[int, NDArray] = load_dataset.__func__()
 
     def __init__(
-            self, experiment: int=0, center: bool=True
+            self,
+            experiment: int=0,
+            center: bool=True,
+            ground_truth: str='linear'
         ):
         experiment_data = self.get_experiment_data(experiment)
 
         if center:
             experiment_data -= experiment_data.mean(axis = 0)
 
-        y = experiment_data[:, -1:]
-        XH = experiment_data[:, :-1]
+        y = experiment_data[:, -1:]     # outcome
+        XC = experiment_data[:, :-1]    # treatment and confounder
+        X = XC[:, :-1]                  # treatment
+        C = XC[:, -1:]                  # confounder
 
-        W_XHY = ERM().fit(XH, y).solution
-
-        self.W_XY = W_XHY[:-1, :]
-        self.y, self.X = y, XH[:, :-1]
+        best_degree = 1
+        if ground_truth == 'linear':
+            W_XCY = ERM().fit(XC, y).solution
+            W_XY = W_XCY[:-1, :]
+        elif ground_truth == 'polynomial':
+            best_degree, _ = select_best_degree(
+                X, y, C, max_degree=MAX_PLOYNOMIAL_DEGREE
+            )
+            logger.info(
+                f'Experiment {experiment} polynomial degree: {best_degree}'
+            )
+            W_XY, _, _ = fit_ground_truth_f(
+                X, y, C, best_degree
+            )
+        else:
+            raise ValueError(
+                f'Ground truth {ground_truth} model not supported/implemented.'
+            )
+        
+        self.W_XY = W_XY
+        self.poly_degree = best_degree
+        self.y, self.X, self.C = y, X, C
     
     def sample(self, N: int=1, **kwargs) -> Tuple[NDArray, NDArray]:
         N_max, M = self.X.shape
         indices = np.arange(N_max)
         replace = N > N_max
-        sampled = np.random.choice(indices,
-                                   N,
-                                   replace)
+        sampled = np.random.choice(
+            indices, N, replace
+        )
         return self.X[sampled], self.y[sampled]
     
     @classmethod

@@ -57,10 +57,7 @@ DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
-POLYNOMIAL_DEGREE: int=1
-FEATURES = PolynomialFeatures(
-    POLYNOMIAL_DEGREE, include_bias=False
-)
+GROUND_TRUTH: str='polynomial'
 
 
 def run(
@@ -196,7 +193,9 @@ def run(
     }
     all_sems = {
         augmentation: ([
-            SEM(exp) for exp in range(SEM.num_experiments())
+            SEM(
+                experiment=exp, ground_truth=GROUND_TRUTH
+            ) for exp in range(SEM.num_experiments())
         ]) for augmentation in augmentations
     }
     all_augmenters = {
@@ -218,10 +217,17 @@ def run(
             if seed >= 0: set_seed(seed)
 
             sem_solution = sem.solution
+            
 
             X, y = sem(N = n_samples)
             GX, G = da(X)
-            G = FEATURES.fit_transform(G)
+
+            features = PolynomialFeatures(
+                sem.poly_degree, include_bias=False
+            )
+            X = features.fit_transform(X)
+            G = features.fit_transform(G)
+            GX = features.fit_transform(GX)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
