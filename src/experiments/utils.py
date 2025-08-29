@@ -160,7 +160,7 @@ def sweep_plot(
         ylabel: Optional[str]='nCER',
         xscale: Optional[Literal['linear', 'log']]='linear',
         vertical_plots: Optional[List]=[],
-        trivial_solution: Optional[bool]=False,
+        trivial_solution: Optional[bool]=True,
         savefig: Optional[bool]=True,
         format: Optional[Plot]=PLOT_FORMAT,
         legend_items: Optional[List]=[],
@@ -180,9 +180,10 @@ def sweep_plot(
     sns.set_palette('deep')
     colors = sns.color_palette()
     fig = plt.figure()
+
+    max_mean = 0.0
     all_labels = []
     plot_handles = []
-    max_mean = float('-inf')
     for i, (method, errors) in enumerate(y.items()):
 
         # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
@@ -218,6 +219,7 @@ def sweep_plot(
         handle = plt.axhline(
             y = 0.5, color=colors[-1], label=label
         )
+        max_mean = max(max_mean, 0.5)
         plot_handles.append(handle)
         
     for i, (method, errors) in enumerate(y.items()):
@@ -237,9 +239,8 @@ def sweep_plot(
     plt.yticks(fontsize=FS_TICK, color=y_color)
     plt.xticks(fontsize=FS_TICK)
     plt.xlim([min(x), max(x)])
-    maximum = max(max_mean, 0.5)
-    padding = 0.05 * maximum
-    plt.ylim([0.0 - padding, maximum + padding])
+    padding = 0.05 * max_mean
+    plt.ylim([0.0 - padding, max_mean + padding])
     plt.xscale(xscale)
 
     # Legend all items if None are specified
