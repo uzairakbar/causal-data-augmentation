@@ -28,8 +28,8 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
-FS_TICK: int = 18
-FS_LABEL: int = 24
+FS_TICK: int=15
+FS_LABEL: int=24
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
@@ -97,7 +97,7 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
         'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
         'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
         # 'y_color': 'w',
-        # 'legend_loc': (0.645, 0.425),
+        # 'legend_loc': (0.465, 0.230),
     },
     'gamma': {
         'xlabel': r'$\gamma$',
