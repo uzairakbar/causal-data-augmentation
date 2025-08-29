@@ -260,6 +260,9 @@ def run(
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
+    save(
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    )
     
     box_plot(
         all_errors, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,

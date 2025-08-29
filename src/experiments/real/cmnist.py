@@ -216,6 +216,9 @@ def run(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     save(
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+    )
+    save(
         obj=np.arange(seed, seed+num_seeds),
         fname='seeds', experiment=EXPERIMENT, format='json'
     )
