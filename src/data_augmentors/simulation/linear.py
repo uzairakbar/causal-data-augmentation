@@ -7,27 +7,42 @@ from typing import Dict, Literal, List, Optional
 from src.data_augmentors.abstract import DataAugmenter as DA
 
 
+DA_STD: float=1.0
+BASIS_SELECTOIN_PROBABILITY: float=2.0/3.0
+
+
 class NullSpaceTranslation(DA):
-    def __init__(self, W_XY: NDArray, kernel_dim: int):
+    def __init__(
+            self,
+            W_XY: NDArray,
+            kernel_dim: int,
+            std: float=DA_STD,
+        ):
         null_basis = self.null_space(W_XY.T).T
 
         k_max, _ = null_basis.shape
 
         assert k_max >= kernel_dim, \
             f'`kernel_dim`={kernel_dim} cannot be greater than `k_max`={k_max}.'
-        
-        if kernel_dim == 0:
-            logger.warning(
-                '`kernel_dim`=0 means no DA -- could lead to unintended behaviour and singular matrices'
-            )
 
         if kernel_dim < 0:
-            sample = np.random.randn(k_max) > 0
+            logger.info(
+                '`kernel_dim`<0 means DA is constructed from full bases of ker(f).'
+            )
+            sample = np.ones(k_max, dtype='bool')
+        elif kernel_dim == 0:
+            logger.info(
+                '`kernel_dim`=0 means DA is constructed from randomly picked bases of ker(f).'
+            )
+            sample = (
+                np.random.random(k_max) < BASIS_SELECTOIN_PROBABILITY
+            )
         else:
             sample = np.zeros(k_max, dtype='bool')
             sample[:kernel_dim] = True
             np.random.shuffle(sample)
         
+        self.std = std
         self.W_ZXtilde = null_basis[sample]
         self.param_dimension, _ = self.W_ZXtilde.shape
     
@@ -39,7 +54,7 @@ class NullSpaceTranslation(DA):
             self, X: NDArray, gamma: float=1.0
         ) -> Tuple[NDArray, NDArray]:
         N = len(X)
-        G = np.random.randn(N, self.param_dimension)
+        G = np.random.randn(N, self.param_dimension) * self.std
 
         GX = X + gamma * G @ self.W_ZXtilde
         
