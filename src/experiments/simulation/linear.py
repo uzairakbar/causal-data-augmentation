@@ -200,7 +200,7 @@ class GammaSweep(SweepExperiment):
 
     def param_sweep(self):
         gamma_values = np.logspace(
-            -2.5, 1.5, base=10, num=self.sweep_samples
+            -3, 1, base=10, num=self.sweep_samples
         )
         return gamma_values
 

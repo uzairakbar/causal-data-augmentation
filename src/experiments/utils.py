@@ -95,7 +95,6 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
         'xlabel': r'$\alpha$',
         'xscale': 'log',
         'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
-        'trivial_solution': True,
         'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
         # 'y_color': 'w',
         # 'legend_loc': (0.645, 0.425),
@@ -161,7 +160,7 @@ def sweep_plot(
         ylabel: Optional[str]='nCER',
         xscale: Optional[Literal['linear', 'log']]='linear',
         vertical_plots: Optional[List]=[],
-        trivial_solution: Optional[bool]=True,
+        trivial_solution: Optional[bool]=False,
         savefig: Optional[bool]=True,
         format: Optional[Plot]=PLOT_FORMAT,
         legend_items: Optional[List]=[],
@@ -183,6 +182,7 @@ def sweep_plot(
     fig = plt.figure()
     all_labels = []
     plot_handles = []
+    max_mean = float('-inf')
     for i, (method, errors) in enumerate(y.items()):
 
         # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
@@ -204,6 +204,7 @@ def sweep_plot(
                 x=mean.mean(), color=colors[i], label=label, linestyle='--'
             )
         else:
+            max_mean = max(max_mean, max(mean))
             handle = plt.plot(x, mean, color=colors[i], label=label)[0]
         
         plot_handles.append(handle)
@@ -236,7 +237,7 @@ def sweep_plot(
     plt.yticks(fontsize=FS_TICK, color=y_color)
     plt.xticks(fontsize=FS_TICK)
     plt.xlim([min(x), max(x)])
-    maximum = 0.5
+    maximum = max(max_mean, 0.5)
     padding = 0.05 * maximum
     plt.ylim([0.0 - padding, maximum + padding])
     plt.xscale(xscale)
