@@ -327,7 +327,7 @@ class InvariantRiskMinimization(NonlinearBaselineRegressor):
                 )
             )
         
-        loss = torch.stack(env_losses).mean()
+        loss = torch.stack(env_losses).sum()
 
         return loss
     

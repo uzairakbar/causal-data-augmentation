@@ -480,11 +480,11 @@ def run(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
     )
     box_plot(
-        results, fname=EXPERIMENT, experiment=EXPERIMENT,
+        results, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     box_plot(
-        results, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
+        results, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False
     )
     
