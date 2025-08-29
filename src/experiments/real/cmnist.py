@@ -221,8 +221,12 @@ def run(
     )
     
     box_plot(
-        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        all_errors, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    )
+    box_plot(
+        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False
     )
     
     caption = (
@@ -230,6 +234,13 @@ def run(
     )
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
+    )
+    save(
+        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
+    )
+
+    table = tex_table(
+        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=False
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

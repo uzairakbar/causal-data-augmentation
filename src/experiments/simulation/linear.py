@@ -480,10 +480,20 @@ def run(
         results, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
+    box_plot(
+        results, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False
+    )
     
-    caption = f'RE $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
+    caption = f'nCER $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
     table = tex_table(
         results, label=EXPERIMENT, caption=caption
+    )
+    save(
+        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
+    )
+    table = tex_table(
+        results, label=EXPERIMENT, caption=caption, bootstrapped=False
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

@@ -33,7 +33,7 @@ FS_LABEL: int=24
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
-HILIGHT_OURS: bool=False
+HILIGHT_OURS: bool=True
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
@@ -74,15 +74,17 @@ TEX_MAPPER: Dict[str, str] = {
 ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     'linear_simulation': {
         'title': 'Simulation Data',
+        'x_color': 'w',
     },
     'optical_device': {
         'title': 'Optical Device Data',
-        # 'y_color': 'w',
+        'y_color': 'w',
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
         'dummies': ['DA+IVL-CC', 'ICP', 'L1Janzing', 'L2Janzing', 'Kania&Wit'],
-        # 'y_color': 'w',
+        'y_color': 'w',
+        'x_color': 'w',
     }
 }
 ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
@@ -96,13 +98,13 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
         'xscale': 'log',
         'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
         'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
-        # 'y_color': 'w',
-        # 'legend_loc': (0.465, 0.230),
+        'y_color': 'w',
+        'legend_loc': (0.465, 0.230),
     },
     'gamma': {
         'xlabel': r'$\gamma$',
         'xscale': 'log',
-        # 'y_color': 'w',
+        'y_color': 'w',
     }
 }
 
@@ -308,7 +310,7 @@ def box_plot(
         fname: str,
         experiment: Experiment,
         title: Optional[str]='',
-        xlabel: Optional[str]='nCER',
+        xlabel: Optional[str]='nCER (lower is better)',
         ylabel: Optional[str]='Method',
         zlabel: Optional[str]='Augmentation',
         orient: Optional[Literal['h', 'v']]='h',
@@ -317,6 +319,7 @@ def box_plot(
         annotate_best: Optional[bool]=True,
         dummies: Optional[List[str]]=[],
         y_color: Optional[bool]='k',
+        x_color: Optional[bool]='k',
         hilight_ours: Optional[bool]=HILIGHT_OURS,
         bootstrapped: Optional[bool]=True,
     ):
@@ -422,7 +425,7 @@ def box_plot(
     if title:
         plt.title(title, fontsize=FS_LABEL)
     plt.ylabel('', fontsize=FS_LABEL, color=y_color)
-    plt.xlabel(xlabel, fontsize=FS_LABEL)
+    plt.xlabel(xlabel, fontsize=FS_LABEL, color=x_color)
     plt.xticks(fontsize=FS_TICK)
     plt.yticks(fontsize=FS_TICK, color=y_color)
 
