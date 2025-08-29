@@ -38,9 +38,14 @@ class NullSpaceTranslation(DA):
                 np.random.random(k_max) < BASIS_SELECTOIN_PROBABILITY
             )
         else:
+            logger.info(
+                f'Selecting `kernel_dim`={kernel_dim} bases of ker(f) to construct DA.'
+            )
             sample = np.zeros(k_max, dtype='bool')
             sample[:kernel_dim] = True
-            np.random.shuffle(sample)
+        
+        # randomize bases ordering
+        np.random.shuffle(sample)
         
         self.std = std
         self.W_ZXtilde = null_basis[sample]
