@@ -73,4 +73,4 @@ hyperparameters:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
         samples: 10         # number of samples for random search
-        n_jobs: -1          # number of jobs to run in parallel for hyperparam search
+        n_jobs: 1          # number of jobs to run in parallel for hyperparam search

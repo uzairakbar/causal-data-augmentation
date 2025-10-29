@@ -3,7 +3,6 @@ import numpy as np
 import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
-from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
@@ -84,7 +83,7 @@ def run(
             estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -94,7 +93,7 @@ def run(
             estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
@@ -104,7 +103,7 @@ def run(
             estimator=IVL_a(),
             param_distributions = {
                 'alpha': sp.stats.loguniform.rvs(
-                    1e-4, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
@@ -218,16 +217,8 @@ def run(
 
             sem_solution = sem.solution
             
-
             X, y = sem(N = n_samples)
             GX, G = da(X)
-
-            features = PolynomialFeatures(
-                sem.poly_degree, include_bias=False
-            )
-            X = features.fit_transform(X)
-            G = features.fit_transform(G)
-            GX = features.fit_transform(GX)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
@@ -241,7 +232,8 @@ def run(
                     name=method_name,
                     X=X, y=y, G=G, GX=GX,
                     hyperparameters=hyperparameters,
-                    da=da
+                    da=da,
+                    poly_degree=sem.poly_degree,
                 )
                 
                 method_solution = model.solution
@@ -260,28 +252,15 @@ def run(
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
     
     box_plot(
-        all_errors, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
         all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = 'nCER $\pm$ standard error across the optical device datasets.'
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
-    )
-    save(
-        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
-    )
-    table = tex_table(
-        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=False
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

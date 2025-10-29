@@ -12,6 +12,7 @@ from loguru import logger
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 from numpy.typing import NDArray
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 from typing import Any, Literal, List, Dict, Optional, Tuple
 from sklearn.preprocessing import StandardScaler, KBinsDiscretizer
@@ -34,6 +35,7 @@ PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
 HILIGHT_OURS: bool=True
+POLYNOMIAL_DEGREE: int=1
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
@@ -83,8 +85,8 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     'colored_mnist': {
         'title': 'Colored MNIST Data',
         'dummies': ['DA+IVL-CC', 'ICP', 'L1Janzing', 'L2Janzing', 'Kania&Wit'],
-        'y_color': 'w',
-        'x_color': 'w',
+        # 'y_color': 'w',
+        # 'x_color': 'w',
     }
 }
 ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
@@ -138,6 +140,32 @@ def estimation_error(
             sq_error / (sq_error + sq_norm(estimand))
         )
     return sq_error
+
+
+def cmnist_estimation_error(
+        y,      # target label/outcome
+        yHat,   # prediction
+        normalize=True,
+    ) -> float:
+    mse = lambda x: (x**2).mean()
+
+    causal_risk = mse(
+        yHat - y
+    )
+    null_causal_risk = 0.5
+    oracle_causal_risk = 0.25
+    
+    causal_excess_risk = (
+        causal_risk - oracle_causal_risk
+    )
+    null_causal_excess_risk = (
+        null_causal_risk - oracle_causal_risk
+    )
+    if normalize:
+        causal_excess_risk = (
+            causal_excess_risk / (causal_excess_risk + null_causal_excess_risk)
+        )
+    return causal_excess_risk
 
 
 def set_seed(seed: int=42):
@@ -730,11 +758,22 @@ def load(path: str):
 
 
 def fit_model(
-        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None
+        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, poly_degree=POLYNOMIAL_DEGREE, da=None,
     ):
     if not pbar_manager:
-        return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters, da)
-
+        return fit_model_nopbar(
+            model, name, X, y, G, GX, hyperparameters, poly_degree, da
+        )
+    
+    X_original, y_original = X, y
+    if POLYNOMIAL_DEGREE > 1:
+        features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        X = features.fit_transform(X)
+        G = features.fit_transform(G)
+        GX = features.fit_transform(GX)
+    
     sgd_params = getattr(hyperparameters, 'sgd', dict())
     if name == 'ERM':
         model.fit(
@@ -756,19 +795,34 @@ def fit_model(
             X=GX, y=y, Z=G, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'RICE' in name:
+        # make sure we provide same #samples as original data
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/RICE_AUGMENTATIONS
+            X_original, y_original,
+            train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
-            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            da=da, poly_degree=poly_degree,
+            num_augmentations=RICE_AUGMENTATIONS,
             pbar_manager=pbar_manager, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
 
 
-def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
+def fit_model_nopbar(
+    model, name, X, y, G, GX, hyperparameters=None,
+    poly_degree=POLYNOMIAL_DEGREE, da=None
+    ):
+    X_original, y_original = X, y
+    if POLYNOMIAL_DEGREE > 1:
+        features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        X = features.fit_transform(X)
+        G = features.fit_transform(G)
+        GX = features.fit_transform(GX)
+
     sgd_params = getattr(hyperparameters, 'sgd', dict())
     if name in ('ERM', 'L1Janzing', 'L2Janzing'):
         model.fit(
@@ -790,17 +844,27 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
             X=GX, y=y, Z=G, **sgd_params
         )
     elif 'RICE' in name:
+        # make sure we provide same #samples as original data
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/RICE_AUGMENTATIONS
+            X_original, y_original,
+            train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
-            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            da=da, poly_degree=poly_degree,
+            num_augmentations=RICE_AUGMENTATIONS,
             **sgd_params
         )
     elif 'Kania&Wit' in name:
+        # make sure we provide same #samples as original data
+        X_0, _, y_0, _ = train_test_split(
+            X, y, train_size=0.5
+        )
+        X_A, _, y_A, _ = train_test_split(
+            GX, y, train_size=0.5
+        )
         model.fit(
-            X=X, y=y, X_A=GX, y_A=y, **sgd_params
+            X=X_0, y=y_0, X_A=X_A, y_A=y_A, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

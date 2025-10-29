@@ -200,7 +200,7 @@ class GammaSweep(SweepExperiment):
 
     def param_sweep(self):
         gamma_values = np.logspace(
-            -3, 1, base=10, num=self.sweep_samples
+            -2.5, 1, base=10, num=self.sweep_samples
         )
         return gamma_values
 
@@ -476,27 +476,14 @@ def run(
     save(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
-    box_plot(
-        results, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
     box_plot(
         results, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = f'nCER $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
     table = tex_table(
         results, label=EXPERIMENT, caption=caption
-    )
-    save(
-        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
-    )
-    table = tex_table(
-        results, label=EXPERIMENT, caption=caption, bootstrapped=False
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

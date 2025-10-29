@@ -1,9 +1,9 @@
 import enlighten
 import numpy as np
+import scipy as sp
 from loguru import logger
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
-from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 
@@ -38,6 +38,7 @@ from src.experiments.utils import (
     tex_table,
     fit_model,
     estimation_error,
+    cmnist_estimation_error,
     ANNOTATE_BOX_PLOT,
 )
 
@@ -49,10 +50,6 @@ EXPERIMENT: str='colored_mnist'
 DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_JOBS: int=1
-POLYNOMIAL_DEGREE: int=1
-FEATURES = PolynomialFeatures(
-    POLYNOMIAL_DEGREE, include_bias=False
-)
 
 
 def run(
@@ -179,7 +176,6 @@ def run(
 
             X, y = sem(N = n_samples)
             GX, G = da(X)
-            G = FEATURES.fit_transform(G)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
@@ -198,7 +194,7 @@ def run(
                 )
                 
                 ate_test_hat = model.predict(X_test)
-                error = estimation_error(
+                error = cmnist_estimation_error(
                     ate_test, ate_test_hat
                 )
                 all_errors[augmentation][method_name][i] = error
@@ -215,21 +211,10 @@ def run(
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
-    save(
-        obj=np.arange(seed, seed+num_seeds),
-        fname='seeds', experiment=EXPERIMENT, format='json'
-    )
     
     box_plot(
-        all_errors, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
         all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT], bootstrapped=False
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = (
@@ -237,13 +222,6 @@ def run(
     )
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
-    )
-    save(
-        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
-    )
-
-    table = tex_table(
-        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=False
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'

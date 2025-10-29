@@ -6,6 +6,7 @@ from loguru import logger
 from torch import autograd
 from abc import abstractmethod
 import torch.nn.functional as F
+from sklearn.preprocessing import PolynomialFeatures
 import torch.utils.data as data_utils
 from itertools import chain, combinations
 from scipy.stats import f as fdist, ttest_ind
@@ -115,9 +116,7 @@ class InvariantCausalPrediction(BaselineRegressor):
         )
 
 
-class KaniaWit(BaselineRegressor):
-    # __init__, predict, get_params, set_params are all correct.
-    
+class KaniaWit(BaselineRegressor):    
     def _fit(self, X, y, **kwargs):
         if 'groups' in kwargs:
             groups = kwargs['groups']
@@ -327,7 +326,7 @@ class InvariantRiskMinimization(NonlinearBaselineRegressor):
                 )
             )
         
-        loss = torch.stack(env_losses).sum()
+        loss = torch.stack(env_losses).mean()
 
         return loss
     
@@ -336,7 +335,7 @@ class InvariantRiskMinimization(NonlinearBaselineRegressor):
 
         loss = R(phi(X) @ w, y)
         gradient = autograd.grad(loss, [w], create_graph=True)[0]
-        penalty = torch.sum(gradient**2)
+        penalty = torch.mean(gradient**2)
 
         loss = R(phi(X), y)
 
@@ -450,6 +449,7 @@ class RICE(NonlinearBaselineRegressor):
             self,
             X, y,
             da,
+            poly_degree: int=1,
             num_augmentations: int=3,
             lr: float=0.001, epochs: int=40, batch: int=128,
             pbar_manager=None,
@@ -457,18 +457,28 @@ class RICE(NonlinearBaselineRegressor):
         ):
         def flatten(x):
             return x.reshape(*x.shape[:1], -1)
-
+        
+        self.features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        
         I_g = ([
             flatten(da(X)[0])
             for _ in range(num_augmentations)
         ])
         I_g = ([
-            torch.tensor(GX, dtype=torch.float32).to(DEVICE)
+            torch.tensor(
+                self.features.fit_transform(GX),
+                dtype=torch.float32
+            ).to(DEVICE)
             for GX in I_g
         ])
 
         X = flatten(X)
-        X = torch.tensor(X, dtype=torch.float).to(DEVICE)
+        X = torch.tensor(
+            self.features.fit_transform(X),
+            dtype=torch.float
+        ).to(DEVICE)
         N, M = X.shape
 
         self.f = self._model(M)
@@ -500,7 +510,6 @@ class RICE(NonlinearBaselineRegressor):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y, I_g)
             else:
-                # logger.info(f'g epoch {epoch + 1}/{epochs}')
                 self.fit_f_minibatch(train)
             
             if pbar_manager: pbar_epochs.update()
@@ -538,3 +547,8 @@ class RICE(NonlinearBaselineRegressor):
         else:
             loss = F.mse_loss(y_hat, y, reduction=reduction)
         return loss
+    
+    def _predict(self, X, **kwargs):
+        return super()._predict(
+            self.features.fit_transform(X)
+        )

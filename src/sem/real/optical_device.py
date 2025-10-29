@@ -13,7 +13,9 @@ from src.sem.abstract import StructuralEquationModel as SEM
 from src.regressors.erm import LeastSquaresClosedForm as ERM
 
 
-MAX_PLOYNOMIAL_DEGREE: int=2    # change to 5 if verification needed -- best fist is only either 1 or 2
+# change to 5 if verification needed -- best fit is only either 1 or 2.
+# kept at 2 for faster runtimes in generating experiment results/plots.
+MAX_PLOYNOMIAL_DEGREE: int=2
 
 
 class OpticalDeviceSEM(SEM):
