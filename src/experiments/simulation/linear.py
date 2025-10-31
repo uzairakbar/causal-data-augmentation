@@ -414,9 +414,9 @@ def run(
     save(
         obj=results, fname='kappa_results', experiment=EXPERIMENT, format='pkl'
     )
-    sweep_plot(
-        kappa_values, results, **ANNOTATE_SWEEP_PLOT['kappa']
-    )
+    # sweep_plot(
+    #     kappa_values, results, **ANNOTATE_SWEEP_PLOT['kappa']
+    # )
 
     # sweep over gamma parameter
     status.update(sweep='gamma')
@@ -436,9 +436,9 @@ def run(
     save(
         obj=results, fname='gamma_results', experiment=EXPERIMENT, format='pkl'
     )
-    sweep_plot(
-        gamma_values, results, **ANNOTATE_SWEEP_PLOT['gamma']
-    )
+    # sweep_plot(
+    #     gamma_values, results, **ANNOTATE_SWEEP_PLOT['gamma']
+    # )
 
     # sweep over alpha parameter
     status.update(sweep='alpha')
@@ -458,9 +458,9 @@ def run(
     save(
         obj=results, fname='alpha_results', experiment=EXPERIMENT, format='pkl'
     )
-    sweep_plot(
-        alpha_values, results, **ANNOTATE_SWEEP_PLOT['alpha']
-    )
+    # sweep_plot(
+    #     alpha_values, results, **ANNOTATE_SWEEP_PLOT['alpha']
+    # )
 
     # no sweep, just compare baselines with gamma=1 and kappa=1
     status.update(sweep='N/A')
@@ -476,10 +476,10 @@ def run(
     save(
         obj=results, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    box_plot(
-        results, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
+    # box_plot(
+    #     results, fname=EXPERIMENT, experiment=EXPERIMENT,
+    #     savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    # )
     
     caption = fr'nCER $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
     table = tex_table(
