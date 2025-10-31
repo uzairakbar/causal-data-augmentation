@@ -1,3 +1,5 @@
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
 cvxpy==1.5.3
 enlighten==1.12.4
 fsspec==2024.6.1
