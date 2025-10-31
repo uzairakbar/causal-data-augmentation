@@ -227,6 +227,8 @@ def run(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
     )
 
+    MANAGER.stop()
+
 
 if __name__ == '__main__':
     CLI = ArgumentParser(
