@@ -44,10 +44,10 @@ class RegressorIV(Regressor):
         pass
 
 
-class RegressorUnfaithfulIV(Regressor):
+class RegressorIVlike(Regressor):
     def __init__(self, alpha=1.0):
         self._alpha = alpha
-        super(RegressorUnfaithfulIV, self).__init__()
+        super(RegressorIVlike, self).__init__()
     
     @property
     def alpha(self):
@@ -62,7 +62,7 @@ class RegressorUnfaithfulIV(Regressor):
         GX = GX.reshape(*GX.shape[:1], -1)
         X = X.reshape(*X.shape[:1], -1)
         # return self._fit(X, y, G, GX)
-        return super(RegressorUnfaithfulIV, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
+        return super(RegressorIVlike, self).fit(X=X, y=y, G=G, GX=GX, **kwargs)
     
     @abstractmethod
     def _fit(self, X, y, G, GX, **kwargs):
@@ -91,17 +91,20 @@ class BaselineRegressor(Regressor):
 
 
 class ModelSelector(ABC, BaseSearchCV):
-    def __init__(self, metric='r2', **kwargs):
-        if metric == 'r2':
-            scoring = make_scorer(self.r2)
-        elif metric == 'accuracy':
-            scoring = make_scorer(self.accuracy)
-        elif metric == 'mse':
-            scoring = make_scorer(self.mse, greater_is_better=False)
-        elif metric == 'cc':
-            return super(ModelSelector, self).__init__(**kwargs)
-        else:
-            raise ValueError('Wrong value for validation metric.')
+    def __init__(self, metric='r2', scoring=None, **kwargs):
+        if scoring is None:
+            if metric == 'r2':
+                scoring = make_scorer(self.r2)
+            elif metric == 'accuracy':
+                scoring = make_scorer(self.accuracy)
+            elif metric == 'mse':
+                scoring = make_scorer(self.mse, greater_is_better=False)
+            elif metric == 'cc':
+                return super(ModelSelector, self).__init__(**kwargs)
+            elif metric == 'risk_difference':
+                return super(ModelSelector, self).__init__(**kwargs)
+            else:
+                raise ValueError('Wrong value for validation metric.')
         return super(ModelSelector, self).__init__(**kwargs, scoring=scoring)
     
     @property

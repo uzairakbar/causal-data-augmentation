@@ -7,10 +7,12 @@ import torch.nn.functional as F
 
 from src.regressors.utils import Model, device
 
-from src.regressors.abstract import RegressorUnfaithfulIV as UIV
+from src.regressors.abstract import RegressorIVlike as IVL
 
-from src.regressors.erm import GradientDescentERM as ERM
-from src.regressors.erm import LeastSquaresClosedForm as OLS
+from src.regressors.erm import (
+    GradientDescentERM as ERM,
+    LeastSquaresClosedForm as OLS,
+)
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
 
@@ -19,18 +21,23 @@ MAX_BATCH: int=256
 LOG_FREQUENCY: int=100
 
 
-class LeastSquaresClosedFormUnfaithfulIV(UIV):
+class LeastSquaresClosedFormIVlike(IVL):
     def __init__(self, alpha = 1.0):
-        super(LeastSquaresClosedFormUnfaithfulIV, self).__init__(alpha)
+        super(LeastSquaresClosedFormIVlike, self).__init__(alpha)
         
     def _fit(self, X, y, G=None, GX=None, **kwargs):
         N = len(GX)
         I = np.eye(N)
         Cgg = G.T @ G
+        alpha = self._alpha
         PI_G = G @ np.linalg.pinv( Cgg ) @ G.T
         
         # IV + a * ERM
-        K = (PI_G + np.sqrt(self._alpha) * I)
+        K = (
+            (np.sqrt( 1+alpha ) - np.sqrt(alpha)) * PI_G
+            +
+            np.sqrt(alpha) * I
+        )
         X_, y_ = K @ GX, K @ y
         
         self._W = OLS().fit(X_, y_).solution
@@ -41,9 +48,9 @@ class LeastSquaresClosedFormUnfaithfulIV(UIV):
         return X @ self._W
 
 
-class ProjectedLeastSquaresUnfaithfulIV(UIV):
+class ProjectedLeastSquaresIVlike(IVL):
     def __init__(self, alpha = None):
-        super(ProjectedLeastSquaresUnfaithfulIV, self).__init__(alpha)
+        super(ProjectedLeastSquaresIVlike, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None, **kwargs):
         h_erm = OLS().fit(GX, y).solution
@@ -74,9 +81,9 @@ class ProjectedLeastSquaresUnfaithfulIV(UIV):
         return X @ self._W
 
 
-class ConstrainedLeastSquaresUnfaithfulIV(UIV):
+class ConstrainedLeastSquaresIVlike(IVL):
     def __init__(self, alpha = None):
-        super(ConstrainedLeastSquaresUnfaithfulIV, self).__init__(alpha)
+        super(ConstrainedLeastSquaresIVlike, self).__init__(alpha)
 
     def _fit(self, X, y, G=None, GX=None, **kwargs):
         h_erm = OLS().fit(GX, y).solution
@@ -106,17 +113,17 @@ class ConstrainedLeastSquaresUnfaithfulIV(UIV):
         return X @ self._W
 
 
-class GeneralizedMomentMethodUnfaithfulIV(IV, ERM):
+class GeneralizedMomentMethodIVlike(IV, ERM):
     def __init__(self,
                  model: Model='linear',
                  alpha=0.1):
         self.alpha = alpha
         self.model = model  # TODO: refactor code
-        super(GeneralizedMomentMethodUnfaithfulIV,
+        super(GeneralizedMomentMethodIVlike,
                      self).__init__(model=model)
     
     def fit(self, X, y, G, GX, **kwargs):
-        return super(GeneralizedMomentMethodUnfaithfulIV,
+        return super(GeneralizedMomentMethodIVlike,
                         self).fit(X=GX, y=y, Z=G, **kwargs)
     
     def loss(self,
@@ -129,8 +136,8 @@ class GeneralizedMomentMethodUnfaithfulIV(IV, ERM):
 
         # IV loss := Pi @ mse
         # ERM loss := mse
-        #   => UIV loss := IV + a * ERM
-        uiv_a_loss = ((Pi + self.alpha * I) @ mse).mean()
+        #   => IVL loss := IV + a * ERM
+        ivl_a_loss = ((Pi + self.alpha * I) @ mse).mean()
         self._optimizer.zero_grad()
-        uiv_a_loss.backward()
-        return uiv_a_loss
+        ivl_a_loss.backward()
+        return ivl_a_loss

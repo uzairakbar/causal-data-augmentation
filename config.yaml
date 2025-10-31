@@ -1,43 +1,28 @@
 ---
 linear_simulation:
     seed: 42
-    n_samples: 2_500
-    kernel_dim: 29
-    n_experiments: 25
+    n_samples: 2_048
+    kernel_dim: -1          # bases of null(f) to construct DA. Set to 0 or -1 for random or full respectively.
+    n_experiments: 32
     sweep_samples: 25
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+UIV-CC
-        - DA+UIV-Pi
-        - DA+UIV
+        - DA+IVL-CV
+        - DA+IVL-LCV
+        - DA+IVL-CC
         - DA+IV
         - IRM
         - ICP
-        - AR
         - DRO
         - RICE
         - V-REx
         - MM-REx
+        - L1Janzing
+        - L2Janzing
+        - Kania&Wit
     augmentations:
         - translate
-
-nonlinear_simulation:
-    seed: 42
-    n_samples: 1_000
-    n_experiments: 10
-    methods:
-        - ERM
-        - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+IV
-    augmentations:
-        - abs
-        - sin
-        - step
 
 optical_device:
     seed: 42
@@ -45,22 +30,21 @@ optical_device:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
-        - DA+UIV-CC
+        - DA+IVL-CV
+        - DA+IVL-LCV
+        - DA+IVL-CC
         - DA+IV
         - IRM
         - ICP
-        - AR
         - DRO
         - RICE
         - V-REx
         - MM-REx
+        - L1Janzing
+        - L2Janzing
+        - Kania&Wit
     augmentations:
-        - rotation > hflip > vflip
-        - random-permutation
         - gaussian-noise
-        - all
 
 colored_mnist:
     seed: 42
@@ -69,11 +53,10 @@ colored_mnist:
     methods:
         - ERM
         - DA+ERM
-        - DA+UIV-CV
-        - DA+UIV-LCV
+        - DA+IVL-CV
+        - DA+IVL-LCV
         - DA+IV
         - IRM
-        - AR
         - DRO
         - RICE
         - V-REx
@@ -81,34 +64,13 @@ colored_mnist:
     augmentations:
         - jitter > translate
 
-# rotated_mnist:
-#     seed: 42
-#     num_seeds: 10
-#     n_samples: 60_000
-#     methods:
-#         - ERM
-#         - DA+ERM
-#         - DA+UIV-CV
-#         - DA+UIV-LCV
-#         - DA+IV
-#         - IRM
-#         - AR
-#         - DRO
-#         - RICE
-#         - V-REx
-#         - MM-REx
-#     augmentations:
-#         - rotation
-#         - flip
-#         - gan
-
 hyperparameters:
     sgd:
-        lr: 0.01
-        batch: 256
-        epochs: 16
+        lr: 0.01            # learning rate for stochastic gradient descent
+        batch: 256          # batch size
+        epochs: 16          # number of epochs
     cv:
         folds: 5            # k-fold CV number of folds
         frac: 0.2           # vanilla CV test set fraction
         samples: 10         # number of samples for random search
-        n_jobs: -1           # number of jobs to run in parallel for hyperparam search
+        n_jobs: 1          # number of jobs to run in parallel for hyperparam search

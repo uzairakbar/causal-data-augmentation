@@ -4,6 +4,7 @@ import cvxpy as cp
 from loguru import logger
 import torch.nn.functional as F
 import torch.utils.data as data_utils
+from sklearn.linear_model import Lasso, Ridge
 
 from src.regressors.utils import MODELS, Model, device
 
@@ -42,6 +43,52 @@ class LeastSquaresCvxpy(ERM):
     
     def _predict(self, X):
         return X @ self._W
+
+
+class RidgeRegression(ERM):
+    def __init__(self, alpha=1.0):
+        self._alpha = alpha
+        self.ridge = Ridge(alpha=alpha, fit_intercept=False)
+        super(RidgeRegression, self).__init__()
+
+    def _fit(self, X, y, **kwargs):
+        self.ridge.fit(X, y)
+        self._W = self.ridge.coef_.reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return self.ridge.predict(X)
+    
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
+
+
+class LassoRegression(ERM):
+    def __init__(self, alpha=1.0):
+        self._alpha = alpha
+        self.lasso = Lasso(alpha=alpha, fit_intercept=False)
+        super(LassoRegression, self).__init__()
+
+    def _fit(self, X, y, **kwargs):
+        self.lasso.fit(X, y)
+        self._W = self.lasso.coef_.reshape(-1, 1)
+        return self
+    
+    def _predict(self, X):
+        return self.lasso.predict(X)
+    
+    @property
+    def alpha(self):
+        return self._alpha
+
+    @alpha.setter
+    def alpha(self, alpha):
+        self._alpha = alpha
 
 
 class GradientDescentERM(ERM):

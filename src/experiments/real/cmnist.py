@@ -1,9 +1,9 @@
 import enlighten
 import numpy as np
+import scipy as sp
 from loguru import logger
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
-from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.cmnist import ColoredDigitsDA as DA
 
@@ -15,13 +15,12 @@ from src.regressors.erm import GradientDescentERM as ERM
 
 from src.regressors.iv import GeneralizedMomentMethodIV as IV
 
-from src.regressors.uiv import GeneralizedMomentMethodUnfaithfulIV as UIV_a
+from src.regressors.ivl import GeneralizedMomentMethodIVlike as IVL_a
 
 from src.regressors.baselines import (
     RICE,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
-    AnchorRegression as AR,
     InvariantRiskMinimization as IRM,
     DistributionallyRobustOptimization as DRO,
 )
@@ -36,9 +35,10 @@ from src.experiments.utils import (
     save,
     set_seed,
     box_plot,
-    bootstrap,
     tex_table,
     fit_model,
+    estimation_error,
+    cmnist_estimation_error,
     ANNOTATE_BOX_PLOT,
 )
 
@@ -50,10 +50,6 @@ EXPERIMENT: str='colored_mnist'
 DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_JOBS: int=1
-POLYNOMIAL_DEGREE: int=1
-FEATURES = PolynomialFeatures(
-    POLYNOMIAL_DEGREE, include_bias=False
-)
 
 
 def run(
@@ -78,9 +74,9 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(model='cmnist'),
         'DA+ERM': lambda: ERM(model='cmnist'),
-        'DA+UIV-CV': lambda: CV(
+        'DA+IVL-CV': lambda: CV(
             metric='accuracy',
-            estimator=UIV_a(model='cmnist'),
+            estimator=IVL_a(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -90,9 +86,9 @@ def run(
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
             verbose=1
         ),
-        'DA+UIV-LCV': lambda: LevelCV(
+        'DA+IVL-LCV': lambda: LevelCV(
             metric='accuracy',
-            estimator=UIV_a(model='cmnist'),
+            estimator=IVL_a(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -106,18 +102,6 @@ def run(
         'IRM': lambda: LevelCV(
             metric='accuracy',
             estimator=IRM(model='cmnist'),
-            param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=1
-        ),
-        'AR': lambda: CV(
-            metric='accuracy',
-            estimator=AR(model='cmnist'),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -167,15 +151,14 @@ def run(
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
 
-    all_accuracies = {
+    all_errors = {
         augmentation: {
             name: np.zeros(num_seeds) for name in methods
         } for augmentation in augmentations
     }
 
-    accuracy = lambda y, yhat: (y == yhat).mean()
     sem_test = SEM(train=False)
-    X_test, y_test = sem_test(N = -1)
+    X_test, ate_test = sem_test(N = -1)
 
     pbar_augmentation = MANAGER.counter(
         total=len(augmentations), desc='Augmentations', unit='augmentations'
@@ -193,7 +176,6 @@ def run(
 
             X, y = sem(N = n_samples)
             GX, G = da(X)
-            G = FEATURES.fit_transform(G)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'Seed {seed+i}', unit='methods', leave=False
@@ -211,15 +193,13 @@ def run(
                     da=da
                 )
                 
-                y_test_hat = model.predict(X_test)
-                score = accuracy(y_test, y_test_hat)
-                all_accuracies[augmentation][method_name][i] = score
-
-                logger.info(f'Test accuracy for {method_name}: \t {score}.')
-
-                save(
-                    obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
+                ate_test_hat = model.predict(X_test)
+                error = cmnist_estimation_error(
+                    ate_test, ate_test_hat
                 )
+                all_errors[augmentation][method_name][i] = error
+
+                logger.info(f'Test error for {method_name}: \t {error}.')
                 
                 pbar_methods.update(), status.update()
             pbar_methods.close()
@@ -229,41 +209,22 @@ def run(
     pbar_augmentation.close()
 
     save(
-        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
-    )
-    save(
-        obj=all_accuracies, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
-    save(
-        obj=np.arange(seed, seed+num_seeds),
-        fname='seeds', experiment=EXPERIMENT, format='json'
+        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     
     box_plot(
-        all_accuracies, xlabel='Test Accuracy',
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        all_accuracies, xlabel='Test Accuracy',
-        fname=EXPERIMENT, experiment=EXPERIMENT, savefig=True,
-        bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
     caption = (
-        f'Test accuracy $\pm$ one standard deviation for the CMNIST experiment across {num_seeds} seeds.'
+        f'nCER $\pm$ standard error for the CMNIST experiment across {num_seeds} seeds.'
     )
     table = tex_table(
-        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption
+        all_errors, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
-    table = tex_table(
-        all_accuracies, label=EXPERIMENT, highlight='max', caption=caption, bootstrapped=True
-    )
-    save(
-        obj=table, fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT, format='tex'
     )
 
 
@@ -275,14 +236,14 @@ if __name__ == '__main__':
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
     CLI.add_argument(
-        '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
+        '--n_samples', type=int, default=1_000, help='Number of samples per experiment.'
     )
     CLI.add_argument(
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+IVL-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

@@ -1,0 +1,12 @@
+name: causal-data-augmentation
+channels:
+    - anaconda
+    - conda-forge
+    - pytorch
+    - defaults
+dependencies:
+    - conda-build
+    - python=3.10.14
+    - pip
+    - pip:
+        - -r requirements.txt

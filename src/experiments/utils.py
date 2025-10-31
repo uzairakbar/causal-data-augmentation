@@ -12,6 +12,7 @@ from loguru import logger
 import matplotlib.pyplot as plt
 import matplotlib.ticker as tck
 from numpy.typing import NDArray
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
 from typing import Any, Literal, List, Dict, Optional, Tuple
 from sklearn.preprocessing import StandardScaler, KBinsDiscretizer
@@ -28,48 +29,54 @@ Experiment = Literal[
 ]
 Plot = Literal['png', 'pdf', 'ps', 'eps', 'svg']
 
-FS_TICK: int = 18
-FS_LABEL: int = 24
+FS_TICK: int=15
+FS_LABEL: int=24
 PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
+HILIGHT_OURS: bool=True
+POLYNOMIAL_DEGREE: int=1
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
-    # Set LaTeX for rendering text
-    'text.usetex': True,
-    'font.family': 'serif',
-    'font.serif': ['Computer Modern'],
-    'text.latex.preamble': r'\usepackage{amsmath}',
-    # Set background and border settings
-    'axes.facecolor': 'white',
-    'axes.edgecolor': 'black',
-    'axes.linewidth': 2,
-    'xtick.color': 'black',
-    'ytick.color': 'black',
+    # # Set LaTeX for rendering text.
+    # # Uncomment this only if you have installed latex dependencies.
+    # 'text.usetex': True,
+    # 'font.family': 'serif',
+    # 'font.serif': ['Computer Modern'],
+    # 'text.latex.preamble': r'\usepackage{amsmath}',
+    # # Set background and border settings
+    # 'axes.facecolor': 'white',
+    # 'axes.edgecolor': 'black',
+    # 'axes.linewidth': 2,
+    # 'xtick.color': 'black',
+    # 'ytick.color': 'black',
 }
 TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
     'ERM': r'ERM',
     'DA+ERM': r'DA+ERM',
-    'DA+UIV-a': r'DA+UIV--$\alpha$',
-    'DA+UIV-CV': r'DA+UIV--$\alpha^{\text{CV}}$',
-    'DA+UIV-LCV': r'DA+UIV--$\alpha^{\text{LCV}}$',
-    'DA+UIV-CC': r'DA+UIV--$\alpha^{\text{CC}}$',
-    'DA+UIV-Pi': r'DA+UIV--$\Pi$',
-    'DA+UIV': r'DA+UIV',
+    'DA+IVL-a': r'DA+IVL$_\alpha$',
+    'DA+IVL-CV': r'DA+IVL$_\alpha^{_\text{CV}}$',
+    'DA+IVL-LCV': r'DA+IVL$_\alpha^{_\text{LCV}}$',
+    'DA+IVL-CC': r'DA+IVL$_\alpha^{_\text{CC}}$',
+    'DA+IVL-Pi': r'DA+IVL$_\Pi$',
+    'DA+IVL': r'DA+IVL',
     'DA+IV': r'DA+IV',
     'IRM': r'IRM',
-    'AR': r'AR',
     'ICP': r'ICP',
     'DRO': r'DRO',
     'RICE': r'RICE',
     'V-REx': r'V-REx',
     'MM-REx': r'MM-REx',
+    'L1Janzing': r'$\ell_1$ Janzing `19',
+    'L2Janzing': r'$\ell_2$ Janzing `19',
+    'Kania&Wit': r'Kania, Wit `23',
 }
 ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     'linear_simulation': {
         'title': 'Simulation Data',
+        'x_color': 'w',
     },
     'optical_device': {
         'title': 'Optical Device Data',
@@ -77,24 +84,24 @@ ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
-        'dummies': ['DA+UIV-CC', 'ICP'],
-        'y_color': 'w',
+        'dummies': ['DA+IVL-CC', 'ICP', 'L1Janzing', 'L2Janzing', 'Kania&Wit'],
+        # 'y_color': 'w',
+        # 'x_color': 'w',
     }
 }
 ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
-    'lambda': {
-        'xlabel': r'$\lambda$',
+    'kappa': {
+        'xlabel': r'$\kappa$',
         'xscale': 'linear',
         'hide_legend': True,
     },
     'alpha': {
         'xlabel': r'$\alpha$',
         'xscale': 'log',
-        'vertical_plots': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC'],
-        'trivial_solution': True,
-        'legend_items': ['DA+UIV-CV', 'DA+UIV-LCV', 'DA+UIV-CC', 'DA+UIV-a'],
+        'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
+        'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
         'y_color': 'w',
-        # 'legend_loc': (0.645, 0.425),
+        'legend_loc': (0.465, 0.230),
     },
     'gamma': {
         'xlabel': r'$\gamma$',
@@ -118,11 +125,47 @@ def discretize(
     return G
 
 
-def relative_error(W, What) -> float:
+def estimation_error(
+        estimand,       # ground-truth target f or f(x)
+        estimate,       # hypothesis h or h(x)
+        normalize=True,
+    ) -> float:
     sq_norm = lambda x: (x**2).sum()
-    sq_error = sq_norm(What - W)
-    relative_sq_error = sq_error / (sq_error + sq_norm(W))
-    return relative_sq_error**0.5
+
+    sq_error = sq_norm(
+        estimate - estimand
+    )
+    if normalize:
+        sq_error = (
+            sq_error / (sq_error + sq_norm(estimand))
+        )
+    return sq_error
+
+
+def cmnist_estimation_error(
+        y,      # target label/outcome
+        yHat,   # prediction
+        normalize=True,
+    ) -> float:
+    mse = lambda x: (x**2).mean()
+
+    causal_risk = mse(
+        yHat - y
+    )
+    null_causal_risk = 0.5
+    oracle_causal_risk = 0.25
+    
+    causal_excess_risk = (
+        causal_risk - oracle_causal_risk
+    )
+    null_causal_excess_risk = (
+        null_causal_risk - oracle_causal_risk
+    )
+    if normalize:
+        causal_excess_risk = (
+            causal_excess_risk / (causal_excess_risk + null_causal_excess_risk)
+        )
+    return causal_excess_risk
 
 
 def set_seed(seed: int=42):
@@ -144,7 +187,7 @@ def set_seed(seed: int=42):
 def sweep_plot(
         x, y,
         xlabel: str,
-        ylabel: Optional[str]='Retalive Error',
+        ylabel: Optional[str]='nCER',
         xscale: Optional[Literal['linear', 'log']]='linear',
         vertical_plots: Optional[List]=[],
         trivial_solution: Optional[bool]=True,
@@ -154,8 +197,8 @@ def sweep_plot(
         legend_loc: Optional[str | Tuple[float, float]]='best',
         y_color: Optional[bool]='k',
         hide_legend: Optional[bool]=False,
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         y = bootstrap(y)
@@ -167,11 +210,13 @@ def sweep_plot(
     sns.set_palette('deep')
     colors = sns.color_palette()
     fig = plt.figure()
+
+    max_mean = 0.0
     all_labels = []
     plot_handles = []
     for i, (method, errors) in enumerate(y.items()):
 
-        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
         #     continue
         # if 'CV' in method or 'LCV' in method or 'CC' in method:
         #     continue
@@ -190,6 +235,7 @@ def sweep_plot(
                 x=mean.mean(), color=colors[i], label=label, linestyle='--'
             )
         else:
+            max_mean = max(max_mean, max(mean))
             handle = plt.plot(x, mean, color=colors[i], label=label)[0]
         
         plot_handles.append(handle)
@@ -201,13 +247,14 @@ def sweep_plot(
             legend_items[legend_items.index(method)] = label
         
         handle = plt.axhline(
-            y = 0.5**0.5, color=colors[-1], label=label
+            y = 0.5, color=colors[-1], label=label
         )
+        max_mean = max(max_mean, 0.5)
         plot_handles.append(handle)
         
     for i, (method, errors) in enumerate(y.items()):
 
-        # if method == 'DA+UIV-Pi' or method == 'DA+UIV':
+        # if method == 'DA+IVL-Pi' or method == 'DA+IVL':
         #     continue
         # if 'CV' in method or 'LCV' in method or 'CC' in method:
         #     continue
@@ -222,9 +269,8 @@ def sweep_plot(
     plt.yticks(fontsize=FS_TICK, color=y_color)
     plt.xticks(fontsize=FS_TICK)
     plt.xlim([min(x), max(x)])
-    maximum = 0.5**0.5
-    padding = 0.05 * maximum
-    plt.ylim([0.0 - padding, maximum + padding])
+    padding = 0.05 * max_mean
+    plt.ylim([0.0 - padding, max_mean + padding])
     plt.xscale(xscale)
 
     # Legend all items if None are specified
@@ -236,12 +282,12 @@ def sweep_plot(
 
     if hilight_ours:
         for i, label in enumerate(labels):
-            if label == TEX_MAPPER['DA+UIV-a']:
+            if label == TEX_MAPPER['DA+IVL-a']:
                 continue
-            elif 'UIV' in label or 'average' in label:
+            elif 'IVL' in label or 'average' in label:
                 bold = label
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+                bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
                 bold = fr'\textbf{{{bold}}}'
                 labels[i] = bold                
 
@@ -255,8 +301,6 @@ def sweep_plot(
     plt.show()
     if savefig:
         fname = ''.join(c for c in xlabel if c.isalnum()) + '_sweep'
-        if bootstrapped:
-            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -294,7 +338,7 @@ def box_plot(
         fname: str,
         experiment: Experiment,
         title: Optional[str]='',
-        xlabel: Optional[str]='Relative Error',
+        xlabel: Optional[str]='nCER (lower is better)',
         ylabel: Optional[str]='Method',
         zlabel: Optional[str]='Augmentation',
         orient: Optional[Literal['h', 'v']]='h',
@@ -303,8 +347,9 @@ def box_plot(
         annotate_best: Optional[bool]=True,
         dummies: Optional[List[str]]=[],
         y_color: Optional[bool]='k',
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        x_color: Optional[bool]='k',
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         data = bootstrap(data)
@@ -339,7 +384,11 @@ def box_plot(
         if len(data) > 1:
             data = {None : data}
     
-    if 'error' in (xlabel.lower() + ylabel.lower()):
+    if (
+        'cer' in (xlabel.lower() + ylabel.lower())
+        or
+        'error' in (xlabel.lower() + ylabel.lower())
+    ):
         data = populate_dummy_data(data, dummies, scaler=2.0)
     elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
         data = populate_dummy_data(data, dummies, scaler=-1.0)
@@ -352,7 +401,11 @@ def box_plot(
 
     if annotate_best and single_row:
         average_scores = df.groupby(ylabel, sort=False).mean()[xlabel]
-        if 'error' in (xlabel.lower() + ylabel.lower()):
+        if (
+            'cer' in (xlabel.lower() + ylabel.lower())
+            or
+            'error' in (xlabel.lower() + ylabel.lower())
+        ):
             best_idx = average_scores.argmin()
         elif 'accuracy' in (xlabel.lower() + ylabel.lower()):
             best_idx = average_scores.argmax()
@@ -366,6 +419,13 @@ def box_plot(
     sns.set_palette('deep')
     fig = plt.figure()
 
+    num_categories = df[zlabel].nunique()
+    cmap = plt.get_cmap("tab20")
+    palette = ([
+        sns.color_palette("deep")[i % 10] if i < 10 
+        else cmap(i) for i in range(num_categories)
+    ])
+
     if orient == 'v':
         xlabel, ylabel = ylabel, xlabel
 
@@ -373,7 +433,7 @@ def box_plot(
         x=xlabel, y=ylabel,
         hue=zlabel,
         data=df,
-        palette='deep',
+        palette=palette,
         orient=orient,
         showmeans=True,
         meanprops={
@@ -393,7 +453,7 @@ def box_plot(
     if title:
         plt.title(title, fontsize=FS_LABEL)
     plt.ylabel('', fontsize=FS_LABEL, color=y_color)
-    plt.xlabel(xlabel, fontsize=FS_LABEL)
+    plt.xlabel(xlabel, fontsize=FS_LABEL, color=x_color)
     plt.xticks(fontsize=FS_TICK)
     plt.yticks(fontsize=FS_TICK, color=y_color)
 
@@ -416,8 +476,8 @@ def box_plot(
     def bold_tick(tick):
         tick.set_fontweight('bold')
         bold = tick.get_text()
-        bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-        bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+        bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+        bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
         bold = fr'\textbf{{{bold}}}'
         tick.set_text(bold)
         return tick
@@ -426,14 +486,14 @@ def box_plot(
         if orient == 'h':
             new_ticks = []
             for tick in ax.get_yticklabels():
-                if 'UIV' in tick.get_text():
+                if 'IVL' in tick.get_text():
                     tick = bold_tick(tick)
                 new_ticks.append(tick)
             ax.set_yticklabels(new_ticks)
         else:
             new_ticks = []
             for tick in ax.get_xticklabels():
-                if 'UIV' in tick.get_text():
+                if 'IVL' in tick.get_text():
                     tick = bold_tick(tick)
                 new_ticks.append(tick)
             ax.set_xticklabels(new_ticks)
@@ -442,8 +502,6 @@ def box_plot(
     plt.show()
     
     if savefig:
-        if bootstrapped:
-            fname += '_bootstrapped'
         save(
             obj=fig,
             fname=fname,
@@ -453,103 +511,14 @@ def box_plot(
         )
 
 
-def grid_plot(
-        data: Dict,
-        fname: str,
-        experiment: Experiment,
-        savefig: Optional[bool]=True,
-        format: Plot=PLOT_FORMAT,
-        hilight_ours: Optional[bool]=True,
-    ):
-    functions = data.keys()
-    methods = ['Data'] + ([
-        method for method in data['abs'].keys()
-            if 'ERM' in method or 'DA' in method or 'IV' in method
-    ])
-    
-    # Define color palette (e.g., 'deep') and style (e.g., 'ticks')
-    plt.rcParams.update(RC_PARAMS)
-    sns.set_palette('deep')
-    colors = sns.color_palette()[:3]
-
-    fig, axs = plt.subplots(
-        len(functions), len(methods),
-        figsize=(PAGE_WIDTH, PAGE_WIDTH/3),
-        sharex=True, sharey=False,
-        # constrained_layout=True
-    )
-    for i, function in enumerate(functions):
-        for j, method in enumerate(methods):
-            x = data[function]['x']
-            y = data[function]['y']
-            
-            if method == 'Data':
-                axs[i, j].scatter(
-                    data[function]['x_data'],
-                    data[function]['y_data'],
-                    color=colors[-1],
-                    alpha=0.2
-                )
-            else:
-                mean = data[function][method].mean(axis=1)
-                low = np.percentile(data[function][method], 2.5, axis=1)
-                high = np.percentile(data[function][method], 97.5, axis=1)
-
-                axs[i, j].plot(x, mean, color=colors[0])
-                axs[i, j].fill_between(x, low, high, color=colors[0], alpha=0.2)
-            
-            label = TEX_MAPPER.get(method, method)
-
-            if hilight_ours and 'UIV' in label:
-                bold = label
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
-                bold = fr'\textbf{{{bold}}}'
-                label = bold
-
-            axs[i, j].plot(x, y, color=colors[1])
-            if not i:
-                axs[i, j].set_title(label, fontsize=FS_LABEL)
-            if not j:
-                axs[i, j].set_ylabel(function, fontsize=FS_LABEL)
-            if j:
-                axs[i, j].yaxis.set_ticklabels([])
-
-            y_range = max(y) - min(y)
-            y_pad = (y_range/2)*1.5
-            axs[i, j].set_xlim([min(x), max(x)])
-            axs[i, j].set_ylim([min(y) - y_pad, max(y) + y_pad])
-            axs[i, j].xaxis.set_major_locator(tck.MaxNLocator(integer=True))
-            # square boxes
-            axs[i, j].set_aspect(
-                np.diff(axs[i, j].get_xlim())/np.diff(axs[i, j].get_ylim()),
-                adjustable='datalim'
-                # adjustable='box'
-            )
-    fig.subplots_adjust(
-        bottom=0, top=1, hspace=0,left=0, right=1, wspace=0,
-    )
-    fig.tight_layout(pad=0.0, h_pad=0, w_pad=0.0)
-    plt.show()
-    if savefig:
-        save(
-            obj=fig,
-            fname=fname,
-            experiment=experiment,
-            format=format,
-            dpi=PLOT_DPI,
-            bbox_inches='tight'
-        )
-
-
 def tex_table(
         data: Dict,
         label: str,
         caption: str,
         highlight: Literal['min', 'max']='min',
         decimals: int=3,
-        hilight_ours: Optional[bool]=True,
-        bootstrapped: Optional[bool]=False,
+        hilight_ours: Optional[bool]=HILIGHT_OURS,
+        bootstrapped: Optional[bool]=True,
     ):
     if bootstrapped:
         data = bootstrap(data)
@@ -596,10 +565,10 @@ def tex_table(
     if hilight_ours:
         bold_column_names = []
         for name in column_names:
-            if 'UIV' in name:
+            if 'IVL' in name:
                 bold = name
-                bold = bold.replace(r'\alpha',r'\boldsymbol{\alpha}')
-                bold = bold.replace(r'\Pi',r'\boldsymbol{\Pi}')
+                bold = bold.replace(r'\alpha',r'{\boldsymbol{\alpha}}')
+                bold = bold.replace(r'\Pi',r'{\boldsymbol{\Pi}}')
                 bold = fr'\textbf{{{bold}}}'
                 name = bold
             bold_column_names.append(name)
@@ -789,11 +758,22 @@ def load(path: str):
 
 
 def fit_model(
-        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, da=None
+        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, poly_degree=POLYNOMIAL_DEGREE, da=None,
     ):
     if not pbar_manager:
-        return fit_model_nopbar(model, name, X, y, G, GX, hyperparameters, da)
-
+        return fit_model_nopbar(
+            model, name, X, y, G, GX, hyperparameters, poly_degree, da
+        )
+    
+    X_original, y_original = X, y
+    if POLYNOMIAL_DEGREE > 1:
+        features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        X = features.fit_transform(X)
+        G = features.fit_transform(G)
+        GX = features.fit_transform(GX)
+    
     sgd_params = getattr(hyperparameters, 'sgd', dict())
     if name == 'ERM':
         model.fit(
@@ -803,33 +783,48 @@ def fit_model(
         model.fit(
             X=GX, y=y, pbar_manager=pbar_manager, **sgd_params
         )
-    elif 'DA+UIV' in name:
+    elif 'DA+IVL' in name:
         if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, pbar_manager=None, **sgd_params
         )
-    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
             X=GX, y=y, Z=G, pbar_manager=pbar_manager, **sgd_params
         )
     elif 'RICE' in name:
+        # make sure we provide same #samples as original data
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/RICE_AUGMENTATIONS
+            X_original, y_original,
+            train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
-            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            da=da, poly_degree=poly_degree,
+            num_augmentations=RICE_AUGMENTATIONS,
             pbar_manager=pbar_manager, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')
 
 
-def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
+def fit_model_nopbar(
+    model, name, X, y, G, GX, hyperparameters=None,
+    poly_degree=POLYNOMIAL_DEGREE, da=None
+    ):
+    X_original, y_original = X, y
+    if POLYNOMIAL_DEGREE > 1:
+        features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        X = features.fit_transform(X)
+        G = features.fit_transform(G)
+        GX = features.fit_transform(GX)
+
     sgd_params = getattr(hyperparameters, 'sgd', dict())
-    if name == 'ERM':
+    if name in ('ERM', 'L1Janzing', 'L2Janzing'):
         model.fit(
             X=X, y=y, **sgd_params
         )
@@ -837,25 +832,39 @@ def fit_model_nopbar(model, name, X, y, G, GX, hyperparameters=None, da=None):
         model.fit(
             X=GX, y=y, **sgd_params
         )
-    elif 'DA+UIV' in name:
+    elif 'DA+IVL' in name:
         if 'LCV' in name:
             G = discretize(G)
         model.fit(
             X=X, y=y, G=G, GX=GX, **sgd_params
         )
-    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx', 'AR'):
+    elif name in ('DA+IV', 'DRO', 'ICP', 'IRM', 'V-REx', 'MM-REx'):
         G = discretize(G)
         model.fit(
             X=GX, y=y, Z=G, **sgd_params
         )
     elif 'RICE' in name:
+        # make sure we provide same #samples as original data
         X_rice, _, y_rice, _ = train_test_split(
-            X, y, train_size=1.0/RICE_AUGMENTATIONS
+            X_original, y_original,
+            train_size=1.0/RICE_AUGMENTATIONS
         )
         model.fit(
             X=X_rice, y=y_rice,
-            da=da, num_augmentations=RICE_AUGMENTATIONS,
+            da=da, poly_degree=poly_degree,
+            num_augmentations=RICE_AUGMENTATIONS,
             **sgd_params
+        )
+    elif 'Kania&Wit' in name:
+        # make sure we provide same #samples as original data
+        X_0, _, y_0, _ = train_test_split(
+            X, y, train_size=0.5
+        )
+        X_A, _, y_A, _ = train_test_split(
+            GX, y, train_size=0.5
+        )
+        model.fit(
+            X=X_0, y=y_0, X_A=X_A, y_A=y_A, **sgd_params
         )
     else:
         raise ValueError(f'Model {name} not implemented.')

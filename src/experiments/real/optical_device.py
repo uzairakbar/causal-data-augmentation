@@ -1,8 +1,8 @@
 import enlighten
 import numpy as np
+import scipy as sp
 from argparse import ArgumentParser
 from typing import Dict, Callable, Optional, List
-from sklearn.preprocessing import PolynomialFeatures
 
 from src.data_augmentors.real.optical_device import OpticalDeviceDA as DA
 
@@ -10,17 +10,21 @@ from src.sem.real.optical_device import OpticalDeviceSEM as SEM
 
 from src.regressors.abstract import Regressor, ModelSelector
 
-from src.regressors.erm import LeastSquaresClosedForm as ERM
+from src.regressors.erm import (
+    LeastSquaresClosedForm as ERM,
+    RidgeRegression,
+    LassoRegression,
+)
 
 from src.regressors.iv import TwoStageLeastSquaresIV as IV
 
-from src.regressors.uiv import LeastSquaresClosedFormUnfaithfulIV as UIV_a
+from src.regressors.ivl import LeastSquaresClosedFormIVlike as IVL_a
 
 from src.regressors.baselines import (
     RICE,
+    KaniaWit,
     MiniMaxREx as MMREx,
     VarianceREx as VREx,
-    LinearAnchorRegression as AR,
     InvariantRiskMinimization as IRM,
     InvariantCausalPrediction as ICP,
     DistributionallyRobustOptimization as DRO,
@@ -29,6 +33,7 @@ from src.regressors.baselines import (
 from src.regressors.model_selectors import (
     LevelCV,
     VanillaCV as CV,
+    RiskDifference as RD,
     ConfounderCorrection as CC,
 )
 
@@ -38,7 +43,7 @@ from src.experiments.utils import (
     box_plot,
     tex_table,
     fit_model,
-    relative_error,
+    estimation_error,
     ANNOTATE_BOX_PLOT,
 )
 
@@ -51,10 +56,7 @@ DEFAULT_CV_SAMPLES: int=10
 DEFAULT_CV_FRAC: float=0.2
 DEFAULT_CV_FOLDS: int=5
 DEFAULT_CV_JOBS: int=1
-POLYNOMIAL_DEGREE: int=1
-FEATURES = PolynomialFeatures(
-    POLYNOMIAL_DEGREE, include_bias=False
-)
+GROUND_TRUTH: str='polynomial'
 
 
 def run(
@@ -77,31 +79,31 @@ def run(
     all_methods: Dict[str, ModelBuilder] = {
         'ERM': lambda: ERM(),
         'DA+ERM': lambda: ERM(),
-        'DA+UIV-CV': lambda: CV(
-            estimator=UIV_a(),
+        'DA+IVL-CV': lambda: CV(
+            estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-LCV': lambda: LevelCV(
-            estimator=UIV_a(),
+        'DA+IVL-LCV': lambda: LevelCV(
+            estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
         ),
-        'DA+UIV-CC': lambda: CC(
-            estimator=UIV_a(),
+        'DA+IVL-CC': lambda: CC(
+            estimator=IVL_a(),
             param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                'alpha': sp.stats.loguniform.rvs(
+                    1e-3, 1, size=getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
                 )
             },
             n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
@@ -109,17 +111,6 @@ def run(
         'DA+IV': lambda: IV(),
         'IRM': lambda: LevelCV(
             estimator=IRM(model='linear'),
-            param_distributions = {
-                'alpha': np.random.exponential(
-                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
-                )
-            },
-            frac=getattr(cv, 'frac', DEFAULT_CV_FRAC),
-            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
-            verbose=1
-        ),
-        'AR': lambda: CV(
-            estimator=AR(),
             param_distributions = {
                 'alpha': np.random.exponential(
                     1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
@@ -164,6 +155,33 @@ def run(
         ),
         'ICP': lambda: ICP(),
         'DRO': lambda: DRO(model='linear'),
+        'L1Janzing': lambda: CC(
+            estimator=LassoRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'L2Janzing': lambda: CC(
+            estimator=RidgeRegression(),
+            param_distributions = {
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        ),
+        'Kania&Wit': lambda: RD(
+            estimator=KaniaWit(),
+            param_distributions={
+                'alpha': np.random.exponential(
+                    1, getattr(cv, 'samples', DEFAULT_CV_SAMPLES)
+                )
+            },
+            n_jobs=getattr(cv, 'n_jobs', DEFAULT_CV_JOBS),
+        )
     }
     methods: Dict[str, ModelBuilder] = {m: all_methods[m] for m in methods}
     
@@ -174,7 +192,9 @@ def run(
     }
     all_sems = {
         augmentation: ([
-            SEM(exp) for exp in range(SEM.num_experiments())
+            SEM(
+                experiment=exp, ground_truth=GROUND_TRUTH
+            ) for exp in range(SEM.num_experiments())
         ]) for augmentation in augmentations
     }
     all_augmenters = {
@@ -196,10 +216,9 @@ def run(
             if seed >= 0: set_seed(seed)
 
             sem_solution = sem.solution
-
+            
             X, y = sem(N = n_samples)
             GX, G = da(X)
-            G = FEATURES.fit_transform(G)
             
             pbar_methods = MANAGER.counter(
                 total=len(methods), desc=f'SEM {i}', unit='methods', leave=False
@@ -213,18 +232,15 @@ def run(
                     name=method_name,
                     X=X, y=y, G=G, GX=GX,
                     hyperparameters=hyperparameters,
-                    da=da
+                    da=da,
+                    poly_degree=sem.poly_degree,
                 )
                 
                 method_solution = model.solution
                 
-                error = relative_error(sem_solution, method_solution)
+                error = estimation_error(sem_solution, method_solution)
 
                 all_errors[augmentation][method_name][i] = error
-
-                save(
-                    obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-                )
                 
                 pbar_methods.update(), status.update()
             pbar_methods.close()
@@ -236,42 +252,18 @@ def run(
     save(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
-    save(
-        obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='json'
-    )
     
     box_plot(
         all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
-    box_plot(
-        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-
-    box_plot(
-        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
-    box_plot(
-        all_errors['gaussian-noise'], fname=EXPERIMENT+'_gaussian', experiment=EXPERIMENT,
-        savefig=True, bootstrapped=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
     
-    caption = 'RSE $\pm$ one standard deviation across the optical device datasets.'
+    caption = 'nCER $\pm$ standard error across the optical device datasets.'
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
-    )
-    table_bootstrapped = tex_table(
-        all_errors, label=EXPERIMENT, caption=caption, bootstrapped=True
-    )
-    save(
-        obj=table_bootstrapped,
-        fname=EXPERIMENT+'_bootstrapped', experiment=EXPERIMENT,
-        format='tex'
     )
 
 
@@ -283,14 +275,14 @@ if __name__ == '__main__':
         '--seed', type=int, default=42, help='Random seed for the experiment. Negative is random.'
     )
     CLI.add_argument(
-        '--n_samples', type=int, default=1000, help='Number of samples per experiment.'
+        '--n_samples', type=int, default=1_000, help='Number of samples per experiment.'
     )
     CLI.add_argument(
         '--methods',
         nargs="*",
         type=str,
-        default=['ERM', 'DA+ERM', 'DA+UIV-CV', 'DA+IV'],
-        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+UIV-CV DA+IV`.'
+        default=['ERM', 'DA+ERM', 'DA+IVL-CV', 'DA+IV'],
+        help='Methods to use. Specify in space-separated format -- `ERM DA+ERM DA+IVL-CV DA+IV`.'
     )
     args = CLI.parse_args()
     run(**vars(args))

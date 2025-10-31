@@ -3,6 +3,7 @@ import numpy as np
 from torch import nn
 from loguru import logger
 from numpy.typing import NDArray
+from sklearn.metrics import mean_squared_error
 from typing import Optional, Literal, Callable, Dict
 from sklearn.model_selection import BaseCrossValidator
 
@@ -10,6 +11,7 @@ from sklearn.model_selection import BaseCrossValidator
 Model = Literal['linear', '2-layer', 'cmnist', 'rmnist']
 
 
+CPU_ONLY: bool=False
 MODELS: Dict[Model, Callable[[int], nn.Sequential]] = {
     'linear': lambda input_dim: nn.Sequential(
         nn.Linear(input_dim, 1, bias=False)
@@ -102,6 +104,31 @@ class LevelSplitter(BaseCrossValidator):
         return 1
 
 
+class RiskDifferenceScorer:
+    def __call__(
+            self, estimator, X_test, y_test, **kwargs
+        ):
+        # we expect the sliced `groups_test` to be in kwargs.
+        groups_for_this_fold = kwargs['groups_test']
+        
+        env_0_mask = (groups_for_this_fold == 0)
+        env_A_mask = (groups_for_this_fold == 1)
+        
+        X_0_val, y_0_val = X_test[env_0_mask], y_test[env_0_mask]
+        X_A_val, y_A_val = X_test[env_A_mask], y_test[env_A_mask]
+        
+        if len(X_0_val) == 0 or len(X_A_val) == 0:
+            return -np.inf
+
+        y_hat_0 = estimator.predict(X_0_val)
+        y_hat_A = estimator.predict(X_A_val)
+        
+        risk_0 = mean_squared_error(y_0_val, y_hat_0)
+        risk_A = mean_squared_error(y_A_val, y_hat_A)
+        
+        return -np.abs(risk_A - risk_0)
+
+
 def device():
     if torch.cuda.is_available():
         device = 'cuda'
@@ -109,5 +136,7 @@ def device():
         device = 'mps'
     else:
         device = 'cpu'
-    logger.info(f'Using {device}.')
+    if CPU_ONLY:
+        device = 'cpu'
+    logger.info(f'Using {device} device.')
     return torch.device(device)

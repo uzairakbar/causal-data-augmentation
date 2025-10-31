@@ -6,6 +6,7 @@ from loguru import logger
 from torch import autograd
 from abc import abstractmethod
 import torch.nn.functional as F
+from sklearn.preprocessing import PolynomialFeatures
 import torch.utils.data as data_utils
 from itertools import chain, combinations
 from scipy.stats import f as fdist, ttest_ind
@@ -22,35 +23,8 @@ LOG_FREQUENCY: int=100
 MAX_ICP_SUBSETS: int=1_024
 
 
-class LinearAnchorRegression(BaselineRegressor):
-    def __init__(self, alpha: float=1.0):
-        super(LinearAnchorRegression, self).__init__(alpha=alpha)
-        
-    def _fit(
-            self,
-            X, y, Z,
-            **kwargs
-        ):
-        N = len(X)
-        I = np.eye(N)
-        Cgg = Z.T @ Z
-        PI_Z = Z @ np.linalg.pinv( Cgg ) @ Z.T
-        
-        K = (I + (np.sqrt(self._alpha) - 1) * PI_Z)
-        X_, y_ = K @ X, K @ y
-        
-        self._W = LinearRegression(
-            fit_intercept=False
-        ).fit(X_, y_).coef_.reshape(-1, 1)
-
-        return self
-    
-    def _predict(self, X):
-        return X @ self._W
-
-
 class InvariantCausalPrediction(BaselineRegressor):
-    def __init__(self, model='linear', alpha: float=0.05):
+    def __init__(self, model='linear', alpha: float=0.1):
         super(InvariantCausalPrediction, self).__init__(alpha)
         
     def _fit(
@@ -89,15 +63,16 @@ class InvariantCausalPrediction(BaselineRegressor):
 
                 p_values.append(self._mean_var_test(res_in, res_out))
             
-            # Jonas uses `min(p_values) * len(environments) - 1`
-            p_value = min(p_values) * len(environments)
+            if p_values:
+                # Jonas uses `min(p_values) * len(environments) - 1`
+                p_value = min(p_values) * len(environments)
 
-            if p_value > self._alpha:
-                accepted_subsets.append(set(subset))
-                logger.info(f'Accepted subset: {subset}')
-            
-            if i >= MAX_ICP_SUBSETS:
-                break
+                if p_value > self._alpha:
+                    accepted_subsets.append(set(subset))
+                    logger.info(f'Accepted subset: {subset}')
+                
+                if i >= MAX_ICP_SUBSETS:
+                    break
         
         if len(accepted_subsets):
             accepted_features = list(set.intersection(*accepted_subsets))
@@ -139,6 +114,55 @@ class InvariantCausalPrediction(BaselineRegressor):
         return chain.from_iterable(
             combinations(s, r) for r in lengths if not random.shuffle(s)
         )
+
+
+class KaniaWit(BaselineRegressor):    
+    def _fit(self, X, y, **kwargs):
+        if 'groups' in kwargs:
+            groups = kwargs['groups']
+            X_0, y_0 = X[groups == 0], y[groups == 0]
+            X_A, y_A = X[groups == 1], y[groups == 1]
+        elif 'X_A' in kwargs:
+            X_0, y_0, X_A, y_A = X, y, kwargs['X_A'], kwargs['y_A']
+        else:
+            raise ValueError(
+                'KaniaWit needs `groups` (from CV) or `X_A`/`y_A` (for direct fit).'
+            )
+
+        N_0, M = (
+            X_0.shape if X_0.shape[0] > 0 else (
+                0, (X.shape[1] if 'X_A' not in kwargs else X_A.shape[1])
+            )
+        )
+        if X_0.shape[0] == 0 or X_A.shape[0] == 0:
+            self._W = np.zeros((M, 1))
+            return self
+        
+        N_A = X_A.shape[0]
+        
+        y_0 = y_0.reshape(-1, 1)
+        y_A = y_A.reshape(-1, 1)
+        
+        Cov_0 = (X_0.T @ X_0) / N_0
+        Cov_A = (X_A.T @ X_A) / N_A
+        G_Delta = Cov_A - Cov_0
+        
+        Corr_0 = (X_0.T @ y_0) / N_0
+        Corr_A = (X_A.T @ y_A) / N_A
+        Z_Delta = Corr_A - Corr_0
+        
+        G_pooled = Cov_A + Cov_0
+        Z_pooled = Corr_A + Corr_0
+        
+        G_alpha = self.alpha * G_Delta + G_pooled
+        Z_alpha = self.alpha * Z_Delta + Z_pooled
+        
+        self._W = np.linalg.pinv(G_alpha) @ Z_alpha
+        
+        return self
+    
+    def _predict(self, X):
+        return X @ self._W
 
 
 class NonlinearBaselineRegressor(BaselineRegressor):
@@ -311,33 +335,11 @@ class InvariantRiskMinimization(NonlinearBaselineRegressor):
 
         loss = R(phi(X) @ w, y)
         gradient = autograd.grad(loss, [w], create_graph=True)[0]
-        penalty = torch.sum(gradient**2)
+        penalty = torch.mean(gradient**2)
 
         loss = R(phi(X), y)
 
         return loss + alpha * penalty
-
-
-class AnchorRegression(NonlinearBaselineRegressor):
-    def __init__(self, model: Model='linear', alpha: float=1.0, **kwargs):
-        self.model, self.alpha = model, alpha
-        super(AnchorRegression, self).__init__(model=model, alpha=alpha)
-    
-    @classmethod
-    def _loss(cls,
-              X, y, Z, f,
-              alpha):
-        N, M = X.shape
-        I = torch.eye(N).to(DEVICE)
-        Pi = Z @ torch.linalg.pinv( Z.t() @ Z ) @ Z.t()
-
-        mse = F.mse_loss(f(X), y, reduction='none')
-        backdoor_adjustment = (I - Pi) @ mse
-        iv_regression = Pi @ mse
-        
-        loss = (backdoor_adjustment + alpha * iv_regression).mean()
-
-        return loss
 
 
 class VarianceREx(NonlinearBaselineRegressor):
@@ -447,6 +449,7 @@ class RICE(NonlinearBaselineRegressor):
             self,
             X, y,
             da,
+            poly_degree: int=1,
             num_augmentations: int=3,
             lr: float=0.001, epochs: int=40, batch: int=128,
             pbar_manager=None,
@@ -454,18 +457,28 @@ class RICE(NonlinearBaselineRegressor):
         ):
         def flatten(x):
             return x.reshape(*x.shape[:1], -1)
-
+        
+        self.features = PolynomialFeatures(
+            poly_degree, include_bias=False
+        )
+        
         I_g = ([
             flatten(da(X)[0])
             for _ in range(num_augmentations)
         ])
         I_g = ([
-            torch.tensor(GX, dtype=torch.float32).to(DEVICE)
+            torch.tensor(
+                self.features.fit_transform(GX),
+                dtype=torch.float32
+            ).to(DEVICE)
             for GX in I_g
         ])
 
         X = flatten(X)
-        X = torch.tensor(X, dtype=torch.float).to(DEVICE)
+        X = torch.tensor(
+            self.features.fit_transform(X),
+            dtype=torch.float
+        ).to(DEVICE)
         N, M = X.shape
 
         self.f = self._model(M)
@@ -497,7 +510,6 @@ class RICE(NonlinearBaselineRegressor):
             if batch_mode == 'full':
                 self.fit_f_batch(X, y, I_g)
             else:
-                # logger.info(f'g epoch {epoch + 1}/{epochs}')
                 self.fit_f_minibatch(train)
             
             if pbar_manager: pbar_epochs.update()
@@ -535,3 +547,8 @@ class RICE(NonlinearBaselineRegressor):
         else:
             loss = F.mse_loss(y_hat, y, reduction=reduction)
         return loss
+    
+    def _predict(self, X, **kwargs):
+        return super()._predict(
+            self.features.fit_transform(X)
+        )
