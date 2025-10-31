@@ -1,5 +1,5 @@
 # Causal Data Augmentation
-> Official code implementation for *"An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"* (NeurIPS 2025).
+> Implementation for *"An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"* (NeurIPS 2025).
 
 <p align="center">
     <img src="https://repository-images.githubusercontent.com/555395031/442c67c5-a047-42cf-96a8-1ad7d8587afa"
@@ -42,6 +42,7 @@
 Clone this repository.
 ```bash
 git clone https://github.com/uzairakbar/causal-data-augmentation.git
+cd causal-data-augmentation
 ```
 To use a GPU, set the `--index-url` value in `requirements.txt` as per your CUDA version (see [PyTorch installation instructions](https://pytorch.org/)).
 
