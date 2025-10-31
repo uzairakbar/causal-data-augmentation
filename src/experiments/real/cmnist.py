@@ -212,10 +212,10 @@ def run(
         obj=all_errors, fname=EXPERIMENT, experiment=EXPERIMENT, format='pkl'
     )
     
-    box_plot(
-        all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
-        savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
-    )
+    # box_plot(
+    #     all_errors, fname=EXPERIMENT, experiment=EXPERIMENT,
+    #     savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
+    # )
     
     caption = (
         fr'nCER $\pm$ standard error for the CMNIST experiment across {num_seeds} seeds.'
