@@ -38,18 +38,18 @@ HILIGHT_OURS: bool=True
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
-    # # Set LaTeX for rendering text.
-    # # Uncomment this only if you have installed latex dependencies.
-    # 'text.usetex': True,
-    # 'font.family': 'serif',
-    # 'font.serif': ['Computer Modern'],
-    # 'text.latex.preamble': r'\usepackage{amsmath}',
-    # # Set background and border settings
-    # 'axes.facecolor': 'white',
-    # 'axes.edgecolor': 'black',
-    # 'axes.linewidth': 2,
-    # 'xtick.color': 'black',
-    # 'ytick.color': 'black',
+    # Set LaTeX for rendering text.
+    # Uncomment this only if you have installed latex dependencies.
+    'text.usetex': True,
+    'font.family': 'serif',
+    'font.serif': ['Computer Modern'],
+    'text.latex.preamble': r'\usepackage{amsmath}',
+    # Set background and border settings
+    'axes.facecolor': 'white',
+    'axes.edgecolor': 'black',
+    'axes.linewidth': 2,
+    'xtick.color': 'black',
+    'ytick.color': 'black',
 }
 TEX_MAPPER: Dict[str, str] = {
     'Data': r'Data',
@@ -75,11 +75,11 @@ TEX_MAPPER: Dict[str, str] = {
 ANNOTATE_BOX_PLOT: Dict[Experiment, Dict[str, Any]] = {
     'linear_simulation': {
         'title': 'Simulation Data',
-        'x_color': 'w',
+        # 'x_color': 'w',
     },
     'optical_device': {
         'title': 'Optical Device Data',
-        'y_color': 'w',
+        # 'y_color': 'w',
     },
     'colored_mnist': {
         'title': 'Colored MNIST Data',
@@ -92,20 +92,20 @@ ANNOTATE_SWEEP_PLOT: Dict[str, Dict[str, Any]] = {
     'kappa': {
         'xlabel': r'$\kappa$',
         'xscale': 'linear',
-        'hide_legend': True,
+        # 'hide_legend': True,
     },
     'alpha': {
         'xlabel': r'$\alpha$',
         'xscale': 'log',
         'vertical_plots': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC'],
         'legend_items': ['DA+IVL-CV', 'DA+IVL-LCV', 'DA+IVL-CC', 'DA+IVL-a'],
-        'y_color': 'w',
-        'legend_loc': (0.465, 0.230),
+        # 'y_color': 'w',
+        # 'legend_loc': (0.465, 0.230),
     },
     'gamma': {
         'xlabel': r'$\gamma$',
         'xscale': 'log',
-        'y_color': 'w',
+        # 'y_color': 'w',
     }
 }
 
