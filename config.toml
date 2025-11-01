@@ -1,4 +1,4 @@
-base_url = "https://aterenin.github.io/academic-paper"
+base_url = "https://uzairakbar.github.io/causal-data-augmentation"
 compile_sass = true
 build_search_index = false
 generate_feeds = false

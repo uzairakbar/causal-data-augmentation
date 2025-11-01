@@ -1,16 +1,20 @@
 +++
-title = "Academic Paper Zola Theme"
+title = "An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"
 [extra]
 authors = [
-    {name = "Alexander Terenin", url = "https://avt.im/"},
+    {name = "Uzair Akbar", url = "https://uzairakbar.com"},
+    {name = "Niki Kilbertus", url = "http://nikikilbertus.info/"},
+    {name = "Hao Shen", url = "https://scholar.google.com/citations?hl=en&user=Kce9W-8AAAAJ"},
+    {name = "Krikamol Muandet", url = "https://www.krikamol.org"},
+    {name = "Bo Dai", url = "https://bo-dai.github.io/"},
 ]
-venue = {name = "GitHub", url = "https://github.com/aterenin/academic-paper"}
+venue = {name = "NeurIPS 2025", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"}
 buttons = [
-    {name = "Paper", url = "https://aterenin.github.io/academic-paper"},
-    {name = "PDF", url = "https://aterenin.github.io/academic-paper"},
-    {name = "Code", url = "https://github.com/aterenin/academic-paper"},
-    {name = "Poster", url = "https://aterenin.github.io/academic-paper"},
-    {name = "Video", url = "https://aterenin.github.io/academic-paper"},
+    {name = "Paper", url = "https://openreview.net/forum?id=C1LVIInfZO"},
+    {name = "PDF", url = "https://arxiv.org/pdf/2510.25128"},
+    {name = "Code", url = "https://github.com/uzairakbar/causal-data-augmentation"},
+    {name = "Poster", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"},
+    {name = "Video", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"},
 ]
 katex = true
 large_card = false
