@@ -35,7 +35,6 @@ PLOT_DPI: int=1200
 PAGE_WIDTH: float=6.75
 PLOT_FORMAT: Plot='pdf'
 HILIGHT_OURS: bool=True
-POLYNOMIAL_DEGREE: int=1
 RICE_AUGMENTATIONS: int=3
 ARTIFACTS_DIRECTORY: str='artifacts'
 RC_PARAMS: Dict[str, str | int | bool] = {
@@ -758,7 +757,7 @@ def load(path: str):
 
 
 def fit_model(
-        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, poly_degree=POLYNOMIAL_DEGREE, da=None,
+        model, name, X, y, G, GX, hyperparameters=None, pbar_manager=None, poly_degree=1, da=None,
     ):
     if not pbar_manager:
         return fit_model_nopbar(
@@ -766,7 +765,7 @@ def fit_model(
         )
     
     X_original, y_original = X, y
-    if POLYNOMIAL_DEGREE > 1:
+    if poly_degree > 1:
         features = PolynomialFeatures(
             poly_degree, include_bias=False
         )
@@ -812,10 +811,10 @@ def fit_model(
 
 def fit_model_nopbar(
     model, name, X, y, G, GX, hyperparameters=None,
-    poly_degree=POLYNOMIAL_DEGREE, da=None
+    poly_degree=1, da=None
     ):
     X_original, y_original = X, y
-    if POLYNOMIAL_DEGREE > 1:
+    if poly_degree > 1:
         features = PolynomialFeatures(
             poly_degree, include_bias=False
         )

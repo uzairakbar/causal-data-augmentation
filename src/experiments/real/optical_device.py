@@ -258,7 +258,7 @@ def run(
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
-    caption = 'nCER $\pm$ standard error across the optical device datasets.'
+    caption = r'nCER $\pm$ standard error across the optical device datasets.'
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
     )
