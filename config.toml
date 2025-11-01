@@ -1,4 +1,4 @@
-base_url = "https://uzairakbar.github.io/causal-data-augmentation"
+base_url = "https://uzairakbar.github.io"
 compile_sass = true
 build_search_index = false
 generate_feeds = false
