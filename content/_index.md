@@ -43,7 +43,7 @@ A common workaround is to use auxiliary variables to correct for confounding. On
 
 ## Causal Estimation with Data Augmentation
 {% figure(
-    src=["/augmentation-intervention.svg"],
+    src=["augmentation-intervention.svg"],
     alt=["Augmentation, intervention equivalence."],
     dark_invert=[true]
 ) %}
@@ -82,7 +82,7 @@ Reducing confounding bias, even when `$f$` itself may not be identifiable, is an
 Estimation error is captured in an interpretable way using *normalized causal excess risk (nCER)*---it is `$0$` for the true solution `$f$` and `$1$` for pure confounding.
 
 {% figure(
-    src=["/sweep_plots.svg"],
+    src=["sweep_plots.svg"],
     alt=["Linear Gaussian simulation experiment."],
     dark_invert=[true]
 ) %}
@@ -90,7 +90,7 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 {% end %}
 
 {% figure(
-    src=["/box_plots.svg"],
+    src=["box_plots.svg"],
     alt=["Benchmark comparison with OOD baselines."],
     dark_invert=[true]
 ) %}
