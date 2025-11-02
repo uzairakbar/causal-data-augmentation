@@ -32,7 +32,7 @@ $$
 Y = f(X) + \xi
 \qquad
 \mathbb{E}[\xi] = 0 .
-\tag{$\dagger$}
+\tag{1}
 $$
 ```
 We would like to estimate the function `$f$`. Under the standard assumption that noise `$\xi$` is uncorrelated with `$X$`, we can recover `$f$` via *empirical risk minimization (ERM)* by finding a function `$\widehat{h}_{\text{ERM}}$` that best predicts `$Y$` values for unlabelled `$X$` values. Regularization techniques like *data augmentation (DA)* are then used to reduce estimation variance by multiple random perturbations `$(G\mathbf{x}_i, \mathbf{y}_i)$` for each sample `$(\mathbf{x}_i, \mathbf{y}_i)\in\mathcal{D}$` using random transformation `$G$`.
@@ -43,7 +43,7 @@ A common workaround is to use auxiliary variables to correct for confounding. On
 
 ## Causal Estimation with Data Augmentation
 {% figure(
-    src=["augmentation-intervention.svg"],
+    src=["/augmentation-intervention.svg"],
     alt=["Augmentation, intervention equivalence."],
     dark_invert=[true]
 ) %}
@@ -68,7 +68,7 @@ $$
 Y = f(GX) + \xi
 \qquad
 \mathbb{E}[\xi] = 0 .
-\tag{$\ddagger$}
+\tag{2}
 $$
 ```
 DA therefore constitutes as a *soft-intervention* on `$X$`, and as such can mitigate hidden confounding bias, thereby improving causal estimation of `$f$`.
@@ -82,7 +82,7 @@ Reducing confounding bias, even when `$f$` itself may not be identifiable, is an
 Estimation error is captured in an interpretable way using *normalized causal excess risk (nCER)*---it is `$0$` for the true solution `$f$` and `$1$` for pure confounding.
 
 {% figure(
-    src=["sweep_plots.svg"],
+    src=["/sweep_plots.svg"],
     alt=["Linear Gaussian simulation experiment."],
     dark_invert=[true]
 ) %}
@@ -90,7 +90,7 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 {% end %}
 
 {% figure(
-    src=["box_plots.svg"],
+    src=["/box_plots.svg"],
     alt=["Benchmark comparison with OOD baselines."],
     dark_invert=[true]
 ) %}
