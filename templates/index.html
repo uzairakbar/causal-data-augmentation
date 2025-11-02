@@ -8,11 +8,11 @@
         <article itemscope itemtype="http://schema.org/BlogPosting">
 
             <header class="header">
-                <h1 itemprop="name headline">{{ this.title }}</h1>
+                <h1 itemprop="name headline">{{ this.title | safe }}</h1>
                 <h2>
                     <span itemprop="author">
                         {% for author in this.extra.authors %}
-                            <a href="{{ author.url | default(value = this.path ~ '#') | safe }}">
+                            <a href="{{ author.url | default(value = this.path ~ '#') | safe }}" target="_blank" rel="noopener noreferrer">
                                 {{- author.name -}}
                             </a>
                             {%- if not loop.last -%}
@@ -34,7 +34,7 @@
                 {% endif %}
                 <div>
                     {% for button in this.extra.buttons %}
-                        <a class="btn" href="{{ button.url | safe }}">
+                        <a class="btn" href="{{ button.url | safe }}" target="_blank" rel="noopener noreferrer">
                             {% if not button.no_icon %}
                                 {{- icons::icon(name = button.name | lower) -}}
                                 &nbsp;
@@ -45,7 +45,7 @@
                 </div>
                 <h2>
                     {% set paper_button = this.extra.buttons | filter(attribute = 'name', value = 'Paper') | first %}
-                    <a href="{{ this.extra.venue.url | default(value = paper_button.url | default(value = this.path ~ '#')) | safe }}">
+                    <a href="{{ this.extra.venue.url | default(value = paper_button.url | default(value = this.path ~ '#')) | safe }}"  target="_blank" rel="noopener noreferrer">
                         <span itemprop="isPartOf" itemscope itemtype="http://schema.org/Periodical"><span itemprop="name">
                             {{- this.extra.venue.name -}}
                         </span></span>{% if this.extra.venue.date or this.date %}&nbsp;<time datetime="{{ this.extra.venue.date | default(value = this.date) | date(format='%+') }}" itemprop="datePublished">
