@@ -1,17 +1,15 @@
-# Causal Data Augmentation
-> Official code implementation for *"An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"* (NeurIPS 2025).
-
+# Symmetry as Intervention;<br>Causal Estimation with Data Augmentation
+> Implementation for *"An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"* (NeurIPS 2025).
 <p align="center">
-    <img src="https://repository-images.githubusercontent.com/555395031/442c67c5-a047-42cf-96a8-1ad7d8587afa"
+    <img src="https://uzairakbar.github.io/causal-data-augmentation/card.png"
     alt="Symmetry as Intervention"
     width="42%">
 </p>
-<p align="center"><i>Symmetry as Intervention; Causal Estimation with Data Augmentation</i></p>
 <p align="center">
-  <a href="https://arxiv.org/abs/2510.25128"><img src="https://img.shields.io/badge/arXiv-2510.25128-B31B1B.svg?logo" /></a>
-  <a href="https://neurips.cc/virtual/2025/poster/119327"><img src="https://img.shields.io/badge/html-%20neurips.cc-8c5cff.svg"></a>
-  <a href="https://uzairakbar.github.io/causal-data-augmentation"><img src="https://img.shields.io/badge/WEB-page-0eb077.svg"></a>
-  <a href="https://colab.research.google.com/github/uzairakbar/causal-data-augmentation/blob/colab/demo.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg"></a>
+  <a href="https://arxiv.org/abs/2510.25128"><img src="https://img.shields.io/badge/arXiv-2510.25128-B31B1B.svg?logo" alt="arXiv Manuscript"></a>
+  <a href="https://neurips.cc/virtual/2025/poster/119327"><img src="https://img.shields.io/badge/html-%20neurips.cc-8c5cff.svg" alt="NeurIPS Paper"></a>
+  <a href="https://uzairakbar.github.io/causal-data-augmentation"><img src="https://img.shields.io/badge/WEB-page-0eb077.svg" alt="Project Webpage"></a>
+  <a href="https://colab.research.google.com/github/uzairakbar/causal-data-augmentation/blob/colab/causalDA.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Google Colab"></a>
 </p>
 
 ## Contents
@@ -32,8 +30,8 @@
 │   └── main.py             # Entry point for training / evaluation
 ├── config.yaml             # Configuration file for experiments
 ├── environment.yaml        # Conda environment definition
-├── Dockerfile              # Container setup for reproducibility
 ├── requirements.txt        # Python dependencies
+├── Dockerfile              # Container setup for reproducibility
 ├── LICENSE                 # Code license (MIT)
 └── README.md
 ```
@@ -42,10 +40,11 @@
 Clone this repository.
 ```bash
 git clone https://github.com/uzairakbar/causal-data-augmentation.git
+cd causal-data-augmentation
 ```
 To use a GPU, set the `--index-url` value in `requirements.txt` as per your CUDA version (see [PyTorch installation instructions](https://pytorch.org/)).
 
-Proceed setup using one of the below options. Or instead simply [open this project in Colab](https://colab.research.google.com/github/uzairakbar/causal-data-augmentation/blob/colab/demo.ipynb).
+Proceed setup using one of the below options. Or instead simply [open this project in Colab](https://colab.research.google.com/github/uzairakbar/causal-data-augmentation/blob/colab/causalDA.ipynb).
 
 ### Conda environment (recommended)
 ```bash
@@ -55,8 +54,7 @@ conda activate "$environment"
 export PYTORCH_ENABLE_MPS_FALLBACK=1
 ```
 
-### Python `venv`
-Set up the Python virtual environment (requires python `3.10.14`).
+### Python `venv` (tested with `3.10.14`)
 ```bash
 environment='.causal-data-augmentation'
 python -m venv "$environment"
@@ -100,7 +98,7 @@ The code uses a CPU backend for PyTorch by default (recommended for `optical_dev
 Simply run the main script `python src/main.py`, or run the Docker container (see above).
 
 ## Citation
-If you find our work helpful, please consider citing our paper and leaving a star :star:.
+If you find our work helpful, consider citing our paper and leaving a star :star:.
 ```bibtex
 @misc{akbar2025causalDataAugmentation,
       title={An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation}, 

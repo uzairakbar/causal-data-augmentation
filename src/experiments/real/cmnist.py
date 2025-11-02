@@ -218,7 +218,7 @@ def run(
     )
     
     caption = (
-        f'nCER $\pm$ standard error for the CMNIST experiment across {num_seeds} seeds.'
+        fr'nCER $\pm$ standard error for the CMNIST experiment across {num_seeds} seeds.'
     )
     table = tex_table(
         all_errors, label=EXPERIMENT, caption=caption
@@ -226,6 +226,8 @@ def run(
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
     )
+
+    MANAGER.stop()
 
 
 if __name__ == '__main__':

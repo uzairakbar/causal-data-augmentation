@@ -481,13 +481,15 @@ def run(
         savefig=True, **ANNOTATE_BOX_PLOT[EXPERIMENT]
     )
     
-    caption = f'nCER $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
+    caption = fr'nCER $\pm$ one std across {n_experiments} experiments of {n_samples} samples each.',
     table = tex_table(
         results, label=EXPERIMENT, caption=caption
     )
     save(
         obj=table, fname=EXPERIMENT, experiment=EXPERIMENT, format='tex'
     )
+
+    MANAGER.stop()
 
 
 if __name__ == '__main__':
