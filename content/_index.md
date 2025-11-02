@@ -32,7 +32,7 @@ $$
 Y = f(X) + \xi
 \qquad
 \mathbb{E}[\xi] = 0 .
-\tag{\dagger}
+\tag{†}
 $$
 ```
 We would like to estimate the function `$f$`. Under the standard assumption that noise `$\xi$` is uncorrelated with `$X$`, we can recover `$f$` via *empirical risk minimization (ERM)* by finding a function `$\widehat{h}_{\text{ERM}}$` that best predicts `$Y$` values for unlabelled `$X$` values. Regularization techniques like *data augmentation (DA)* are then used to reduce estimation variance by multiple random perturbations `$(G\mathbf{x}_i, \mathbf{y}_i)$` for each sample `$(\mathbf{x}_i, \mathbf{y}_i)\in\mathcal{D}$` using random transformation `$G$`.
@@ -68,7 +68,7 @@ $$
 Y = f(GX) + \xi
 \qquad
 \mathbb{E}[\xi] = 0 .
-\tag{\ddagger}
+\tag{‡}
 $$
 ```
 DA therefore constitutes as a *soft-intervention* on `$X$`, and as such can mitigate hidden confounding bias, thereby improving causal estimation of `$f$`.
