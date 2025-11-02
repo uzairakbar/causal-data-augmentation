@@ -1,12 +1,10 @@
-# Causal Data Augmentation
+# Symmetry as Intervention;<br>Causal Estimation with Data Augmentation
 > Implementation for *"An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation"* (NeurIPS 2025).
-
 <p align="center">
-    <img src="https://repository-images.githubusercontent.com/555395031/442c67c5-a047-42cf-96a8-1ad7d8587afa"
+    <img src="https://uzairakbar.github.io/causal-data-augmentation/card.png"
     alt="Symmetry as Intervention"
     width="42%">
 </p>
-<p align="center"><i>Symmetry as Intervention; Causal Estimation with Data Augmentation</i></p>
 <p align="center">
   <a href="https://arxiv.org/abs/2510.25128"><img src="https://img.shields.io/badge/arXiv-2510.25128-B31B1B.svg?logo" alt="arXiv Manuscript"></a>
   <a href="https://neurips.cc/virtual/2025/poster/119327"><img src="https://img.shields.io/badge/html-%20neurips.cc-8c5cff.svg" alt="NeurIPS Paper"></a>
