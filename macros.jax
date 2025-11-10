@@ -1,0 +1,42 @@
+<script>
+window.MathJax = {
+  tex: {
+    macros: {
+      red: ["\\textcolor[RGB]{196,78,82}{#1}", 1],
+      blue: ["\\textcolor[RGB]{76,114,176}{#1}", 1],
+      green: ["\\textcolor[RGB]{85,168,104}{#1}", 1],
+      rf: "\\textcolor[RGB]{196,78,82}{f}",
+      rbf: "\\textcolor[RGB]{196,78,82}{\\mathbf{f}}",
+      rfunc: ["\\textcolor[RGB]{196,78,82}{f(}#1\\textcolor[RGB]{196,78,82}{)}", 1],
+      bh: "\\textcolor[RGB]{76,114,176}{h}",
+      bbh: "\\textcolor[RGB]{76,114,176}{\\mathbf{h}}",
+      bhyp: ["\\textcolor[RGB]{76,114,176}{h(}#1\\textcolor[RGB]{76,114,176}{)}", 1],
+      R: "\\mathbb{R}",
+      E: ["\\mathbb{E}\\left[ #1 \\right]", 1],
+      P: "\\mathbb{P}",
+      Xtilde: "\\textcolor[RGB]{85,168,104}{\\widetilde{X}}",
+      gZ: "\\textcolor[RGB]{85,168,104}{Z}",
+      gG: "\\textcolor[RGB]{85,168,104}{G}",
+      vg: "\\textcolor[RGB]{85,168,104}{\\mathbf{g}}",
+      vx: "\\mathbf{x}",
+      vy: "\\mathbf{y}",
+      vz: "\\mathbf{z}",
+      X: "\\mathcal{X}",
+      Y: "\\mathcal{Y}",
+      Z: "\\mathcal{Z}",
+      H: "\\mathcal{H}",
+      G: "\\mathcal{G}",
+      D: "\\mathcal{D}",
+      sqNorm: ["\\left\\| #1 \\right\\|^2", 1],
+      set: ["\\left\\{ #1 \\right\\}", 1],
+      ERM: "\\text{ERM}",
+      IV: "\\text{IV}",
+      IVL: "\\text{IVL}",
+      DA: "\\textcolor[RGB]{85,168,104}{\\text{DA}}",
+      CER: "\\operatorname{CER}",
+      indep: "\\perp\\!\\!\\!\\perp",
+      nindep: "\\not\\!\\perp\\!\\!\\!\\perp"
+    }
+  }
+};
+</script>
