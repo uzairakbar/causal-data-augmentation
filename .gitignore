@@ -1,0 +1,58 @@
+# Quarto output files
+*.html
+*_files/
+.quarto/
+
+# R/RStudio files (if using R)
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+*.Rproj
+
+# Python files (if using Python)
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Example/demo files (from metropolis theme)
+docs/
+example_*
+*.gif
+screenshots/
+testing.sh
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Large media files (uncomment if you have them)
+# *.mp4
+# *.mov
+# *.avi
+
+# Build artifacts
+dist/
+build/
