@@ -7,6 +7,10 @@ format:
   metropolis-beamer-revealjs:
     theme: style.scss
     embed-resources: true
+    controls: true
+    controls-layout: bottom-right
+    navigation-mode: linear
+    html-math-method: mathjax
 header-logo: https://neurips.cc/static/core/img/neurips-navbar-logo.svg
 header-logo-link: "https://posit.co/"
 slide-number: "c"
@@ -38,7 +42,7 @@ embed-resources: true
 ## Correlation vs. causation
 
 
-![[xkcd.com/925](https://xkcd.com/925/) by Randall Munroe.](https://imgs.xkcd.com/comics/cell_phones.png)
+![[xkcd.com/925](https://xkcd.com/925/) by Randall Munroe.](https://imgs.xkcd.com/comics/cell_phones.png){style="image-rendering: auto;"}
 
 ::: {.incremental}
 - Can we recover causal effects from *observational data*?

@@ -1,3 +1,21 @@
 /*-- scss:defaults --*/
 
 $primary-color: #0c2344;
+
+/* Fix blurry images */
+img {
+image-rendering: -webkit-optimize-contrast;
+image-rendering: crisp-edges;
+-ms-interpolation-mode: nearest-neighbor;
+}
+
+/* Ensure SVGs render sharply */
+svg {
+shape-rendering: geometricPrecision;
+}
+
+/* Fix text rendering */
+.reveal {
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
