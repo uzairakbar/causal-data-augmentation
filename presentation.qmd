@@ -1,0 +1,329 @@
+---
+title: Symmetry as Intervention
+subtitle: |
+  An Analysis of Causal Effect Estimation using<br>Outcome Invariant Data Augmentation
+  <span style="float: right;">[arXiv:2510.25128](https://arxiv.org/abs/2510.25128)</span>
+format:
+  metropolis-beamer-revealjs:
+    theme: style.scss
+    embed-resources: true
+header-logo: https://neurips.cc/static/core/img/neurips-navbar-logo.svg
+header-logo-link: "https://posit.co/"
+slide-number: "c"
+author:
+  - name: Uzair Akbar
+    affiliations: Georgia Tech
+    orcid: 0009-0001-7826-3578
+  - name: Niki Kilbertus
+    affiliations: TU Munich
+    orcid: 0000-0001-8718-4305
+  - name: Hao Shen
+    affiliations: TU Munich
+    orcid: 0000-0003-0091-4155
+  - name: Krikamol Muandet
+    affiliations: CISPA
+    orcid: 0000-0002-4182-5282
+  - name: Bo Dai
+    affiliations: Georgia Tech
+    orcid: 0009-0002-8070-574X
+date: last-modified
+bibliography: references.bib
+embed-resources: true
+---
+
+
+
+# Motivation
+
+## Correlation vs. causation
+
+
+![[xkcd.com/925](https://xkcd.com/925/) by Randall Munroe.](https://imgs.xkcd.com/comics/cell_phones.png)
+
+::: {.incremental}
+- Can we recover causal effects from *observational data*?
+- **Yes—but only with untestable assumptions and domain knowledge!**
+:::
+
+## This work
+
+<br><br><br>We try to answer the fundamental question:<br>
+
+> Can knowledge of **symmetries in data generation**—often used implicitly in certain regularizers—be repurposed to<br>**improve causal effect estimation** given<br>only observational $(X, Y)$ data?
+
+# Statistical vs. Causal Estimation
+
+## Empirical risk minimization (ERM)
+
+::: {.columns}
+::: {.column width="80%"}
+For treatment $X$, outcome $Y$ samples generated as
+$$
+Y = { \color{red}{ f( } } X { \color{red}{)} } + \xi ,
+\qquad
+\mathbb{E}[ \xi ] = 0 ,
+$$
+statistical inference entails recovering the optimal predictor $\mathbb{E}[Y \mid X = \mathbf{x}]$ by minimizing the risk 
+$$
+R_{\text{ERM}}( \color{blue}{h} ) := \mathbb{E}\left[ \big\| Y - { \color{blue}{h(} } X \color{blue}{)} \big\|^2 \right] ,
+$$
+over hypotheses $\color{blue}h\in\mathcal{H}$ from a rich enough class $\mathcal{H}$.
+
+For un-correlated $X$ and noise $\xi$, this minimizer<br>coincides with the true *causal effect* $\color{red}{f(}\mathbf{x}\color{red}{)}$.
+:::
+
+::: {.column width="20%" .rightcol}
+![](images/data-generation.svg){width=100% style="float:right;"}
+:::
+:::
+
+
+
+
+
+
+## Data augmentation
+
+::: {.columns}
+::: {.column width="80%"}
+For finite $n$ samples $\mathcal{D} := \{ (\mathbf{x}_i, \mathbf{y}_i) \}_{i=0}^n$, regularization<br>techniques are used to mitigate *estimation variance*.
+
+<br>E.g., *data augmentation (DA)* achieves this via multiple random augmentations $({\color{green}{G}}\mathbf{x}_i, \mathbf{y}_i)$ per sample in the risk
+
+<br>$$
+R_{\text{DA}+\text{ERM}}( \color{blue}{h} ) := \mathbb{E}\left[ \big\| Y - \color{blue}{h(} \color{green}{G}X \color{blue}{)} \big\|^2 \right] ,
+\qquad
+\color{green}{G}\sim \mathbb{P}_{\color{green}{G}} .
+$$
+:::
+
+::: {.column width="20%" .rightcol}
+![](images/data-generation.svg){width=100% style="float:right;"}
+![](images/data-generation.svg){width=100% style="float:right;"}
+:::
+:::
+
+
+
+
+
+
+
+## Confounding bias and spurious correlation
+::: {.columns}
+::: {.column width="80%"}
+[Problem with ERM:]{.alert} Generally, $X$ and $\xi$ are correlated.
+
+This makes the ERM minimizer a biased estimator of $\color{red}{f}$:
+$$
+\begin{align*}
+Y &= { \color{red}{ f( } } X { \color{red}{)} } + \xi ,\\
+\nonumber
+\Rightarrow \underbrace{\mathbb{E}[Y \mid X = \mathbf{x}]}_{\text{ERM minimizer}} &= { \color{red}{ f( } } \mathbf{x} { \color{red}{)} } + \underbrace{\mathbb{E}[ \xi \mid X = \mathbf{x}]}_{\text{confounding bias $\neq 0$}} .
+\end{align*}
+$$
+This *spurious correlation* b/w $X$ and $\xi$ arises due to their unobserved common parents, called *confounders*.
+
+
+:::
+
+::: {.column width="20%" .rightcol}
+![](images/confounded-data-generation.svg){width=100% style="float:right;"}
+:::
+:::
+
+
+
+## Intervention for causal estimation
+::: {.columns}
+::: {.column width="80%"}
+Removing correlation b/w $X$, $\xi$, requires an *intervention*—explicitly assigning $X$ some independently sampled $\color{green}{\tilde{X}}$ during data generation, a.k.a. a *randomized control trial*:
+
+$$
+Y = { \color{red}{ f( } } \color{green}{\tilde{X}} { \color{red}{)} } + \xi
+$$
+
+Now, doing ERM on samples of $(Y, \color{green}{\tilde{X}})$ recovers $\color{red}{f}$.
+
+[Problem:]{.alert} Often not possible to intervene on real systems.<br> We only have access to pre-collected *observational data*.
+:::
+
+::: {.column width="20%" .rightcol}
+![](images/confounded-data-generation.svg){width=100% style="float:right;"}
+![](images/intervention.svg){width=100% style="float:right;"}
+:::
+:::
+
+
+
+
+## Instrumental Variables (IVs)
+::: {.columns}
+::: {.column width="100%"}
+![](images/instrument.svg){width=18.4% style="float:right;"}
+
+To workaround interventions, use *instrument* $Z$ satisfying
+
+1. treatment relevance $Z \not\!\perp\!\!\!\perp X$,
+2. exclusion $Z\perp\!\!\!\perp Y \mid X$,
+3. un-confoundedness $Z \perp\!\!\!\perp \xi$,
+4. outcome relevance $Y \not\!\perp\!\!\!\perp Z$,
+
+Conditioning the model on $\color{green}{Z}$ gives $\mathbb{E}[Y \mid \color{green}{Z} ] = \mathbb{E}[ \color{red}{f(} X \color{red}{)} \mid \color{green}{Z} ]$, which can then be solved for $\color{red}f$ by minimizing the risk
+$$
+R_{\text{IV}}( \color{blue}{h} ) := \mathbb{E}\left[ \big\| Y - \mathbb{E}[ \color{blue}{h(} X \color{blue}{)} \mid \color{green}{Z} ] \big\|^2 \right] .
+$$
+
+[Problem:]{.alert} Instruments are scarce in most application domains.
+
+:::
+
+:::
+
+
+
+
+
+
+
+
+
+
+# Causal Estimation with Data Augmentaiton
+
+## Data augmentation = model symmetries
+We restrict ourselves to DA transformations with respect to which $f$ is invariant. Specifically, $G$ takes values in $\mathcal{G}$ such that $f$ is *$\mathcal{G}$-invariant*:
+$$
+f(\mathbf{x}) = f(\mathbf{g} \mathbf{x}),
+\qquad
+\forall
+\;\;
+(\mathbf{x}, \mathbf{g})\in \mathcal{X}\times\mathcal{G}.
+$$
+Of course, constructing such DA requires knowledge of symmetries of $f$. E.g., when classifying images $\mathbf{x}$ of cats vs. dogs, the true labeling function would certainly be invariant to random image rotations $G\mathbf{x}$.
+
+![](images/catRotation.svg){width=90% style="float:center;"}
+
+
+
+
+
+
+## Data augmentation = soft intervention
+::: {.row}
+::: {.columns}
+::: {.column width="60%"}
+**Key insight:** When $\color{red}f$ is $\mathcal{G}$-invariant, $(Y, GX)$ follows the data generation: 
+$$
+Y = { \color{red}{ f( } } \color{green}{G}X { \color{red}{)} } + \xi .
+$$
+Therefore, DA is equivalent to a soft intervention on the treatment $X$.
+:::
+::: {.column width="40%" .rightcol}
+![](images/augmentation-intervention.svg){width=100% style="float:right;"}
+:::
+:::
+:::
+::: {.row}
+$\Rightarrow$ DA+ERM *dominates* vanilla ERM on causal estimation error (CER):
+$$
+\operatorname{CER}(h) := \mathbb{E}\left[ \left\| f(X) - h(X) \right\|^2 \right] ,
+\qquad
+\boxed{
+  \operatorname{CER}(h_{\text{DA}+\text{ERM}}) \leq \operatorname{CER}(h_{\text{ERM}})
+} .
+$$
+
+- Strictly better when DA perturbes spurious features correlated with $\xi$.
+- But otherwise performs no worse than ERM.
+:::
+
+
+
+
+
+
+
+## Data augmentation = relaxed IVs
+::: {.row}
+::: {.columns}
+::: {.column width="60%"}
+**Key insight:** DA params $G$ are *IV-like (IVL)*—having IV properties (i)—(iii) by design.
+
+<br>Such a relaxation renders IV regression ill-posed, so we suggest IVL regression:
+:::
+::: {.column width="40%" .rightcol}
+![](images/augmentation-intervention.svg){width=100% style="float:right;"}
+:::
+:::
+:::
+::: {.row}
+$$
+R_{\text{IVL}}(h) := R_{\text{IV}}(h) + \boxed{\alpha \cdot R_{\text{ERM}}(h)} \Big\} {\tiny\text{ERM regularizer for ill-posed IV reg.}}
+$$
+$\Rightarrow$ The composition DA+IVL simulates a worst-case/adversarial DA.
+
+$\Rightarrow$ DA+IVL *dominates* DA+ERM; better iff spurious features perturbed.
+$$
+\boxed{\operatorname{CER}(h_{\text{DA}+\text{IVL}}) \leq \operatorname{CER}(h_{\text{DA}+\text{ERM}})}
+$$
+:::
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Data augmentation = causal regularization
+
+**Causal regularization:** Methods that impove causal estimation despite full identification of $\color{red}f$ not being possible.
+
+Why bother?
+
+- **No-regret improvement:** Under our symmetry based DA construction, DA dominates on causal estimation = sometimes better, never worse.
+- **Robust prediction:** Reducing confounding bias is estimation reduces sensitivity to spurious features, allowing for more robust predictors under distribution shifts.
+
+
+
+
+
+# Experiments
+
+## Simulation Ablations
+
+![](https://uzairakbar.github.io/causal-data-augmentation/sweep_plots.svg){width=100%}
+
+
+Simulation experiment with a linear, centered Gaussian model with non-zero $\color{red}{\mathbf{f}}\in\mathbb{R}^m$,
+confounding strength $\kappa > 0$, and DA strength $\gamma > 0$, s.t.
+<br>$\qquad\qquad\qquad GX := X + \gamma\cdot G\qquad$  $G\in\operatorname{null}(\color{red}{\mathbf{f}})$.
+<br>Normalized CER (nCER) $=0$  for true $f$ and $1$ for pure confounding.
+
+
+
+## Baseline Comparison
+
+![](https://uzairakbar.github.io/causal-data-augmentation/box_plots.svg){width=100%}
+
+Comparison with select causal regularization methods and common domain generalisation baselines. All methods are provided only $(X, Y)$ data along with DA transformations $G$—Gausian noise in optical device, and hue, saturation, contrast, translation perturbations, in colored-MNIST.
+
+## Conclusion
+<!-- 
+![](images/table.svg){width=80%}
+ -->
+
+
+## References
+
+::: {#refs}
+:::
+
