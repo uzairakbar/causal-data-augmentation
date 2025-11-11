@@ -393,7 +393,7 @@ $$
 
 ::: {.incremental}
 - **"No-regret" improvement:** Under our symmetry based DA construction, DA dominates on causal estimation $\Rightarrow$ sometimes better, [never worse]{.highlight}.
-- **Robust prediction:** Mitigating confounding bias in the data reduces spurious correlations $\Rightarrow$ predictors generalize better to treatment [distribution shifts]{.highlight}.
+- **Robust prediction:** Mitigating confounding bias reduces spurious correlations $\Rightarrow$ predictors generalize better to [distribution shifts]{.highlight}.
 :::
 
 ::: {.fragment}
