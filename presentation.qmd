@@ -451,5 +451,5 @@ We provide a [unifying framework]{.highlight} b/w symmetry transformations and c
 <i class="fa fa-file-text"></i> [arXiv:2510.25128](https://arxiv.org/abs/2510.25128)
 
 ::: {style="position: absolute; bottom: 0px; right: 25px;"}
-[![Project Webpage](images/qr-code.svg){width=120}](https://uzairakbar.github.io/causal-data-augmentation/)
+[![Project Page](images/qr-code.svg){width=120}](https://uzairakbar.github.io/causal-data-augmentation/)
 :::
