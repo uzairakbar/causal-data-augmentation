@@ -13,8 +13,10 @@ format:
     html-math-method: mathjax
     include-in-header:
       - file: "macros.jax"
-header-logo: https://neurips.cc/static/core/img/neurips-navbar-logo.svg
-header-logo-link: "https://posit.co/"
+      - text: |
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+header-logo: images/neurips-logo.svg
+header-logo-link: "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"
 slide-number: "c"
 author:
   - name: Uzair Akbar
@@ -55,7 +57,9 @@ embed-resources: true
 
 <br><br><br>We try to answer the fundamental question:<br>
 
+::: {.fragment}
 > Can knowledge of **symmetries in data generation**—often used implicitly in certain regularizers—be repurposed to<br>**improve causal effect estimation** given<br>only observational $(X, Y)$ data?
+:::
 
 # Statistical vs. Causal Estimation
 
@@ -437,6 +441,15 @@ Comparison with select causal regularization methods and common domain generalis
 We provide a [unifying framework]{.highlight} b/w symmetry transformations and causal interventions, [allowing us to re-purpose the ubiquitous statistical regularization tool of data augmentation for causal regularization.]{.fragment fragment-index="2"}
 :::
 
+
 # Thank You
 
-[uzairakbar.github.io/causal-data-augmentation/](https://uzairakbar.github.io/causal-data-augmentation/)
+<i class="fa-brands fa-linkedin"></i> [in/uzair25](https://www.linkedin.com/in/uzair25/)
+
+<i class="fa-brands fa-twitter-square"></i> [&#64;uzairakbar25](https://x.com/uzairakbar25/)
+
+<i class="fa fa-file-text"></i> [arXiv:2510.25128](https://arxiv.org/abs/2510.25128)
+
+::: {style="position: absolute; bottom: 0px; right: 25px;"}
+[![Project Webpage](images/qr-code.svg){width=120}](https://uzairakbar.github.io/causal-data-augmentation/)
+:::

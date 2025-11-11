@@ -22,3 +22,13 @@ shape-rendering: geometricPrecision;
 
 // .highlight { color: #da8bc3; }
 .highlight { background: #f5e347; }
+
+/* neurips logo adjustments */
+.reveal {
+  .header-logo img,
+  .header-logo svg {
+    filter: brightness(0) invert(1) !important;
+    max-width: max(64px, 8vw) !important;  /* Increased from 80px, 12vw */
+    max-height: max(64px, 8vh) !important; /* Increased from 80px, 12vh */
+  }
+}
