@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://uzairakbar.github.io/causal-data-augmentation/sitemap.xml

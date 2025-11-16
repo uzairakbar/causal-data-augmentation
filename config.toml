@@ -1,8 +1,10 @@
-base_url = "https://uzairakbar.github.io/causal-data-augmentation"
+base_url = "https://uzairakbar.com/causal-data-augmentation"
 compile_sass = true
 build_search_index = false
 generate_feeds = false
 minify_html = true
+generate_sitemap = true
+generate_robots_txt = true
 
 [markdown]
 highlight_code = true
