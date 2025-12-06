@@ -8,7 +8,7 @@ authors = [
     {name = "Krikamol Muandet", url = "https://www.krikamol.org"},
     {name = "Bo Dai", url = "https://bo-dai.github.io/"},
 ]
-venue = {name = "NeurIPS", date = 2025-12-02, url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"}
+venue = {name = "NeurIPS", date = 2025-12-02, award = "Spotlight", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"}
 buttons = [
     {name = "Paper", url = "https://openreview.net/forum?id=C1LVIInfZO"},
     {name = "PDF", url = "https://arxiv.org/pdf/2510.25128"},

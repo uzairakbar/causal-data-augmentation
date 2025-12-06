@@ -51,6 +51,9 @@
                         </span></span>{% if this.extra.venue.date or this.date %}&nbsp;<time datetime="{{ this.extra.venue.date | default(value = this.date) | date(format='%+') }}" itemprop="datePublished">
                             {{- this.extra.venue.date | default(value = this.date) | date(format='%Y') -}}
                         </time>{% endif %}
+                        {%- if this.extra.venue.award -%}
+                            &nbsp;({{ this.extra.venue.award }})
+                        {%- endif -%}
                     </a>
                 </h2>
             </header>
