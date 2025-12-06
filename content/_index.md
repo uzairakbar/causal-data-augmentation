@@ -14,7 +14,7 @@ buttons = [
     {name = "PDF", url = "https://arxiv.org/pdf/2510.25128"},
     {name = "Code", url = "https://github.com/uzairakbar/causal-data-augmentation"},
     {name = "Slides", url = "presentation.html"},
-    {name = "Poster", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"},
+    {name = "Poster", url = "causal_da_poster.pdf"},
     {name = "Video", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"},
 ]
 katex = true
