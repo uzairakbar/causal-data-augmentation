@@ -12,6 +12,7 @@ venue = {name = "NeurIPS", date = 2025-12-02, award = "Spotlight", url = "https:
 buttons = [
     {name = "Paper", url = "https://openreview.net/forum?id=C1LVIInfZO"},
     {name = "PDF", url = "https://arxiv.org/pdf/2510.25128"},
+    {name = "Reviews", url = "https://openreview.net/forum?id=C1LVIInfZO"},
     {name = "Code", url = "https://github.com/uzairakbar/causal-data-augmentation"},
     {name = "Slides", url = "presentation.html"},
     {name = "Poster", url = "causal_da_poster.pdf"},
