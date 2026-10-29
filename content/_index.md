@@ -101,7 +101,7 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 
 ## Citation
 
-Workshop versions of this work were presented at the NeurIPS 2025 workshops on Reliable ML from Unreliable Data[^reliable-ml-neurips25] and on Symmetry and Geometry in Neural Representations.[^neurreps-neurips25]
+Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS 2025.
 
 ```bibtex
 @misc{akbar2025symmetryAsIntervention,
