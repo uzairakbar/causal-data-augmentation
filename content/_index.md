@@ -101,6 +101,8 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 
 ## Citation
 
+Workshop versions of this work were presented at the NeurIPS 2025 workshops on Reliable ML from Unreliable Data[^reliable-ml-neurips25] and on Symmetry and Geometry in Neural Representations.[^neurreps-neurips25]
+
 ```bibtex
 @misc{akbar2025symmetryAsIntervention,
       title={An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation}, 
@@ -112,3 +114,9 @@ Estimation error is captured in an interpretable way using *normalized causal ex
       url={https://arxiv.org/abs/2510.25128},
 }
 ```
+
+## References
+
+[^reliable-ml-neurips25]: Uzair Akbar, Niki Kilbertus, Hao Shen, Krikamol Muandet, and Bo Dai. [An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation](https://openreview.net/forum?id=yM1awzzIdv). *NeurIPS 2025 Workshop: Reliable ML from Unreliable Data*, 2025.
+
+[^neurreps-neurips25]: Uzair Akbar, Niki Kilbertus, Hao Shen, Krikamol Muandet, and Bo Dai. [Symmetry as Intervention; Causal Estimation with Data Augmentation](https://openreview.net/forum?id=SZqQoSLsOh). *NeurIPS 2025 Workshop on Symmetry and Geometry in Neural Representations*, 2025.
