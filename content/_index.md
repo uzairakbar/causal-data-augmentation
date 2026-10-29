@@ -10,7 +10,7 @@ authors = [
 ]
 venue = {name = "NeurIPS", date = 2025-12-02, award = "Spotlight", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"}
 buttons = [
-    {name = "Paper", url = "https://openreview.net/forum?id=C1LVIInfZO"},
+    {name = "Paper", url = "https://papers.nips.cc/paper_files/paper/2025/hash/8dc00b61cdf8739c892f855c672b5daf-Abstract-Conference.html"},
     {name = "PDF", url = "https://arxiv.org/pdf/2510.25128"},
     {name = "Reviews", url = "https://openreview.net/forum?id=C1LVIInfZO"},
     {name = "Code", url = "https://github.com/uzairakbar/causal-data-augmentation"},
