@@ -101,7 +101,7 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 
 ## Citation
 
-Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS 2025.
+Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS 2025. [Follow-up work](https://uzairakbar.com/symmetry4CausalBounds/)[^symmetry4CausalBounds] extends it to causal bounds.
 
 ```bibtex
 @misc{akbar2025symmetryAsIntervention,
@@ -120,3 +120,5 @@ Workshop versions of this work were presented at the Reliable ML[^reliable-ml-ne
 [^reliable-ml-neurips25]: Uzair Akbar, Niki Kilbertus, Hao Shen, Krikamol Muandet, and Bo Dai. [An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation](https://openreview.net/forum?id=yM1awzzIdv). *NeurIPS 2025 Workshop: Reliable ML from Unreliable Data*, 2025.
 
 [^neurreps-neurips25]: Uzair Akbar, Niki Kilbertus, Hao Shen, Krikamol Muandet, and Bo Dai. [Symmetry as Intervention; Causal Estimation with Data Augmentation](https://openreview.net/forum?id=SZqQoSLsOh). *NeurIPS 2025 Workshop on Symmetry and Geometry in Neural Representations*, 2025.
+
+[^symmetry4CausalBounds]: Uzair Akbar, Zulfiqar Zaidi, Niki Kilbertus, Krikamol Muandet, and Bo Dai. [Symmetry-Informed Causal Partial Identification](https://arxiv.org/abs/2610.09230). *arXiv preprint arXiv:2610.09230*, 2026.
