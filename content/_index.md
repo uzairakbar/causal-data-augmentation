@@ -1,5 +1,6 @@
 +++
 title = "Symmetry as Intervention;<br>Causal Estimation with Data Augmentation"
+description = "We show that data augmentation (DA) transformations that correspond to symmetries in data generation are equivalent to causal interventions. Such DA can hence be used to mitigate bias due to hidden confounding in observational (X, Y) data, improving causal estimation and robust prediction."
 [extra]
 authors = [
     {name = "Uzair Akbar", url = "https://uzairakbar.com"},
