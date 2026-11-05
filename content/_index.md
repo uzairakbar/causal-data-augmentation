@@ -24,7 +24,7 @@ large_card = true
 favicon = true
 +++
 
-**TLDR**: We show that data augmentation (DA) transformations that correspond to symmetries in data generaiton are equivalent to causal interventions. Such DA can hence be used to mitigate bias due to hidden confounding in observational `$(X, Y)$` data, improving causal estimation and robust prediction.
+**TLDR**: We show that data augmentation (DA) transformations that correspond to symmetries in data generation are equivalent to causal interventions. Such DA can hence be used to mitigate bias due to hidden confounding in observational `$(X, Y)$` data, improving causal estimation and robust prediction.
 
 ---
 
