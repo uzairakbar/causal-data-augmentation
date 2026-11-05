@@ -101,7 +101,7 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 
 ## Citation
 
-Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS '25. [Our follow-up](https://uzairakbar.com/symmetry4CausalBounds/)[^symmetry4CausalBounds] extends it to causal bounds.
+Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS '25. Our [followup](https://uzairakbar.com/symmetry4CausalBounds/)[^symmetry4CausalBounds] extends it to causal bounds.
 
 ```bibtex
 @misc{akbar2025symmetryAsIntervention,
