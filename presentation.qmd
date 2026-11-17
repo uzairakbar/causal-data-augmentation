@@ -54,6 +54,7 @@ embed-resources: true
 ::: {.incremental}
 - Can we recover causal effects from *observational* data?
 - **Yes—but only with untestable assumptions and domain knowledge!**
+- E.g., a (partial) causal graph: cancer does not cause cell phones.
 :::
 
 ## This work
@@ -298,8 +299,9 @@ Therefore, DA is equivalent to a *soft* intervention on the treatment $X$.
 :::
 :::
 
-::: {.row}
+::: {.row .tight-math}
 ::: {.fragment fragment-index="3"}
+Under a linear, Gaussian setting:\
 $\Rightarrow$ DA+ERM [*dominates*]{.highlight} vanilla ERM on *causal estimation error (CER)*:
 :::
 <div class="fragment fade-in" data-fragment-index="3" style="position: absolute;">
@@ -350,7 +352,7 @@ $$
 :::
 :::
 :::
-::: {.row}
+::: {.row .tight-math}
 ::: {.fragment fragment-index="4"}
 $$
 R_{\IVL}(\bh) := R_{\IV}(\bh) + \boxed{\alpha \cdot R_{\ERM}(\bh)} \Big\} {\tiny\text{ERM regularizer for ill-posed IV reg.}}
@@ -358,6 +360,7 @@ $$
 :::
 
 ::: {.fragment fragment-index="5"}
+Under a linear, Gaussian setting:\
 $\Rightarrow$ The composition DA+IVL simulates a *worst-case/adversarial* DA.
 :::
 

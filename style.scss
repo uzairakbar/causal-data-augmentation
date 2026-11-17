@@ -163,3 +163,9 @@ shape-rendering: geometricPrecision;
     }
   }
 }
+
+/* Tighter display-math spacing for dense slides */
+.reveal .tight-math mjx-container[display="true"],
+.reveal .tight-math .MathJax_Display {
+  margin: 0.45em 0 !important;
+}
