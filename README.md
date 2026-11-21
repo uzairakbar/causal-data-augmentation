@@ -100,14 +100,15 @@ Simply run the main script `python src/main.py`, or run the Docker container (se
 ## Citation
 If you find our work helpful, consider citing our paper and leaving a star :star:.
 ```bibtex
-@misc{akbar2025causalDataAugmentation,
-      title={An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation}, 
-      author={Uzair Akbar and Niki Kilbertus and Hao Shen and Krikamol Muandet and Bo Dai},
-      year={2025},
-      eprint={2510.25128},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2510.25128}, 
+@inproceedings{akbar2025symmetryAsIntervention,
+  author        = {Akbar, Uzair and Kilbertus, Niki and Shen, Hao and Muandet, Krikamol and Dai, Bo},
+  title         = {An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation},
+  booktitle     = {Advances in Neural Information Processing Systems},
+  volume        = {38},
+  year          = {2025},
+  archivePrefix = {arXiv},
+  eprint        = {2510.25128},
+  doi           = {10.52202/085713-3290}
 }
 ```
 
