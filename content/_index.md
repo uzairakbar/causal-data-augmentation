@@ -17,7 +17,7 @@ buttons = [
     {name = "Code", url = "https://github.com/uzairakbar/causal-data-augmentation"},
     {name = "Slides", url = "presentation.html"},
     {name = "Poster", url = "causal_da_poster.pdf"},
-    {name = "Video", url = "https://neurips.cc/virtual/2025/loc/san-diego/poster/119327"},
+    {name = "Talk", url = "https://youtu.be/EunK50HF0tU"},
 ]
 katex = true
 large_card = true
@@ -105,14 +105,15 @@ Estimation error is captured in an interpretable way using *normalized causal ex
 Workshop versions of this work were presented at the Reliable ML[^reliable-ml-neurips25] and NeurReps[^neurreps-neurips25] workshops @ NeurIPS '25. Our [followup](https://uzairakbar.com/symmetry4CausalBounds/)[^symmetry4CausalBounds] extends it to causal bounds.
 
 ```bibtex
-@misc{akbar2025symmetryAsIntervention,
-      title={An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation}, 
-      author={Uzair Akbar and Niki Kilbertus and Hao Shen and Krikamol Muandet and Bo Dai},
-      year={2025},
-      eprint={2510.25128},
-      archivePrefix={arXiv},
-      primaryClass={cs.LG},
-      url={https://arxiv.org/abs/2510.25128},
+@inproceedings{akbar2025symmetryAsIntervention,
+  author        = {Akbar, Uzair and Kilbertus, Niki and Shen, Hao and Muandet, Krikamol and Dai, Bo},
+  title         = {An Analysis of Causal Effect Estimation using Outcome Invariant Data Augmentation},
+  booktitle     = {Advances in Neural Information Processing Systems},
+  volume        = {38},
+  year          = {2025},
+  archivePrefix = {arXiv},
+  eprint        = {2510.25128},
+  doi           = {10.52202/085713-3290}
 }
 ```
 
